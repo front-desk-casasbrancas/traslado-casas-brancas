@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas - Solicitação de Traslado</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f0;
+            padding: 20px;
+            color: #2c5f2d;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid #e8e0d8;
+        }
+        .card-header {
+            background: #fafaf5;
+            color: #2c5f2d;
+            padding: 24px 28px;
+            border-bottom: 1px solid #e8e0d8;
+        }
+        .card-header h1 { 
+            font-size: 1.6rem; 
+            font-weight: 400;
+            font-family: 'Georgia', serif;
+        }
+        .card-header .sub { 
+            font-size: 0.8rem; 
+            color: #7a8b6e;
+            margin-top: 6px;
+        }
+        .language-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #d4cbb8;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: #5a6e4a;
+        }
+        .lang-btn.active {
+            background: #2c5f2d;
+            border-color: #2c5f2d;
+            color: white;
+        }
+        .card-body { padding: 28px; }
+        .step-section {
+            background: #fefefe;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 28px;
+            border: 1px solid #ebe5db;
+        }
+        .step-title {
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 18px;
+            color: #2c5f2d;
+            border-left: 3px solid #c8b88a;
+            padding-left: 14px;
+        }
+        .form-row { margin-bottom: 18px; }
+        label { 
+            font-size: 0.8rem; 
+            display: block; 
+            margin-bottom: 6px; 
+            color: #5a6e4a;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e2d9cf;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            background: #fff;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #c8b88a;
+            box-shadow: 0 0 0 3px rgba(200,184,138,0.15);
+        }
+        .radio-group { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 6px; }
+        .radio-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .radio-group input { width: auto; margin: 0; }
+        .bagagem-row { display: flex; gap: 16px; flex-wrap: wrap; }
+        .bagagem-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fafaf7;
+            padding: 8px 16px;
+            border-radius: 40px;
+            border: 1px solid #e8e0d8;
+        }
+        .bagagem-item label { margin: 0; font-size: 0.75rem; }
+        .bagagem-item input { width: 70px; padding: 8px; text-align: center; }
+        
+        .categoria-grid {
+            margin-bottom: 36px;
+        }
+        .categoria-nome {
+            font-weight: 500;
+            font-size: 0.9rem;
+            color: #8b7a5c;
+            margin: 0 0 16px 0;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #ebe5db;
+        }
+        .veiculos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 18px;
+            margin-top: 6px;
+        }
+        .veiculo-card {
+            background: #fefefc;
+            border: 1px solid #ebe5db;
+            border-radius: 16px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .veiculo-card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+        }
+        .veiculo-card.selected {
+            background: #f6f4ef;
+            border-color: #c8b88a;
+        }
+        .veiculo-nome { font-weight: 500; font-size: 0.85rem; color: #3a4c30; margin-bottom: 6px; }
+        .veiculo-capacidade { font-size: 0.7rem; color: #8b9a7a; margin: 4px 0; }
+        .veiculo-preco { font-size: 0.85rem; font-weight: 500; color: #8b7a5c; margin-top: 8px; }
+        
+        .resumo-area {
+            background: #fafaf7;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 28px 0;
+            border: 1px solid #ebe5db;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .btn-group { display: flex; gap: 14px; flex-wrap: wrap; }
+        .btn-submit, .btn-copy {
+            flex: 1;
+            padding: 14px;
+            border-radius: 40px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-submit { 
+            background: #2c5f2d; 
+            color: white; 
+        }
+        .btn-submit:hover { background: #1e4520; }
+        .btn-copy { 
+            background: transparent; 
+            color: #5a6e4a; 
+            border: 1px solid #d4cbb8;
+        }
+        .btn-copy:hover { background: #f0ede5; }
+        .feedback { margin-top: 18px; text-align: center; font-size: 0.8rem; padding: 12px; border-radius: 40px; }
+        .feedback.success { background: #e8f0e5; color: #2c5f2d; }
+        .feedback.error { background: #faecec; color: #b85c5a; }
+        .info-box {
+            background: #fafaf7;
+            border-left: 3px solid #c8b88a;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.75rem;
+            color: #6a7e5a;
+        }
+        @media (max-width: 550px) {
+            .card-body { padding: 20px; }
+            .veiculos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .btn-group { flex-direction: column; }
+            .bagagem-row { flex-direction: column; }
+            .bagagem-item { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            <h1 id="mainTitle">Solicitação de Traslado</h1>
+            <div class="sub" id="subTitle">Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios</div>
+        </div>
+        <div class="card-body">
+            <div class="language-bar">
+                <button class="lang-btn active" data-lang="pt">Português</button>
+                <button class="lang-btn" data-lang="en">English</button>
+                <button class="lang-btn" data-lang="es">Español</button>
+            </div>
+
+            <div class="info-box">
+                <strong id="infoTitle">Informações importantes:</strong> 
+                <span id="infoText">Valores por trecho. Tempo estimado: 3h00 a 3h30. Pagamento direto ao motorista (cartão ou dinheiro). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.</span>
+            </div>
+
+            <div id="formContent"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxEbaFYPp9LGdbg0R5C2ZJIqV85o7JiSuJWioQEUGI/dev";
+    const HOTEL_PHONE = "5522997909544";
+
+    const translations = {
+        pt: {
+            mainTitle: "Solicitação de Traslado",
+            subTitle: "Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios",
+            infoTitle: "Informações importantes:",
+            infoText: "Valores por trecho. Tempo estimado: 3h00 a 3h30. Pagamento direto ao motorista (cartão ou dinheiro). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.",
+            step1: "1. Sentido do transfer",
+            step2: "2. Dados do hóspede",
+            step3: "3. Bagagens",
+            step4: "4. Local e horário",
+            step5: "5. Região no Rio de Janeiro",
+            step6: "6. Selecione o veículo",
+            step7: "7. Extras",
+            inOption: "Transfer IN (Rio → Búzios)",
+            outOption: "Transfer OUT (Búzios → Rio)",
+            nome: "Nome completo (titular da reserva)",
+            reserva: "Número da reserva",
+            telefone: "Telefone celular (com DDD)",
+            adultos: "Adultos",
+            criancas: "Crianças",
+            bag23kg: "23kg",
+            bag10kg: "10kg",
+            bagMao: "Mão",
+            regiaoCentro: "Centro / Zona Sul (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeroportos GIG/SDU)",
+            regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
+            madrugada: "Transfer na madrugada (00h às 06h) - + R$ 100",
+            parada: "Parada para almoço/compras - R$ 100/hora",
+            horasParada: "Número de horas de parada",
+            obs: "Observações",
+            pagamento: "Forma de pagamento",
+            cartao: "Cartão de crédito (diretamente ao motorista)",
+            dinheiro: "Dinheiro",
+            pix: "PIX",
+            enviar: "Enviar via WhatsApp",
+            copiar: "Copiar resumo",
+            footer: "Tempo estimado de viagem: 3h00 a 3h30 (pode variar em alta temporada).\nCancelamentos com mínimo 24h de antecedência. Motorista aguarda com placa do hotel.\nServiço terceirizado – o hotel não se responsabiliza por intercorrências.",
+            notInformed: "não informado",
+            noVehicle: "Nenhum veículo selecionado",
+            madrugadaYes: "Sim (R$ 100 adicional)",
+            madrugadaNo: "Não",
+            newRequest: "NOVA SOLICITAÇÃO DE TRASLADO - CASAS BRANCAS",
+            policies: "Políticas: Cancelamento com 24h de antecedência. Motorista aguarda com placa do hotel. Pagamento direto ao motorista.",
+            summary: "Resumo da solicitação",
+            direction: "Sentido",
+            guest: "Hóspede",
+            region: "Região no Rio",
+            vehicle: "Veículo",
+            basePrice: "Preço base",
+            nightExtra: "Adicional madrugada",
+            stopExtra: "Adicional parada",
+            totalValue: "Valor total",
+            date: "Data",
+            payment: "Pagamento"
+        },
+        en: {
+            mainTitle: "Transfer Request",
+            subTitle: "Casas Brancas Boutique Hotel · Private transfer Rio ↔ Búzios",
+            infoTitle: "Important information:",
+            infoText: "Prices per leg. Estimated time: 3h00 to 3h30. Payment directly to driver (card or cash). Night transfer (00h-06h): + R$ 100. Stop: + R$ 100/hour.",
+            step1: "1. Transfer direction",
+            step2: "2. Guest information",
+            step3: "3. Luggage",
+            step4: "4. Location and time",
+            step5: "5. Region in Rio de Janeiro",
+            step6: "6. Select vehicle",
+            step7: "7. Extras",
+            inOption: "Transfer IN (Rio → Búzios)",
+            outOption: "Transfer OUT (Búzios → Rio)",
+            nome: "Full name (reservation holder)",
+            reserva: "Reservation number",
+            telefone: "Cell phone (with area code)",
+            adultos: "Adults",
+            criancas: "Children",
+            bag23kg: "23kg",
+            bag10kg: "10kg",
+            bagMao: "Carry-on",
+            regiaoCentro: "Downtown / South Zone (Leblon, Ipanema, Copacabana, Lapa, Gávea, GIG/SDU airports)",
+            regiaoOeste: "West Zone (Barra da Tijuca, Recreio)",
+            madrugada: "Night transfer (00h to 06h) - + R$ 100",
+            parada: "Stop for lunch/shopping - R$ 100/hour",
+            horasParada: "Number of stop hours",
+            obs: "Observations",
+            pagamento: "Payment method",
+            cartao: "Credit card (directly to driver)",
+            dinheiro: "Cash",
+            pix: "PIX",
+            enviar: "Send via WhatsApp",
+            copiar: "Copy summary",
+            footer: "Estimated travel time: 3h00 to 3h30 (may vary during high season).\nCancellations require 24h notice. Driver waits with hotel sign.\nThird-party service – hotel is not responsible for issues.",
+            notInformed: "not informed",
+            noVehicle: "No vehicle selected",
+            madrugadaYes: "Yes (R$ 100 extra)",
+            madrugadaNo: "No",
+            newRequest: "NEW TRANSFER REQUEST - CASAS BRANCAS",
+            policies: "Policies: 24h cancellation notice. Driver waits with hotel sign. Payment directly to driver.",
+            summary: "Request summary",
+            direction: "Direction",
+            guest: "Guest",
+            region: "Region in Rio",
+            vehicle: "Vehicle",
+            basePrice: "Base price",
+            nightExtra: "Night additional",
+            stopExtra: "Stop additional",
+            totalValue: "Total amount",
+            date: "Date",
+            payment: "Payment"
+        },
+        es: {
+            mainTitle: "Solicitud de Traslado",
+            subTitle: "Casas Brancas Boutique Hotel · Transporte privado Rio ↔ Búzios",
+            infoTitle: "Información importante:",
+            infoText: "Precios por tramo. Tiempo estimado: 3h00 a 3h30. Pago directo al conductor (tarjeta o efectivo). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.",
+            step1: "1. Dirección del traslado",
+            step2: "2. Datos del huésped",
+            step3: "3. Equipaje",
+            step4: "4. Ubicación y horario",
+            step5: "5. Región en Rio de Janeiro",
+            step6: "6. Seleccione el vehículo",
+            step7: "7. Extras",
+            inOption: "Traslado IN (Rio → Búzios)",
+            outOption: "Traslado OUT (Búzios → Rio)",
+            nome: "Nombre completo (titular de la reserva)",
+            reserva: "Número de reserva",
+            telefone: "Teléfono celular (con código de área)",
+            adultos: "Adultos",
+            criancas: "Niños",
+            bag23kg: "23kg",
+            bag10kg: "10kg",
+            bagMao: "Mano",
+            regiaoCentro: "Centro / Zona Sur (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeropuertos GIG/SDU)",
+            regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
+            madrugada: "Traslado de madrugada (00h a 06h) - + R$ 100",
+            parada: "Parada para almuerzo/compras - R$ 100/hora",
+            horasParada: "Número de horas de parada",
+            obs: "Observaciones",
+            pagamento: "Método de pago",
+            cartao: "Tarjeta de crédito (directamente al conductor)",
+            dinheiro: "Efectivo",
+            pix: "PIX",
+            enviar: "Enviar por WhatsApp",
+            copiar: "Copiar resumen",
+            footer: "Tiempo estimado de viaje: 3h00 a 3h30 (puede variar en temporada alta).\nCancelaciones con mínimo 24h de anticipación. Conductor espera con cartel del hotel.\nServicio tercerizado – el hotel no se responsabiliza por incidentes.",
+            notInformed: "no informado",
+            noVehicle: "Ningún vehículo seleccionado",
+            madrugadaYes: "Sí (R$ 100 adicional)",
+            madrugadaNo: "No",
+            newRequest: "NUEVA SOLICITUD DE TRASLADO - CASAS BRANCAS",
+            policies: "Políticas: Cancelación con 24h de anticipación. Conductor espera con cartel del hotel. Pago directo al conductor.",
+            summary: "Resumen de la solicitud",
+            direction: "Dirección",
+            guest: "Huésped",
+            region: "Región en Rio",
+            vehicle: "Vehículo",
+            basePrice: "Precio base",
+            nightExtra: "Adicional madrugada",
+            stopExtra: "Adicional parada",
+            totalValue: "Valor total",
+            date: "Fecha",
+            payment: "Pago"
+        }
+    };
+
+    let currentLang = 'pt';
+    let updateTimeout = null;
+
+    const precosVeiculos = {
+        "centro-sul": {
+            "Transporte Privativo": [
+                { nome: "Nissan Versa ou similar", capacidade: "até 3 passageiros", preco: 880 },
+                { nome: "Chevrolet Spin ou similar", capacidade: "até 4 passageiros", preco: 990 },
+                { nome: "Citroën Jumpy Minivan", capacidade: "até 8 passageiros", preco: 1700 },
+                { nome: "Van grande", capacidade: "até 16 passageiros", preco: 2100 }
+            ],
+            "Carro Executivo": [
+                { nome: "Toyota Corolla Cross Hybrid", capacidade: "até 3 passageiros", preco: 1400 },
+                { nome: "Honda HR-V", capacidade: "até 3 passageiros", preco: 1400 },
+                { nome: "Nissan New Kicks", capacidade: "até 4 passageiros", preco: 1400 },
+                { nome: "Toyota Corolla Sedan", capacidade: "até 3 passageiros", preco: 1550 },
+                { nome: "BYD King", capacidade: "até 3 passageiros", preco: 1550 },
+                { nome: "BYD Song Pro", capacidade: "até 4 passageiros", preco: 1650 },
+                { nome: "Tiggo 8 PRO", capacidade: "até 4 passageiros", preco: 1650 },
+                { nome: "Kia Carnival (sem blindagem)", capacidade: "até 5 passageiros", preco: 2200 },
+                { nome: "Grand Cherokee blindado", capacidade: "até 4 passageiros", preco: 2450 },
+                { nome: "Kia Carnival blindada", capacidade: "até 5 passageiros", preco: 2700 }
+            ],
+            "Carro Executivo Especial": [
+                { nome: "Toyota Corolla Cross Hybrid", capacidade: "até 3 passageiros", preco: 1600, obs: "motorista multilíngue" },
+                { nome: "Honda HR-V", capacidade: "até 3 passageiros", preco: 1600, obs: "motorista multilíngue" },
+                { nome: "Toyota Corolla Sedan", capacidade: "até 3 passageiros", preco: 1750, obs: "motorista multilíngue" },
+                { nome: "BYD King", capacidade: "até 3 passageiros", preco: 1750, obs: "motorista multilíngue" },
+                { nome: "Fiat Scudo Minivan", capacidade: "até 8 passageiros", preco: 2200, obs: "motorista multilíngue" },
+                { nome: "Citroën Jumpy Minivan", capacidade: "até 8 passageiros", preco: 2200, obs: "motorista multilíngue" },
+                { nome: "Kia Carnival (sem blindagem)", capacidade: "até 5 passageiros", preco: 2500, obs: "motorista multilíngue" },
+                { nome: "Grand Cherokee", capacidade: "até 4 passageiros", preco: 2700, obs: "motorista multilíngue" },
+                { nome: "Van grande", capacidade: "até 16 passageiros", preco: 2700, obs: "motorista multilíngue" },
+                { nome: "Kia Carnival blindada", capacidade: "até 5 passageiros", preco: 3000, obs: "motorista multilíngue" }
+            ]
+        },
+        "zona-oeste": {
+            "Transporte Privativo": [
+                { nome: "Nissan Versa ou similar", capacidade: "até 3 passageiros", preco: 980 },
+                { nome: "Chevrolet Spin ou similar", capacidade: "até 4 passageiros", preco: 1090 },
+                { nome: "Citroën Jumpy Minivan", capacidade: "até 8 passageiros", preco: 1800 },
+                { nome: "Van grande", capacidade: "até 16 passageiros", preco: 2200 }
+            ],
+            "Carro Executivo": [
+                { nome: "Toyota Corolla Cross Hybrid", capacidade: "até 3 passageiros", preco: 1400 },
+                { nome: "Honda HR-V", capacidade: "até 3 passageiros", preco: 1400 },
+                { nome: "Nissan New Kicks", capacidade: "até 4 passageiros", preco: 1400 },
+                { nome: "Toyota Corolla Sedan", capacidade: "até 3 passageiros", preco: 1550 },
+                { nome: "BYD King", capacidade: "até 3 passageiros", preco: 1550 },
+                { nome: "BYD Song Pro", capacidade: "até 4 passageiros", preco: 1650 },
+                { nome: "Tiggo 8 PRO", capacidade: "até 4 passageiros", preco: 1650 },
+                { nome: "Kia Carnival (sem blindagem)", capacidade: "até 5 passageiros", preco: 2200 },
+                { nome: "Grand Cherokee blindado", capacidade: "até 4 passageiros", preco: 2450 },
+                { nome: "Kia Carnival blindada", capacidade: "até 5 passageiros", preco: 2700 }
+            ],
+            "Carro Executivo Especial": [
+                { nome: "Toyota Corolla Cross Hybrid", capacidade: "até 3 passageiros", preco: 1600 },
+                { nome: "Honda HR-V", capacidade: "até 3 passageiros", preco: 1600 },
+                { nome: "Toyota Corolla Sedan", capacidade: "até 3 passageiros", preco: 1750 },
+                { nome: "BYD King", capacidade: "até 3 passageiros", preco: 1750 },
+                { nome: "Fiat Scudo Minivan", capacidade: "até 8 passageiros", preco: 2200 },
+                { nome: "Citroën Jumpy Minivan", capacidade: "até 8 passageiros", preco: 2200 },
+                { nome: "Kia Carnival (sem blindagem)", capacidade: "até 5 passageiros", preco: 2500 },
+                { nome: "Grand Cherokee", capacidade: "até 4 passageiros", preco: 2700 },
+                { nome: "Van grande", capacidade: "até 16 passageiros", preco: 2700 },
+                { nome: "Kia Carnival blindada", capacidade: "até 5 passageiros", preco: 3000 }
+            ]
+        }
+    };
+
+    let veiculosCache = { "centro-sul": null, "zona-oeste": null };
+
+    function toggleHorasParada() {
+        const paradaCheck = document.getElementById("parada");
+        const horasDiv = document.getElementById("horasParadaDiv");
+        if (paradaCheck && horasDiv) {
+            horasDiv.style.display = paradaCheck.checked ? "flex" : "none";
+        }
+        scheduleUpdate();
+    }
+
+    function calcularTotal() {
+        const precoBase = parseFloat(document.getElementById("precoBase").value) || 0;
+        let total = precoBase;
+        if (document.getElementById("madrugada")?.checked) total += 100;
+        if (document.getElementById("parada")?.checked) {
+            const horas = parseInt(document.getElementById("horasParada")?.value) || 1;
+            total += horas * 100;
+        }
+        return total;
+    }
+
+    function scheduleUpdate() {
+        if (updateTimeout) clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(() => {
+            atualizarResumo();
+            updateTimeout = null;
+        }, 10);
+    }
+
+    function atualizarResumo() {
+        const t = translations[currentLang];
+        const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const nome = document.getElementById("nome")?.value || t.notInformed;
+        const reserva = document.getElementById("reserva")?.value || "-";
+        const veiculo = document.getElementById("veiculoSelecionado")?.value || t.noVehicle;
+        const precoBase = parseFloat(document.getElementById("precoBase")?.value) || 0;
+        const madrugadaExtra = document.getElementById("madrugada")?.checked ? 100 : 0;
+        let paradaExtra = 0;
+        let paradaTexto = "";
+        if (document.getElementById("parada")?.checked) {
+            const horas = parseInt(document.getElementById("horasParada")?.value) || 1;
+            paradaExtra = horas * 100;
+            paradaTexto = `<br>${t.stopExtra} (${horas}h): R$ ${paradaExtra.toLocaleString('pt-BR')}`;
+        }
+        const total = precoBase + madrugadaExtra + paradaExtra;
+        const regiao = document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste";
+        const data = document.getElementById("dataViagem")?.value || "-";
+        const hora = document.getElementById("horaEmbarque")?.value || "-";
+        const bagagemTexto = getBagagemTexto();
+        
+        const resumoDiv = document.getElementById("resumoPreview");
+        if (resumoDiv) {
+            resumoDiv.innerHTML = `
+                <strong>${t.summary}</strong><br>
+                ${t.direction}: ${sentido}<br>
+                ${t.guest}: ${nome} (Reserva: ${reserva})<br>
+                ${t.region}: ${regiao}<br>
+                ${t.vehicle}: ${veiculo}<br>
+                Bagagens: ${bagagemTexto}<br>
+                ${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}<br>
+                ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
+                ${paradaExtra > 0 ? paradaTexto + "<br>" : ""}
+                <strong>${t.totalValue}: R$ ${total.toLocaleString('pt-BR')}</strong><br>
+                ${t.date}: ${data} às ${hora}<br>
+                ${t.payment}: ${document.getElementById("pagamento")?.options[document.getElementById("pagamento")?.selectedIndex]?.text || "-"}
+            `;
+        }
+    }
+
+    function trocarRegiao() {
+        const regiao = document.querySelector('input[name="regiao"]:checked').value;
+        const container = document.getElementById("veiculosContainer");
+        
+        if (!veiculosCache[regiao]) {
+            renderVeiculos();
+            return;
+        }
+        
+        const veiculoSelecionadoAtual = document.getElementById("veiculoSelecionado").value;
+        const novoContainer = veiculosCache[regiao].cloneNode(true);
+        container.innerHTML = novoContainer.innerHTML;
+        
+        let veiculoEncontrado = false;
+        document.querySelectorAll(".veiculo-card").forEach(card => {
+            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
+            card.addEventListener("click", () => {
+                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
+                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
+                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+                document.getElementById("precoBase").value = preco;
+                scheduleUpdate();
+            });
+            
+            if (nomeVeiculo === veiculoSelecionadoAtual) {
+                card.classList.add("selected");
+                veiculoEncontrado = true;
+            }
+        });
+        
+        if (!veiculoEncontrado && veiculoSelecionadoAtual) {
+            document.getElementById("veiculoSelecionado").value = "";
+            document.getElementById("precoBase").value = "";
+        } else if (!veiculoEncontrado) {
+            document.getElementById("veiculoSelecionado").value = "";
+            document.getElementById("precoBase").value = "";
+        }
+        
+        scheduleUpdate();
+    }
+
+    function renderVeiculos() {
+        const regiao = document.querySelector('input[name="regiao"]:checked').value;
+        const container = document.getElementById("veiculosContainer");
+        const catalogo = precosVeiculos[regiao];
+        const tempContainer = document.createElement('div');
+        
+        for (const [categoria, veiculos] of Object.entries(catalogo)) {
+            const categoriaDiv = document.createElement("div");
+            categoriaDiv.className = "categoria-grid";
+            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
+            tempContainer.appendChild(categoriaDiv);
+            const grid = categoriaDiv.querySelector(`.veiculos-grid`);
+            
+            veiculos.forEach((veic) => {
+                const card = document.createElement("div");
+                card.className = "veiculo-card";
+                card.setAttribute("data-preco", veic.preco);
+                card.setAttribute("data-nome", veic.nome);
+                let obsHtml = veic.obs ? `<div style="font-size:0.65rem; color:#8b9a7a;">${veic.obs}</div>` : "";
+                card.innerHTML = `
+                    <div class="veiculo-nome">${veic.nome}</div>
+                    <div class="veiculo-capacidade">${veic.capacidade}</div>
+                    ${obsHtml}
+                    <div class="veiculo-preco">R$ ${veic.preco.toLocaleString('pt-BR')}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        
+        veiculosCache[regiao] = tempContainer;
+        container.innerHTML = tempContainer.innerHTML;
+        
+        document.querySelectorAll(".veiculo-card").forEach(card => {
+            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
+            card.addEventListener("click", () => {
+                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
+                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
+                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+                document.getElementById("precoBase").value = preco;
+                scheduleUpdate();
+            });
+        });
+    }
+
+    function renderForm() {
+        const t = translations[currentLang];
+        const container = document.getElementById('formContent');
+        container.innerHTML = `
+            <div class="step-section"><div class="step-title">${t.step1}</div>
+                <div class="radio-group" id="sentidoGroup">
+                    <label><input type="radio" name="sentido" value="IN" checked> ${t.inOption}</label>
+                    <label><input type="radio" name="sentido" value="OUT"> ${t.outOption}</label>
+                </div>
+            </div>
+            <div class="step-section"><div class="step-title">${t.step2}</div>
+                <div class="form-row"><label>${t.nome}</label><input type="text" id="nome" required></div>
+                <div class="form-row"><label>${t.reserva}</label><input type="text" id="reserva"></div>
+                <div class="form-row"><label>${t.telefone}</label><input type="tel" id="telefone"></div>
+                <div class="form-row"><label>${t.adultos}</label><input type="number" id="adultos" value="2" style="width:100px"></div>
+                <div class="form-row"><label>${t.criancas}</label><input type="number" id="criancas" value="0" style="width:100px"></div>
+            </div>
+            <div class="step-section"><div class="step-title">${t.step3}</div>
+                <div class="bagagem-row">
+                    <div class="bagagem-item"><label>${t.bag23kg}</label><input type="number" id="bag23kg" value="0" min="0"></div>
+                    <div class="bagagem-item"><label>${t.bag10kg}</label><input type="number" id="bag10kg" value="0" min="0"></div>
+                    <div class="bagagem-item"><label>${t.bagMao}</label><input type="number" id="bagMao" value="0" min="0"></div>
+                </div>
+            </div>
+            <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div></div>
+            <div class="step-section"><div class="step-title">${t.step5}</div>
+                <div class="radio-group" id="regiaoGroup">
+                    <label><input type="radio" name="regiao" value="centro-sul" checked> ${t.regiaoCentro}</label>
+                    <label><input type="radio" name="regiao" value="zona-oeste"> ${t.regiaoOeste}</label>
+                </div>
+            </div>
+            <div class="step-section"><div class="step-title">${t.step6}</div>
+                <div id="veiculosContainer"></div>
+                <input type="hidden" id="veiculoSelecionado"><input type="hidden" id="precoBase">
+            </div>
+            <div class="step-section"><div class="step-title">${t.step7}</div>
+                <div class="form-row"><label><input type="checkbox" id="madrugada"> ${t.madrugada}</label></div>
+                <div class="form-row"><label><input type="checkbox" id="parada"> ${t.parada}</label></div>
+                <div class="form-row" id="horasParadaDiv" style="display: none;">
+                    <label>${t.horasParada}</label>
+                    <input type="number" id="horasParada" value="1" min="1" max="4" style="width:100px">
+                </div>
+                <div class="form-row"><label>${t.obs}</label><textarea id="obs" rows="2"></textarea></div>
+                <div class="form-row"><label>${t.pagamento}</label>
+                    <select id="pagamento"><option>${t.cartao}</option><option>${t.dinheiro}</option><option>${t.pix}</option></select>
+                </div>
+            </div>
+            <div class="resumo-area" id="resumoPreview"></div>
+            <div class="btn-group">
+                <button type="button" class="btn-submit" id="enviarBtn">${t.enviar}</button>
+                <button type="button" class="btn-copy" id="copiarBtn">${t.copiar}</button>
+            </div>
+            <div id="feedbackMsg" class="feedback"></div>
+        `;
+        renderLocalFields();
+        renderVeiculos();
+        bindEvents();
+        scheduleUpdate();
+    }
+
+    function renderLocalFields() {
+        const sentido = document.querySelector('input[name="sentido"]:checked').value;
+        const container = document.getElementById("localFields");
+        if (sentido === "IN") {
+            container.innerHTML = `
+                <div class="form-row"><label>Data de embarque (Rio)</label><input type="date" id="dataViagem" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="form-row"><label>Horário do voo</label><input type="time" id="horaEmbarque" value="05:30"></div>
+                <div class="form-row"><label>Endereço de embarque</label><input type="text" id="endereco" placeholder="Aeroporto GIG"></div>
+                <div class="form-row"><label>Número do voo</label><input type="text" id="voo" placeholder="AA 973"></div>
+                <div class="form-row"><label>Companhia aérea</label><input type="text" id="ciaAerea" placeholder="American Airlines"></div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="form-row"><label>Data de saída (Búzios)</label><input type="date" id="dataViagem" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="form-row"><label>Horário de saída</label><input type="time" id="horaEmbarque" value="10:00"></div>
+                <div class="form-row"><label>Destino no Rio</label><input type="text" id="endereco" placeholder="Aeroporto GIG"></div>
+                <div class="form-row"><label>Número do voo</label><input type="text" id="voo" placeholder="LA 3372"></div>
+                <div class="form-row"><label>Companhia aérea</label><input type="text" id="ciaAerea" placeholder="Latam"></div>
+            `;
+        }
+    }
+
+    function getBagagemTexto() {
+        const bag23 = parseInt(document.getElementById('bag23kg')?.value) || 0;
+        const bag10 = parseInt(document.getElementById('bag10kg')?.value) || 0;
+        const bagMao = parseInt(document.getElementById('bagMao')?.value) || 0;
+        const partes = [];
+        if (bag23 > 0) partes.push(`${bag23}x23kg`);
+        if (bag10 > 0) partes.push(`${bag10}x10kg`);
+        if (bagMao > 0) partes.push(`${bagMao}x mão`);
+        return partes.length > 0 ? partes.join(', ') : 'Nenhuma';
+    }
+
+    function montarMensagem() {
+        const t = translations[currentLang];
+        const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
+        const nome = document.getElementById("nome")?.value || t.notInformed;
+        const reserva = document.getElementById("reserva")?.value || "-";
+        const telefone = document.getElementById("telefone")?.value || "-";
+        const adultos = document.getElementById("adultos")?.value || "0";
+        const criancas = document.getElementById("criancas")?.value || "0";
+        const bagagemTexto = getBagagemTexto();
+        const veiculo = document.getElementById("veiculoSelecionado")?.value || t.noVehicle;
+        const total = calcularTotal();
+        const regiao = document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste";
+        const data = document.getElementById("dataViagem")?.value || "-";
+        const hora = document.getElementById("horaEmbarque")?.value || "-";
+        const endereco = document.getElementById("endereco")?.value || "-";
+        const voo = document.getElementById("voo")?.value || "-";
+        const ciaAerea = document.getElementById("ciaAerea")?.value || "-";
+        const madrugada = document.getElementById("madrugada")?.checked ? t.madrugadaYes : t.madrugadaNo;
+        const obs = document.getElementById("obs")?.value || "-";
+        const pagamento = document.getElementById("pagamento")?.options[document.getElementById("pagamento")?.selectedIndex]?.text || "-";
+        
+        let mensagem = `${t.newRequest}\n\n`;
+        mensagem += `Direção: ${sentido}\n`;
+        mensagem += `Hóspede: ${nome}\n`;
+        mensagem += `Reserva: ${reserva}\n`;
+        mensagem += `Telefone: ${telefone}\n`;
+        mensagem += `Passageiros: ${adultos} adultos, ${criancas} crianças\n`;
+        mensagem += `Bagagens: ${bagagemTexto}\n\n`;
+        mensagem += `Região no Rio: ${regiao}\n`;
+        mensagem += `Veículo: ${veiculo}\n`;
+        mensagem += `Valor total: R$ ${total.toLocaleString('pt-BR')}\n`;
+        mensagem += `Madrugada: ${madrugada}\n\n`;
+        mensagem += `Data: ${data}\n`;
+        mensagem += `Horário: ${hora}\n`;
+        mensagem += `Endereço: ${endereco}\n`;
+        mensagem += `Voo: ${voo} - ${ciaAerea}\n\n`;
+        mensagem += `Pagamento: ${pagamento}\n`;
+        mensagem += `Observações: ${obs}\n\n`;
+        mensagem += `---\n${t.policies}`;
+        
+        return mensagem;
+    }
+
+    async function enviarParaGoogleSheets(dados) {
+        try {
+            await fetch(WEBAPP_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+            return true;
+        } catch (erro) {
+            console.error("Erro ao enviar:", erro);
+            return false;
+        }
+    }
+
+    async function enviarWhatsApp() {
+        const veiculo = document.getElementById("veiculoSelecionado")?.value;
+        if (!veiculo) {
+            mostrarFeedback("Selecione um veículo.", "error");
+            return;
+        }
+        const nome = document.getElementById("nome")?.value.trim();
+        if (!nome) {
+            mostrarFeedback("Informe o nome do hóspede.", "error");
+            return;
+        }
+        
+        const dadosPlanilha = {
+            id: Date.now(),
+            nome: nome,
+            reserva: document.getElementById("reserva")?.value || "",
+            telefone: document.getElementById("telefone")?.value || "",
+            sentido: document.querySelector('input[name="sentido"]:checked').value,
+            dataViagem: document.getElementById("dataViagem")?.value,
+            horario: document.getElementById("horaEmbarque")?.value,
+            regiao: document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste",
+            veiculo: veiculo,
+            valorTotal: calcularTotal(),
+            madrugada: document.getElementById("madrugada")?.checked,
+            parada: document.getElementById("parada")?.checked,
+            horasParada: document.getElementById("parada")?.checked ? parseInt(document.getElementById("horasParada")?.value) || 1 : 0,
+            bagagem23kg: parseInt(document.getElementById("bag23kg")?.value) || 0,
+            bagagem10kg: parseInt(document.getElementById("bag10kg")?.value) || 0,
+            bagagemMao: parseInt(document.getElementById("bagMao")?.value) || 0,
+            obs: document.getElementById("obs")?.value || "",
+            pagamento: document.getElementById("pagamento")?.value,
+            endereco: document.getElementById("endereco")?.value || "",
+            voo: document.getElementById("voo")?.value || "",
+            ciaAerea: document.getElementById("ciaAerea")?.value || "",
+            idioma: currentLang
+        };
+        
+        mostrarFeedback("Enviando...", "success");
+        await enviarParaGoogleSheets(dadosPlanilha);
+        
+        const mensagem = montarMensagem();
+        const msgCodificada = encodeURIComponent(mensagem);
+        window.open(`https://wa.me/${HOTEL_PHONE}?text=${msgCodificada}`, '_blank');
+        
+        mostrarFeedback("Dados salvos e WhatsApp aberto!", "success");
+        
+        document.getElementById("veiculoSelecionado").value = "";
+        document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+        scheduleUpdate();
+    }
+
+    function copiarMensagem() {
+        const veiculo = document.getElementById("veiculoSelecionado")?.value;
+        if (!veiculo) {
+            mostrarFeedback("Selecione um veículo.", "error");
+            return;
+        }
+        const mensagem = montarMensagem();
+        navigator.clipboard.writeText(mensagem);
+        mostrarFeedback("Mensagem copiada!", "success");
+    }
+
+    function mostrarFeedback(msg, tipo) {
+        const fb = document.getElementById("feedbackMsg");
+        fb.textContent = msg;
+        fb.className = `feedback ${tipo}`;
+        setTimeout(() => fb.textContent = "", 4000);
+    }
+
+    function bindEvents() {
+        const sentidoRadios = document.querySelectorAll('input[name="sentido"]');
+        sentidoRadios.forEach(r => r.addEventListener('change', () => {
+            renderLocalFields();
+            scheduleUpdate();
+        }));
+        
+        const regiaoRadios = document.querySelectorAll('input[name="regiao"]');
+        regiaoRadios.forEach(r => r.addEventListener('change', () => {
+            trocarRegiao();
+        }));
+        
+        ['nome', 'reserva', 'telefone', 'adultos', 'criancas', 'bag23kg', 'bag10kg', 'bagMao', 'obs', 'dataViagem', 'horaEmbarque', 'endereco', 'voo', 'ciaAerea', 'horasParada'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => scheduleUpdate());
+        });
+        
+        const madrugadaCheck = document.getElementById("madrugada");
+        if (madrugadaCheck) madrugadaCheck.addEventListener('change', () => scheduleUpdate());
+        
+        const paradaCheck = document.getElementById("parada");
+        if (paradaCheck) {
+            paradaCheck.addEventListener('change', () => {
+                toggleHorasParada();
+                scheduleUpdate();
+            });
+        }
+        
+        const enviarBtn = document.getElementById("enviarBtn");
+        if (enviarBtn) enviarBtn.addEventListener('click', enviarWhatsApp);
+        
+        const copiarBtn = document.getElementById("copiarBtn");
+        if (copiarBtn) copiarBtn.addEventListener('click', copiarMensagem);
+    }
+
+    function translatePage() {
+        const t = translations[currentLang];
+        document.getElementById('mainTitle').innerText = t.mainTitle;
+        document.getElementById('subTitle').innerText = t.subTitle;
+        document.getElementById('infoTitle').innerHTML = t.infoTitle;
+        document.getElementById('infoText').innerHTML = t.infoText;
+        
+        const stepTitles = document.querySelectorAll('.step-title');
+        if (stepTitles.length >= 7) {
+            stepTitles[0].innerHTML = t.step1;
+            stepTitles[1].innerHTML = t.step2;
+            stepTitles[2].innerHTML = t.step3;
+            stepTitles[3].innerHTML = t.step4;
+            stepTitles[4].innerHTML = t.step5;
+            stepTitles[5].innerHTML = t.step6;
+            stepTitles[6].innerHTML = t.step7;
+        }
+        
+        const radios = document.querySelectorAll('.radio-group');
+        if (radios[0]) {
+            radios[0].querySelectorAll('label')[0].childNodes[1].textContent = t.inOption;
+            radios[0].querySelectorAll('label')[1].childNodes[1].textContent = t.outOption;
+        }
+        if (radios[1]) {
+            radios[1].querySelectorAll('label')[0].childNodes[1].textContent = t.regiaoCentro;
+            radios[1].querySelectorAll('label')[1].childNodes[1].textContent = t.regiaoOeste;
+        }
+        
+        const labels = document.querySelectorAll('.form-row label');
+        if (labels[0]) labels[0].innerHTML = t.nome;
+        if (labels[1]) labels[1].innerHTML = t.reserva;
+        if (labels[2]) labels[2].innerHTML = t.telefone;
+        if (labels[3]) labels[3].innerHTML = t.adultos;
+        if (labels[4]) labels[4].innerHTML = t.criancas;
+        if (labels[5]) labels[5].innerHTML = t.obs;
+        if (labels[6]) labels[6].innerHTML = t.pagamento;
+        
+        const bagLabels = document.querySelectorAll('.bagagem-item label');
+        if (bagLabels[0]) bagLabels[0].innerHTML = t.bag23kg;
+        if (bagLabels[1]) bagLabels[1].innerHTML = t.bag10kg;
+        if (bagLabels[2]) bagLabels[2].innerHTML = t.bagMao;
+        
+        const madLabel = document.querySelector('#madrugada');
+        if (madLabel && madLabel.nextSibling) madLabel.nextSibling.textContent = t.madrugada;
+        
+        const paradaLabel = document.querySelector('#parada');
+        if (paradaLabel && paradaLabel.nextSibling) paradaLabel.nextSibling.textContent = t.parada;
+        
+        const horasParadaLabel = document.querySelector('#horasParadaDiv label');
+        if (horasParadaLabel) horasParadaLabel.innerHTML = t.horasParada;
+        
+        const enviarBtn = document.getElementById("enviarBtn");
+        if (enviarBtn) enviarBtn.innerHTML = t.enviar;
+        
+        const copiarBtn = document.getElementById("copiarBtn");
+        if (copiarBtn) copiarBtn.innerHTML = t.copiar;
+        
+        const footerText = document.getElementById("footerText");
+        if (footerText) footerText.innerHTML = t.footer;
+        
+        scheduleUpdate();
+    }
+
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentLang = this.getAttribute('data-lang');
+            translatePage();
+        });
+    });
+
+    renderForm();
+    translatePage();
+</script>
+</body>
+</html>
