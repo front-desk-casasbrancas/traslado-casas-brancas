@@ -63,6 +63,7 @@
         th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ebe5db; font-size: 0.85rem; }
         th { background: #fafaf7; font-weight: 600; color: #2c5f2d; }
         .month-group td { background: #e8f0e5; padding: 12px; font-weight: 600; color: #2c5f2d; }
+        .completed-row td { background: #d4edda; text-decoration: line-through; color: #6c7a5e; }
         .comissao-card {
             background: linear-gradient(135deg, #2c5f2d, #1e4520);
             color: white;
@@ -97,8 +98,24 @@
             border-radius: 40px;
             cursor: pointer;
             font-size: 0.75rem;
+            margin-right: 5px;
         }
         .confirm-btn:hover { background: #128C7E; }
+        .complete-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .complete-btn.completed {
+            background: #28a745;
+            cursor: default;
+            opacity: 0.7;
+        }
+        .complete-btn:hover:not(.completed) { background: #5a6268; }
         .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
         .error-message {
             background: #faecec;
@@ -118,6 +135,7 @@
         }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+            .confirm-btn, .complete-btn { padding: 4px 8px; font-size: 0.7rem; }
         }
     </style>
 </head>
@@ -167,8 +185,17 @@
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
                     <thead>
-                        <tr><th>Data/Hora</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Veículo</th><th>Data Viagem</th><th>Horário</th><th>Valor</th><th>Confirmar</th></tr>
-                    </thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Hóspede</th>
+                            <th>Telefone</th>
+                            <th>Sentido</th>
+                            <th>Veículo</th>
+                            <th>Data Viagem</th>
+                            <th>Horário</th>
+                            <th>Valor</th>
+                            <th>Ações</th>
+                        </thead>
                     <tbody id="historyBody">
                         <tr><td colspan="9" style="text-align: center;">Carregando...<\/td><\/tr>
                     <\/tbody>
@@ -196,22 +223,6 @@
             const mes = (date.getMonth() + 1).toString().padStart(2, '0');
             const ano = date.getFullYear();
             return `${dia}/${mes}/${ano}`;
-        } catch(e) {
-            return "-";
-        }
-    }
-
-    function formatarDataHora(dataHoraStr) {
-        if (!dataHoraStr) return "-";
-        try {
-            const date = new Date(dataHoraStr);
-            if (isNaN(date.getTime())) return "-";
-            const dia = date.getDate().toString().padStart(2, '0');
-            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
-            const ano = date.getFullYear();
-            const hora = date.getHours().toString().padStart(2, '0');
-            const min = date.getMinutes().toString().padStart(2, '0');
-            return `${dia}/${mes}/${ano} ${hora}:${min}`;
         } catch(e) {
             return "-";
         }
@@ -247,7 +258,7 @@
     function mostrarErro(mensagem) {
         const errorDiv = document.getElementById('errorDisplay');
         errorDiv.style.display = 'block';
-        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem + '<br><br>Soluções:<br>• Verifique se a planilha está compartilhada<br>• Verifique se o Apps Script está implantado<br>• Clique em "Atualizar" para tentar novamente';
+        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem;
         document.getElementById('lastUpdate').innerHTML = 'Erro ao carregar dados.';
     }
 
@@ -351,6 +362,35 @@ Casas Brancas Boutique Hotel`;
         window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
     }
 
+    function marcarFinalizado(transfer) {
+        const finalized = JSON.parse(localStorage.getItem('finalizedTransfers') || '{}');
+        finalized[transfer["ID"]] = true;
+        localStorage.setItem('finalizedTransfers', JSON.stringify(finalized));
+        updateHistoryTable();
+        mostrarFeedback(`Transfer para ${transfer["Nome"]} marcado como finalizado!`, "success");
+    }
+
+    function isFinalizado(transfer) {
+        const finalized = JSON.parse(localStorage.getItem('finalizedTransfers') || '{}');
+        return finalized[transfer["ID"]] === true;
+    }
+
+    function mostrarFeedback(msg, tipo) {
+        const feedback = document.createElement('div');
+        feedback.style.position = 'fixed';
+        feedback.style.bottom = '20px';
+        feedback.style.right = '20px';
+        feedback.style.backgroundColor = tipo === 'success' ? '#28a745' : '#dc3545';
+        feedback.style.color = 'white';
+        feedback.style.padding = '12px 20px';
+        feedback.style.borderRadius = '8px';
+        feedback.style.zIndex = '9999';
+        feedback.style.fontSize = '0.9rem';
+        feedback.innerText = msg;
+        document.body.appendChild(feedback);
+        setTimeout(() => feedback.remove(), 3000);
+    }
+
     function updateDashboard() {
         const total = transfers.length;
         const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
@@ -367,7 +407,6 @@ Casas Brancas Boutique Hotel`;
         document.getElementById('topVehicle').innerText = topVehicle;
         document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
         
-        // Dados mensais baseados na DATA DA VIAGEM
         const monthlyData = {};
         transfers.forEach(t => {
             if (t["Data Viagem"]) {
@@ -407,18 +446,18 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
-        // ORDENAR POR DATA DA VIAGEM (mais recente primeiro)
+        // Ordenar por data da viagem (crescente - mais antigo primeiro)
         const sorted = [...transfers].sort((a, b) => {
             const dataA = a["Data Viagem"] ? new Date(a["Data Viagem"]) : new Date(0);
             const dataB = b["Data Viagem"] ? new Date(b["Data Viagem"]) : new Date(0);
-            return dataB - dataA;
+            return dataA - dataB;
         });
         
-        // AGRUPAR POR MÊS DA VIAGEM
+        // Agrupar por mês da viagem
         const grouped = {};
         sorted.forEach(t => {
             if (!t["Data Viagem"]) return;
@@ -441,22 +480,30 @@ Casas Brancas Boutique Hotel`;
                 const valor = parseFloat(t["Valor Total"]) || 0;
                 const veiculo = t["Veículo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-                const dataViagem = formatarData(t["Data Viagem"]);
-                const dataHora = formatarDataHora(t["Data/Hora"]);
+                const dataTransfer = formatarData(t["Data Viagem"]);
                 const horario = formatarHorario(t["Horário"]);
+                const finalized = isFinalizado(t);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
                 
+                const rowClass = finalized ? 'completed-row' : '';
+                const confirmBtnDisabled = finalized ? 'disabled' : '';
+                const completeBtnText = finalized ? '✅ Finalizado' : '⬜ Finalizar';
+                const completeBtnClass = finalized ? 'complete-btn completed' : 'complete-btn';
+                
                 html += `
-                    <tr>
-                        <td>${dataHora}<\/td>
+                    <tr class="${rowClass}">
+                        <td>${dataTransfer} ${horario}<\/td>
                         <td>${t["Nome"] || '-'}<\/td>
                         <td>${telefone}<\/td>
                         <td>${sentido}<\/td>
                         <td>${veiculo}<\/td>
-                        <td>${dataViagem}<\/td>
+                        <td>${dataTransfer}<\/td>
                         <td>${horario}<\/td>
                         <td>R$ ${valor.toLocaleString('pt-BR')}<\/td>
-                        <td><button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})'>Confirmar<\/button><\/td>
+                        <td>
+                            <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${confirmBtnDisabled}>Confirmar<\/button>
+                            <button class="${completeBtnClass}" onclick='marcarFinalizado(${transferJson})' ${confirmBtnDisabled}>${completeBtnText}<\/button>
+                        <\/td>
                     <\/tr>
                 `;
             });
@@ -516,8 +563,8 @@ Casas Brancas Boutique Hotel`;
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
             <tr><td>Todos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr><td>Este mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr>.htmlEste mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <td>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr>.htmlÚltimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <\/tbody><\/table>
         `;
