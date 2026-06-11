@@ -228,33 +228,25 @@
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    // 🔧 FUNÇÃO RADICAL PARA EXTRAIR HORÁRIO - Funciona com QUALQUER formato
+    // ==================== FUNÇÃO PARA EXTRAIR APENAS O HORÁRIO (COLUNA H) ====================
     function extrairHorario(horarioRaw) {
         if (!horarioRaw) return "-";
         
         let str = horarioRaw.toString();
         
-        // Caso 1: Formato "1899-12-30T09:06:28.000Z"
+        // Se for ISO, extrair HH:MM
         if (str.includes('T')) {
             let timePart = str.split('T')[1];
             if (timePart) {
-                return timePart.substring(0, 5);  // "09:06"
+                return timePart.substring(0, 5);
             }
         }
         
-        // Caso 2: Já está no formato "09:06"
+        // Se já for HH:MM
         let match = str.match(/(\d{2}):(\d{2})/);
         if (match) {
             return `${match[1]}:${match[2]}`;
         }
-        
-        // Caso 3: Tentar converter via Date
-        try {
-            let d = new Date(str);
-            if (!isNaN(d.getTime())) {
-                return d.toTimeString().substring(0, 5);
-            }
-        } catch(e) {}
         
         return str.substring(0, 5) || "-";
     }
@@ -358,13 +350,15 @@
             }
         }
         
+        let horario = extrairHorario(t["Horario"]);
+        
         let msg = `TRASLADO CONFIRMADO - CASAS BRANCAS\n\n` +
                   `Sua solicitação foi confirmada!\n\n` +
                   `Detalhes da viagem:\n` +
                   `Hóspede: ${t["Nome"] || "-"}\n` +
                   `Reserva: ${t["Reserva"] || "-"}\n` +
                   `Data: ${data}\n` +
-                  `Horário: ${extrairHorario(t["Horario"])}\n` +
+                  `Horário: ${horario}\n` +
                   `Sentido: ${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}\n` +
                   `Veículo: ${t["Veículo"] || "-"}\n` +
                   `Valor total: R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}\n\n` +
@@ -430,7 +424,7 @@
                     }
                 }
                 
-                // 🔧 EXTRAIR HORÁRIO CORRETAMENTE
+                // 🔧 PEGAR HORÁRIO DIRETAMENTE DA COLUNA H (Horario)
                 let horario = extrairHorario(t["Horario"]);
                 
                 let completed = isCompleted(t);
@@ -480,12 +474,12 @@
         let total3M = ativos.filter(t => { if (!t["Data Viagem"]) return false; return new Date(t["Data Viagem"]) >= tresMesesAtras; }).reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
         
         document.getElementById('comissaoDetalhe').innerHTML = `
-            <table style="width:100%"><thead><tr><th>Período</th><th>Total em Traslados</th><th>Comissão (15%)</th></tr></thead><tbody>
-            <tr>.htmlTodos os períodos</td><td>R$ ${totalGeral.toLocaleString('pt-BR')}</td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}</td><\/tr>
-            <tr>.htmlEste mês</td><td>R$ ${totalMA.toLocaleString('pt-BR')}</td><td>R$ ${(totalMA*0.15).toLocaleString('pt-BR')}</td><\/tr>
-            <tr>.htmlMês passado</td><td>R$ ${totalMP.toLocaleString('pt-BR')}</td><td>R$ ${(totalMP*0.15).toLocaleString('pt-BR')}</td><\/tr>
-            <tr>.htmlÚltimos 3 meses</td><td>R$ ${total3M.toLocaleString('pt-BR')}</td><td>R$ ${(total3M*0.15).toLocaleString('pt-BR')}</td><\/tr>
-            <\/tbody><\/table>
+            <table style="width:100%"><thead><td><th>Período</th><th>Total em Traslados</th><th>Comissão (15%)</th></tr></thead><tbody>
+                <tr><td>Todos os períodos</td><td>R$ ${totalGeral.toLocaleString('pt-BR')}</td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}</td></tr>
+                <tr><td>Este mês</td><td>R$ ${totalMA.toLocaleString('pt-BR')}</td><td>R$ ${(totalMA*0.15).toLocaleString('pt-BR')}</td></tr>
+                <tr><td>Mês passado</td><td>R$ ${totalMP.toLocaleString('pt-BR')}</td><td>R$ ${(totalMP*0.15).toLocaleString('pt-BR')}</td></tr>
+                <tr><td>Últimos 3 meses</td><td>R$ ${total3M.toLocaleString('pt-BR')}</td><td>R$ ${(total3M*0.15).toLocaleString('pt-BR')}</td></tr>
+            </tbody></table>
         `;
         
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
