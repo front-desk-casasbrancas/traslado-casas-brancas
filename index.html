@@ -282,6 +282,10 @@
             totalValue: "Valor total",
             date: "Data",
             payment: "Pagamento",
+            // Categorias dos veículos
+            categoriaPrivativo: "Transporte Privativo",
+            categoriaExecutivo: "Carro Executivo",
+            categoriaEspecial: "Carro Executivo Especial",
             // Labels para localFields
             labelDataEmbarque: "Data de embarque (Rio)",
             labelHoraEmbarque: "Horário do voo",
@@ -352,6 +356,10 @@
             totalValue: "Total amount",
             date: "Date",
             payment: "Payment",
+            // Categorias dos veículos
+            categoriaPrivativo: "Private Transport",
+            categoriaExecutivo: "Executive Car",
+            categoriaEspecial: "Special Executive Car",
             // Labels for localFields
             labelDataEmbarque: "Departure date (Rio)",
             labelHoraEmbarque: "Flight time",
@@ -422,6 +430,10 @@
             totalValue: "Valor total",
             date: "Fecha",
             payment: "Pago",
+            // Categorias dos veículos
+            categoriaPrivativo: "Transporte Privado",
+            categoriaExecutivo: "Auto Ejecutivo",
+            categoriaEspecial: "Auto Ejecutivo Especial",
             // Labels for localFields
             labelDataEmbarque: "Fecha de embarque (Río)",
             labelHoraEmbarque: "Hora del vuelo",
@@ -587,6 +599,7 @@
     function trocarRegiao() {
         const regiao = document.querySelector('input[name="regiao"]:checked').value;
         const container = document.getElementById("veiculosContainer");
+        const t = translations[currentLang];
         
         if (!veiculosCache[regiao]) {
             renderVeiculos();
@@ -595,6 +608,15 @@
         
         const veiculoSelecionadoAtual = document.getElementById("veiculoSelecionado").value;
         const novoContainer = veiculosCache[regiao].cloneNode(true);
+        
+        // Traduzir os títulos das categorias no container clonado
+        const categoriasTitulos = novoContainer.querySelectorAll('.categoria-nome');
+        if (categoriasTitulos.length >= 3) {
+            categoriasTitulos[0].innerText = t.categoriaPrivativo;
+            categoriasTitulos[1].innerText = t.categoriaExecutivo;
+            categoriasTitulos[2].innerText = t.categoriaEspecial;
+        }
+        
         container.innerHTML = novoContainer.innerHTML;
         
         let veiculoEncontrado = false;
@@ -629,15 +651,22 @@
 
     function renderVeiculos() {
         const regiao = document.querySelector('input[name="regiao"]:checked').value;
-        const container = document.getElementById("veiculosContainer");
         const catalogo = precosVeiculos[regiao];
-        const tempContainer = document.createElement('div');
-        
+        const container = document.getElementById("veiculosContainer");
+        const t = translations[currentLang];
+        container.innerHTML = "";
+
         for (const [categoria, veiculos] of Object.entries(catalogo)) {
+            // Traduz o nome da categoria
+            let categoriaTraduzida = categoria;
+            if (categoria === "Transporte Privativo") categoriaTraduzida = t.categoriaPrivativo;
+            else if (categoria === "Carro Executivo") categoriaTraduzida = t.categoriaExecutivo;
+            else if (categoria === "Carro Executivo Especial") categoriaTraduzida = t.categoriaEspecial;
+            
             const categoriaDiv = document.createElement("div");
             categoriaDiv.className = "categoria-grid";
-            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
-            tempContainer.appendChild(categoriaDiv);
+            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoriaTraduzida}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
+            container.appendChild(categoriaDiv);
             const grid = categoriaDiv.querySelector(`.veiculos-grid`);
             
             veiculos.forEach((veic) => {
@@ -652,25 +681,21 @@
                     ${obsHtml}
                     <div class="veiculo-preco">R$ ${veic.preco.toLocaleString('pt-BR')}</div>
                 `;
+                card.addEventListener("click", () => {
+                    document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+                    card.classList.add("selected");
+                    document.getElementById("veiculoSelecionado").value = veic.nome;
+                    document.getElementById("precoBase").value = veic.preco;
+                    scheduleUpdate();
+                });
                 grid.appendChild(card);
             });
         }
         
+        // Salvar no cache
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = container.innerHTML;
         veiculosCache[regiao] = tempContainer;
-        container.innerHTML = tempContainer.innerHTML;
-        
-        document.querySelectorAll(".veiculo-card").forEach(card => {
-            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
-            card.addEventListener("click", () => {
-                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
-                card.classList.add("selected");
-                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
-                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
-                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
-                document.getElementById("precoBase").value = preco;
-                scheduleUpdate();
-            });
-        });
     }
 
     function renderForm() {
@@ -1019,6 +1044,14 @@
         
         const footerText = document.getElementById("footerText");
         if (footerText) footerText.innerHTML = t.footer;
+        
+        // Atualizar as categorias dos veículos (títulos)
+        const categoriasTitulos = document.querySelectorAll('.categoria-nome');
+        if (categoriasTitulos.length >= 3) {
+            categoriasTitulos[0].innerText = t.categoriaPrivativo;
+            categoriasTitulos[1].innerText = t.categoriaExecutivo;
+            categoriasTitulos[2].innerText = t.categoriaEspecial;
+        }
         
         // Atualizar os campos locais se já existirem
         const localFields = document.getElementById("localFields");
