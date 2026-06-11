@@ -213,7 +213,7 @@
                             <th>Ações</th>
                         </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="9" style="text-align: center;">Carregando...<\/td><\/tr>
+                        <td><td colspan="9" style="text-align: center;">Carregando...<\/td><\/tr>
                     <\/tbody>
                 <\/table>
             <\/div>
@@ -244,18 +244,52 @@
         }
     }
 
+    function formatarDataHora(dataHoraStr) {
+        if (!dataHoraStr) return "-";
+        try {
+            const date = new Date(dataHoraStr);
+            if (isNaN(date.getTime())) return "-";
+            const dia = date.getDate().toString().padStart(2, '0');
+            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
+            const ano = date.getFullYear();
+            const hora = date.getHours().toString().padStart(2, '0');
+            const min = date.getMinutes().toString().padStart(2, '0');
+            return `${dia}/${mes}/${ano} ${hora}:${min}`;
+        } catch(e) {
+            return "-";
+        }
+    }
+
+    // 🔧 FUNÇÃO CORRIGIDA PARA EXTRAIR APENAS HORA:MINUTO
     function formatarHorario(horarioStr) {
         if (!horarioStr) return "-";
         try {
-            if (horarioStr.includes("T")) {
-                const timePart = horarioStr.split('T')[1];
-                if (timePart) return timePart.substring(0, 5);
+            let horaStr = horarioStr.toString();
+            
+            // Caso 1: Formato ISO com T (ex: "1899-12-30T09:06:28.000Z")
+            if (horaStr.includes('T')) {
+                const timePart = horaStr.split('T')[1];
+                if (timePart) {
+                    // Pega apenas HH:MM
+                    const horaMin = timePart.substring(0, 5);
+                    return horaMin;
+                }
             }
-            if (horarioStr.length >= 5 && horarioStr.includes(':')) {
-                return horarioStr.substring(0, 5);
+            
+            // Caso 2: Já está no formato HH:MM
+            if (horaStr.match(/^\d{2}:\d{2}/)) {
+                return horaStr.substring(0, 5);
             }
+            
+            // Caso 3: Tentar extrair via regex
+            const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
+            if (timeMatch) {
+                return `${timeMatch[1]}:${timeMatch[2]}`;
+            }
+            
             return "-";
         } catch(e) {
+            console.error("Erro ao formatar horário:", e);
             return "-";
         }
     }
@@ -413,14 +447,6 @@ Casas Brancas Boutique Hotel`;
         mostrarFeedback(`Transfer para ${transfer["Nome"]} cancelado!`, "error");
     }
 
-    function reativarTransfer(transfer) {
-        setStatus(transfer, 'active');
-        updateHistoryTable();
-        updateDashboard();
-        updateComissaoTab(currentPeriodo);
-        mostrarFeedback(`Transfer para ${transfer["Nome"]} reativado!`, "success");
-    }
-
     function isActive(transfer) {
         return getStatus(transfer) === 'active';
     }
@@ -450,7 +476,6 @@ Casas Brancas Boutique Hotel`;
     }
 
     function updateDashboard() {
-        // Filtrar apenas transfers ativos (não cancelados)
         const activeTransfers = transfers.filter(t => !isCancelled(t));
         const total = activeTransfers.length;
         const totalValue = activeTransfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
@@ -506,18 +531,16 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
-        // Ordenar por data da viagem (crescente - mais antigo primeiro)
         const sorted = [...transfers].sort((a, b) => {
             const dataA = a["Data Viagem"] ? new Date(a["Data Viagem"]) : new Date(0);
             const dataB = b["Data Viagem"] ? new Date(b["Data Viagem"]) : new Date(0);
             return dataA - dataB;
         });
         
-        // Agrupar por mês da viagem
         const grouped = {};
         sorted.forEach(t => {
             if (!t["Data Viagem"]) return;
@@ -530,7 +553,6 @@ Casas Brancas Boutique Hotel`;
         
         let html = '';
         for (const [monthYear, items] of Object.entries(grouped)) {
-            // Calcular totais apenas dos ativos
             const activeItems = items.filter(t => !isCancelled(t));
             const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
             const comissaoMes = totalMes * 0.15;
@@ -543,6 +565,7 @@ Casas Brancas Boutique Hotel`;
                 const veiculo = t["Veículo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 const dataTransfer = formatarData(t["Data Viagem"]);
+                const dataHora = formatarDataHora(t["Data/Hora"]);
                 const horario = formatarHorario(t["Horário"]);
                 const isCompletedStatus = isCompleted(t);
                 const isCancelledStatus = isCancelled(t);
@@ -602,7 +625,6 @@ Casas Brancas Boutique Hotel`;
         const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
         const tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         
-        // Filtrar apenas transfers ativos (não cancelados)
         const activeTransfers = transfers.filter(t => !isCancelled(t));
         
         let filtered = activeTransfers;
