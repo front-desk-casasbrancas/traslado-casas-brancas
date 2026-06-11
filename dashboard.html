@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Casas Brancas - Dashboard de Traslados</title>
+    <title>Casas Brancas - Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -74,85 +74,18 @@
         }
         .comissao-valor { font-size: 2.5rem; font-weight: 600; }
         .comissao-periodo { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
-        .periodo-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 40px;
-            color: white;
-            cursor: pointer;
-        }
+        .periodo-btn { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 40px; color: white; cursor: pointer; }
         .periodo-btn.active { background: #c8b88a; color: #2c5f2d; font-weight: 600; }
-        .refresh-btn {
-            background: #2c5f2d;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            cursor: pointer;
-        }
-        .confirm-btn {
-            background: #25D366;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.7rem;
-            margin-right: 5px;
-        }
+        .refresh-btn { background: #2c5f2d; color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; }
+        .confirm-btn { background: #25D366; color: white; border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; }
         .confirm-btn:hover { background: #128C7E; }
-        .complete-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.7rem;
-            margin-right: 5px;
-        }
-        .complete-btn.completed {
-            background: #28a745;
-            cursor: default;
-            opacity: 0.7;
-        }
-        .cancel-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 40px;
-            cursor: pointer;
-            font-size: 0.7rem;
-        }
-        .cancel-btn.cancelled {
-            background: #6c757d;
-            cursor: default;
-            opacity: 0.7;
-        }
-        .complete-btn:hover:not(.completed), .cancel-btn:hover:not(.cancelled) { opacity: 0.8; }
+        .complete-btn { background: #6c757d; color: white; border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; }
+        .complete-btn.completed { background: #28a745; cursor: default; opacity: 0.7; }
+        .cancel-btn { background: #dc3545; color: white; border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; }
+        .cancel-btn.cancelled { background: #6c757d; cursor: default; opacity: 0.7; }
         .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
-        .error-message {
-            background: #faecec;
-            color: #b85c5a;
-            padding: 16px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .header-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-        @media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .confirm-btn, .complete-btn, .cancel-btn { padding: 4px 6px; font-size: 0.65rem; }
-        }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
@@ -162,14 +95,10 @@
         <button class="tab-btn" data-tab="comissao">Comissões (15%)</button>
         <button class="tab-btn" data-tab="lista">Lista de Transfers</button>
     </div>
-
     <div class="header-actions">
         <div class="last-update" id="lastUpdate">Clique em "Atualizar" para carregar os dados</div>
         <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
     </div>
-
-    <div id="errorDisplay" class="error-message"></div>
-
     <div id="tab-dashboard" class="tab-content active">
         <div class="dashboard-grid">
             <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados</div></div>
@@ -181,7 +110,6 @@
         <div class="table-container"><h3>Traslados por Mês</h3><canvas id="monthlyChart" style="max-height: 250px;"></canvas></div>
         <div class="table-container"><h3>Ranking de Veículos</h3><canvas id="vehicleChart" style="max-height: 250px;"></canvas></div>
     </div>
-
     <div id="tab-comissao" class="tab-content">
         <div class="comissao-card">
             <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados</div>
@@ -195,366 +123,161 @@
         </div>
         <div class="table-container"><h3>Detalhamento por período</h3><div id="comissaoDetalhe"></div></div>
     </div>
-
     <div id="tab-lista" class="tab-content">
         <div class="table-container">
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
-                    <thead>
-                        <tr>
-                            <th>Data Viagem</th>
-                            <th>Horário</th>
-                            <th>Hóspede</th>
-                            <th>Telefone</th>
-                            <th>Sentido</th>
-                            <th>Veículo</th>
-                            <th>Valor</th>
-                            <th>Ações</th>
-                        </thead>
-                    <tbody id="historyBody">
-                        <td><td colspan="8" style="text-align: center;">Carregando...<\/td><\/tr>
-                    <\/tbody>
-                <\/table>
-            <\/div>
-        <\/div>
-    <\/div>
-<\/div>
-
+                    <thead><tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Veículo</th><th>Valor</th><th>Ações</th></tr></thead>
+                    <tbody id="historyBody"><tr><td colspan="8" style="text-align: center;">Carregando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
-    
-    let transfers = [];
-    let monthlyChart, vehicleChart;
-    let currentPeriodo = 'todos';
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+let transfers = [], monthlyChart, vehicleChart, currentPeriodo = 'todos';
 
-    // ==================== FUNÇÕES ====================
-    function formatarHorario(horario) {
-        if (!horario) return "-";
-        let h = horario.toString();
-        if (h.match(/^\d{2}:\d{2}$/)) return h;
-        const match = h.match(/(\d{2}):(\d{2})/);
-        return match ? `${match[1]}:${match[2]}` : "-";
-    }
+function formatarHorario(horario) {
+    if (!horario) return "-";
+    let h = horario.toString();
+    let match = h.match(/(\d{2}):(\d{2})/);
+    return match ? `${match[1]}:${match[2]}` : "-";
+}
 
-    function getStatus(transfer) {
-        const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
-        return status[transfer["ID"]] || 'active';
-    }
+function getStatus(t) { return JSON.parse(localStorage.getItem('transferStatus') || '{}')[t["ID"]] || 'active'; }
+function setStatus(t, s) { let st = JSON.parse(localStorage.getItem('transferStatus') || '{}'); st[t["ID"]] = s; localStorage.setItem('transferStatus', JSON.stringify(st)); }
+function isCompleted(t) { return getStatus(t) === 'completed'; }
+function isCancelled(t) { return getStatus(t) === 'cancelled'; }
 
-    function setStatus(transfer, newStatus) {
-        const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
-        status[transfer["ID"]] = newStatus;
-        localStorage.setItem('transferStatus', JSON.stringify(status));
-    }
+async function carregarDados() {
+    try {
+        const response = await fetch(WEBAPP_URL);
+        const dados = await response.json();
+        transfers = Array.isArray(dados) ? dados : [];
+        document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
+        updateDashboard(); updateHistoryTable(); updateComissaoTab(currentPeriodo);
+    } catch(e) { console.error(e); }
+}
 
-    function isCompleted(transfer) { return getStatus(transfer) === 'completed'; }
-    function isCancelled(transfer) { return getStatus(transfer) === 'cancelled'; }
+function updateDashboard() {
+    const ativos = transfers.filter(t => !isCancelled(t));
+    const total = ativos.length;
+    const totalValue = ativos.reduce((s, t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
+    const avgValue = total > 0 ? totalValue / total : 0;
+    const totalComissao = totalValue * 0.15;
+    const vehicleCount = {};
+    ativos.forEach(t => { let v = t["Veiculo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
+    let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
+    document.getElementById('totalTransfers').innerText = total;
+    document.getElementById('totalValue').innerHTML = `R$ ${totalValue.toLocaleString('pt-BR')}`;
+    document.getElementById('avgValue').innerHTML = `R$ ${avgValue.toLocaleString('pt-BR')}`;
+    document.getElementById('topVehicle').innerText = topVehicle;
+    document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
+    const monthlyData = {};
+    ativos.forEach(t => { if (t["DataViagem"]) { let d = new Date(t["DataViagem"]); if (!isNaN(d.getTime())) monthlyData[d.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })] = (monthlyData[...] || 0) + 1; } });
+    drawMonthlyChart(monthlyData);
+    drawVehicleChart(vehicleCount);
+}
 
-    async function carregarDados() {
-        try {
-            const response = await fetch(WEBAPP_URL);
-            const dados = await response.json();
-            transfers = Array.isArray(dados) ? dados : [];
-            document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
-            updateDashboard();
-            updateHistoryTable();
-            updateComissaoTab(currentPeriodo);
-        } catch (erro) {
-            console.error(erro);
-        }
-    }
+function drawMonthlyChart(data) {
+    const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+    if (!ctx) return;
+    if (monthlyChart) monthlyChart.destroy();
+    monthlyChart = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] }, options: { responsive: true } });
+}
+function drawVehicleChart(data) {
+    const ctx = document.getElementById('vehicleChart')?.getContext('2d');
+    if (!ctx) return;
+    if (vehicleChart) vehicleChart.destroy();
+    vehicleChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#2c5f2d','#4ade80','#86efac','#c8b88a','#a3e635'] }] }, options: { responsive: true } });
+}
 
-    function updateDashboard() {
-        const activeTransfers = transfers.filter(t => !isCancelled(t));
-        const total = activeTransfers.length;
-        const totalValue = activeTransfers.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
-        const avgValue = total > 0 ? totalValue / total : 0;
-        const totalComissao = totalValue * 0.15;
-        
-        const vehicleCount = {};
-        activeTransfers.forEach(t => { const v = t["Veiculo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
-        let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
-        
-        document.getElementById('totalTransfers').innerText = total;
-        document.getElementById('totalValue').innerHTML = `R$ ${totalValue.toLocaleString('pt-BR')}`;
-        document.getElementById('avgValue').innerHTML = `R$ ${avgValue.toLocaleString('pt-BR')}`;
-        document.getElementById('topVehicle').innerText = topVehicle;
-        document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
-        
-        const monthlyData = {};
-        activeTransfers.forEach(t => {
-            if (t["DataViagem"]) {
-                const date = new Date(t["DataViagem"]);
-                if (!isNaN(date.getTime())) {
-                    const month = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
-                    monthlyData[month] = (monthlyData[month] || 0) + 1;
-                }
-            }
-        });
-        drawMonthlyChart(monthlyData);
-        drawVehicleChart(vehicleCount);
-    }
+function enviarConfirmacao(t) {
+    let tel = t["Telefone"] || "";
+    if (!tel) { alert("Sem telefone!"); return; }
+    let telLimpo = tel.toString().replace(/\D/g, "");
+    if (telLimpo.length < 10) { alert("Telefone inválido!"); return; }
+    let data = "-";
+    if (t["DataViagem"]) { let d = new Date(t["DataViagem"]); if (!isNaN(d.getTime())) data = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`; }
+    let msg = `TRASLADO CONFIRMADO - CASAS BRANCAS\n\nSua solicitação foi confirmada!\n\nDetalhes:\nHóspede: ${t["Nome"] || "-"}\nData: ${data}\nHorário: ${formatarHorario(t["Horario"])}\nSentido: ${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}\nVeículo: ${t["Veiculo"] || "-"}\nValor: R$ ${(parseFloat(t["ValorTotal"]) || 0).toLocaleString('pt-BR')}\n\nPolíticas: Motorista aguarda com placa. Pagamento direto. Cancelamento 24h.`;
+    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+function marcarFinalizado(t) { if (isCancelled(t)) { alert("Cancelado!"); return; } setStatus(t, 'completed'); updateHistoryTable(); updateDashboard(); updateComissaoTab(currentPeriodo); }
+function marcarCancelado(t) { if (isCompleted(t)) { alert("Finalizado!"); return; } setStatus(t, 'cancelled'); updateHistoryTable(); updateDashboard(); updateComissaoTab(currentPeriodo); }
 
-    function drawMonthlyChart(data) {
-        const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-        if (!ctx) return;
-        if (monthlyChart) monthlyChart.destroy();
-        monthlyChart = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
-            options: { responsive: true, maintainAspectRatio: true }
-        });
-    }
-
-    function drawVehicleChart(data) {
-        const ctx = document.getElementById('vehicleChart')?.getContext('2d');
-        if (!ctx) return;
-        if (vehicleChart) vehicleChart.destroy();
-        vehicleChart = new Chart(ctx, {
-            type: 'pie',
-            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#2c5f2d','#4ade80','#86efac','#c8b88a','#a3e635'] }] },
-            options: { responsive: true, maintainAspectRatio: true }
-        });
-    }
-
-    function enviarConfirmacao(transfer) {
-        const telefone = transfer["Telefone"] || "";
-        if (!telefone) { alert("Cliente não tem telefone cadastrado!"); return; }
-        const telefoneLimpo = telefone.toString().replace(/\D/g, "");
-        if (telefoneLimpo.length < 10) { alert("Número de telefone inválido!"); return; }
-        
-        let dataViagem = "-";
-        if (transfer["DataViagem"]) {
-            const d = new Date(transfer["DataViagem"]);
-            if (!isNaN(d.getTime())) {
-                dataViagem = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-            }
-        }
-        const horario = formatarHorario(transfer["Horario"]);
-        const valor = parseFloat(transfer["ValorTotal"]) || 0;
-        const veiculo = transfer["Veiculo"] || "-";
-        const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-        
-        const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
-
-Sua solicitação foi confirmada!
-
-Detalhes da viagem:
-Hóspede: ${transfer["Nome"] || "-"}
-Reserva: ${transfer["Reserva"] || "-"}
-Data: ${dataViagem}
-Horário: ${horario}
-Sentido: ${sentido}
-Veículo: ${veiculo}
-
-Valor total: R$ ${valor.toLocaleString('pt-BR')}
-
----
-
-Políticas do Serviço de Transfer
-
-- Motorista aguarda com placa do hotel
-- Pagamento direto ao motorista
-- Cancelamento com 24h de antecedência
-
-Agradecemos a preferência!
-Casas Brancas Boutique Hotel`;
-        
-        window.open(`https://wa.me/${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
-    }
-
-    function marcarFinalizado(transfer) {
-        if (isCancelled(transfer)) { alert("Transfer cancelado."); return; }
-        setStatus(transfer, 'completed');
-        updateHistoryTable();
-        updateDashboard();
-        updateComissaoTab(currentPeriodo);
-    }
-
-    function marcarCancelado(transfer) {
-        if (isCompleted(transfer)) { alert("Transfer finalizado."); return; }
-        setStatus(transfer, 'cancelled');
-        updateHistoryTable();
-        updateDashboard();
-        updateComissaoTab(currentPeriodo);
-    }
-
-    function updateHistoryTable() {
-        const tbody = document.getElementById('historyBody');
-        if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
-            return;
-        }
-        
-        const sorted = [...transfers].sort((a, b) => {
-            const dataA = a["DataViagem"] ? new Date(a["DataViagem"]) : new Date(0);
-            const dataB = b["DataViagem"] ? new Date(b["DataViagem"]) : new Date(0);
-            return dataA - dataB;
-        });
-        
-        const grouped = {};
-        sorted.forEach(t => {
-            if (!t["DataViagem"]) return;
-            const date = new Date(t["DataViagem"]);
-            if (isNaN(date.getTime())) return;
-            const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
-            if (!grouped[monthYear]) grouped[monthYear] = [];
-            grouped[monthYear].push(t);
-        });
-        
-        let html = '';
-        for (const [monthYear, items] of Object.entries(grouped)) {
-            const activeItems = items.filter(t => !isCancelled(t));
-            const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
-            const comissaoMes = totalMes * 0.15;
-            
-            html += `<tr class="month-group"><td colspan="8"><strong>${monthYear}<\/strong> (${activeItems.length} ativos de ${items.length} total) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
-            
-            items.forEach(t => {
-                const telefone = t["Telefone"] || "";
-                const valor = parseFloat(t["ValorTotal"]) || 0;
-                const veiculo = t["Veiculo"] || "-";
-                const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-                
-                let dataTransfer = "-";
-                if (t["DataViagem"]) {
-                    const d = new Date(t["DataViagem"]);
-                    if (!isNaN(d.getTime())) {
-                        dataTransfer = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                    }
-                }
-                const horario = formatarHorario(t["Horario"]);
-                
-                const isCompletedStatus = isCompleted(t);
-                const isCancelledStatus = isCancelled(t);
-                const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
-                
-                let rowClass = '';
-                let confirmDisabled = false;
-                let completeBtnText = 'Finalizar';
-                let completeBtnClass = 'complete-btn';
-                let cancelBtnText = 'Cancelar';
-                let cancelBtnClass = 'cancel-btn';
-                
-                if (isCancelledStatus) {
-                    rowClass = 'cancelled-row';
-                    confirmDisabled = true;
-                    completeBtnText = 'Finalizado';
-                    completeBtnClass = 'complete-btn completed';
-                    cancelBtnText = '❌ Cancelado';
-                    cancelBtnClass = 'cancel-btn cancelled';
-                } else if (isCompletedStatus) {
-                    rowClass = 'completed-row';
-                    confirmDisabled = true;
-                    completeBtnText = '✅ Finalizado';
-                    completeBtnClass = 'complete-btn completed';
-                    cancelBtnText = 'Cancelar';
-                    cancelBtnClass = 'cancel-btn';
-                }
-                
-                html += `
-                    <tr class="${rowClass}">
-                        <td>${dataTransfer}<\/td>
-                        <td>${horario}<\/td>
-                        <td>${t["Nome"] || '-'}<\/td>
-                        <td>${telefone}<\/td>
-                        <td>${sentido}<\/td>
-                        <td>${veiculo}<\/td>
-                        <td>R$ ${valor.toLocaleString('pt-BR')}<\/td>
-                        <td>
-                            <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${confirmDisabled ? 'disabled' : ''}>Confirmar<\/button>
-                            <button class="${completeBtnClass}" onclick='marcarFinalizado(${transferJson})' ${confirmDisabled ? 'disabled' : ''}>${completeBtnText}<\/button>
-                            <button class="${cancelBtnClass}" onclick='marcarCancelado(${transferJson})' ${isCancelledStatus ? 'disabled' : ''}>${cancelBtnText}<\/button>
-                        <\/td>
-                    <\/tr>
-                `;
-            });
-        }
-        tbody.innerHTML = html;
-    }
-
-    function updateComissaoTab(periodo = 'todos') {
-        currentPeriodo = periodo;
-        const now = new Date();
-        const mesAtual = now.getMonth();
-        const anoAtual = now.getFullYear();
-        const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
-        const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
-        const tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
-        
-        const activeTransfers = transfers.filter(t => !isCancelled(t));
-        let filtered = activeTransfers;
-        if (periodo === 'mesAtual') {
-            filtered = activeTransfers.filter(t => {
-                if (!t["DataViagem"]) return false;
-                const d = new Date(t["DataViagem"]);
-                return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
-            });
-        } else if (periodo === 'mesAnterior') {
-            filtered = activeTransfers.filter(t => {
-                if (!t["DataViagem"]) return false;
-                const d = new Date(t["DataViagem"]);
-                return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
-            });
-        } else if (periodo === 'trimestre') {
-            filtered = activeTransfers.filter(t => {
-                if (!t["DataViagem"]) return false;
-                return new Date(t["DataViagem"]) >= tresMesesAtras;
-            });
-        }
-        
-        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
-        const comissaoPeriodo = totalPeriodo * 0.15;
-        document.getElementById('comissaoTotal').innerHTML = `R$ ${comissaoPeriodo.toLocaleString('pt-BR')}`;
-        
-        const totalGeral = activeTransfers.reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
-        const totalMesAtual = activeTransfers.filter(t => {
-            if (!t["DataViagem"]) return false;
-            const d = new Date(t["DataViagem"]);
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
-        const totalMesPassado = activeTransfers.filter(t => {
-            if (!t["DataViagem"]) return false;
-            const d = new Date(t["DataViagem"]);
-            return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
-        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
-        const totalTrimestre = activeTransfers.filter(t => {
-            if (!t["DataViagem"]) return false;
-            return new Date(t["DataViagem"]) >= tresMesesAtras;
-        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
-        
-        document.getElementById('comissaoDetalhe').innerHTML = `
-            <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
-            <tr>.htmlTodos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr>.htmlEste mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr>.htmlÚltimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <\/tbody><\/table>
-        `;
-        
-        document.querySelectorAll('.periodo-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active');
+function updateHistoryTable() {
+    let tbody = document.getElementById('historyBody');
+    if (!transfers.length) { tbody.innerHTML = '<tr><td colspan="8">Nenhum traslado</td></tr>'; return; }
+    let sorted = [...transfers].sort((a,b) => new Date(a["DataViagem"]) - new Date(b["DataViagem"]));
+    let grouped = {};
+    sorted.forEach(t => { if (!t["DataViagem"]) return; let d = new Date(t["DataViagem"]); if (!isNaN(d.getTime())) { let my = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }); if (!grouped[my]) grouped[my] = []; grouped[my].push(t); } });
+    let html = '';
+    for (let [my, items] of Object.entries(grouped)) {
+        let ativos = items.filter(t => !isCancelled(t));
+        let totalMes = ativos.reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+        html += `<tr class="month-group"><td colspan="8"><strong>${my}</strong> (${ativos.length} ativos de ${items.length}) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${(totalMes*0.15).toLocaleString('pt-BR')}</td></tr>`;
+        items.forEach(t => {
+            let data = "-";
+            if (t["DataViagem"]) { let d = new Date(t["DataViagem"]); if (!isNaN(d.getTime())) data = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`; }
+            let completed = isCompleted(t), cancelled = isCancelled(t);
+            let rowClass = cancelled ? 'cancelled-row' : (completed ? 'completed-row' : '');
+            let disabled = cancelled || completed;
+            let transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+            html += `<tr class="${rowClass}">
+                <td>${data}</td>
+                <td>${formatarHorario(t["Horario"])}</td>
+                <td>${t["Nome"] || '-'}</td>
+                <td>${t["Telefone"] || '-'}</td>
+                <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
+                <td>${t["Veiculo"] || '-'}</td>
+                <td>R$ ${(parseFloat(t["ValorTotal"]) || 0).toLocaleString('pt-BR')}</td>
+                <td>
+                    <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${disabled ? 'disabled' : ''}>Confirmar</button>
+                    <button class="complete-btn ${completed ? 'completed' : ''}" onclick='marcarFinalizado(${transferJson})' ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}</button>
+                    <button class="cancel-btn ${cancelled ? 'cancelled' : ''}" onclick='marcarCancelado(${transferJson})' ${cancelled ? 'disabled' : ''}>${cancelled ? '❌ Cancelado' : 'Cancelar'}</button>
+                </td>
+            </tr>`;
         });
     }
+    tbody.innerHTML = html;
+}
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        });
-    });
+function updateComissaoTab(periodo = 'todos') {
+    currentPeriodo = periodo;
+    let now = new Date(), mesAtual = now.getMonth(), anoAtual = now.getFullYear();
+    let mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1, anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+    let tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
+    let ativos = transfers.filter(t => !isCancelled(t));
+    let filtered = ativos;
+    if (periodo === 'mesAtual') filtered = ativos.filter(t => { if (!t["DataViagem"]) return false; let d = new Date(t["DataViagem"]); return d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+    else if (periodo === 'mesAnterior') filtered = ativos.filter(t => { if (!t["DataViagem"]) return false; let d = new Date(t["DataViagem"]); return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
+    else if (periodo === 'trimestre') filtered = ativos.filter(t => { if (!t["DataViagem"]) return false; return new Date(t["DataViagem"]) >= tresMesesAtras; });
+    let total = filtered.reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+    document.getElementById('comissaoTotal').innerHTML = `R$ ${(total*0.15).toLocaleString('pt-BR')}`;
+    let totalGeral = ativos.reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+    let totalMA = ativos.filter(t => { if (!t["DataViagem"]) return false; let d = new Date(t["DataViagem"]); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+    let totalMP = ativos.filter(t => { if (!t["DataViagem"]) return false; let d = new Date(t["DataViagem"]); return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; }).reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+    let total3M = ativos.filter(t => { if (!t["DataViagem"]) return false; return new Date(t["DataViagem"]) >= tresMesesAtras; }).reduce((s,t)=>s+(parseFloat(t["ValorTotal"])||0),0);
+    document.getElementById('comissaoDetalhe').innerHTML = `<table style="width:100%"><thead><tr><th>Período</th><th>Total</th><th>Comissão</th></tr></thead><tbody>
+        <tr><td>Todos</td><td>R$ ${totalGeral.toLocaleString('pt-BR')}</td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}</td></tr>
+        <tr><td>Este mês</td><td>R$ ${totalMA.toLocaleString('pt-BR')}</td><td>R$ ${(totalMA*0.15).toLocaleString('pt-BR')}</td></tr>
+        <tr><td>Mês passado</td><td>R$ ${totalMP.toLocaleString('pt-BR')}</td><td>R$ ${(totalMP*0.15).toLocaleString('pt-BR')}</td></tr>
+        <tr><td>Últimos 3 meses</td><td>R$ ${total3M.toLocaleString('pt-BR')}</td><td>R$ ${(total3M*0.15).toLocaleString('pt-BR')}</td></tr>
+    </tbody></table>`;
+    document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
+}
 
-    document.querySelectorAll('.periodo-btn').forEach(btn => {
-        btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo')));
-    });
-
-    document.getElementById('refreshBtn').addEventListener('click', carregarDados);
-    
-    carregarDados();
+document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+    let id = btn.getAttribute('data-tab');
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(`tab-${id}`).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}));
+document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
+document.getElementById('refreshBtn').addEventListener('click', carregarDados);
+carregarDados();
 </script>
 </body>
 </html>
