@@ -212,7 +212,7 @@
                             <th>Ações</th>
                         </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="8" style="text-align: center;">Carregando...<\/td><\/tr>
+                        <td><td colspan="8" style="text-align: center;">Carregando...<\/td><\/tr>
                     <\/tbody>
                 <\/table>
             <\/div>
@@ -228,24 +228,15 @@
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    // 🔧 FUNÇÃO SIMPLES E DIRETA PARA PEGAR HORÁRIO
+    // 🔧 FUNÇÃO PARA PEGAR O HORÁRIO DIRETAMENTE (já está em texto puro na planilha)
     function pegarHorario(transfer) {
         // Tenta pegar o campo "Horario" (coluna H)
         let horario = transfer["Horario"];
+        if (horario && horario !== "") return horario;
         
-        if (!horario) return "-";
-        
-        let str = horario.toString();
-        
-        // Se for ISO, extrair HH:MM
-        if (str.includes('T')) {
-            let parts = str.split('T')[1];
-            if (parts) return parts.substring(0, 5);
-        }
-        
-        // Se for "HH:MM"
-        let match = str.match(/(\d{2}):(\d{2})/);
-        if (match) return `${match[1]}:${match[2]}`;
+        // Fallback: tentar outros nomes
+        horario = transfer["Horário"];
+        if (horario && horario !== "") return horario;
         
         return "-";
     }
@@ -392,8 +383,10 @@
             return; 
         }
         
+        // Ordenar por data da viagem (mais antigo primeiro)
         let sorted = [...transfers].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
         
+        // Agrupar por mês
         let grouped = {};
         sorted.forEach(t => { 
             if (!t["Data Viagem"]) return; 
@@ -421,6 +414,7 @@
                     }
                 }
                 
+                // 🔧 PEGAR HORÁRIO DIRETAMENTE (já está em texto puro)
                 let horario = pegarHorario(t);
                 
                 let completed = isCompleted(t);
@@ -471,11 +465,11 @@
         
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período</th><th>Total em Traslados</th><th>Comissão (15%)</th></tr></thead><tbody>
-                <tr>.htmlTodos os períodos</td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-                <tr>.htmlEste mês</td><td>R$ ${totalMA.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMA*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-                <tr>.htmlMês passado</td><td>R$ ${totalMP.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMP*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-                <tr>.htmlÚltimos 3 meses</td><td>R$ ${total3M.toLocaleString('pt-BR')}<\/td><td>R$ ${(total3M*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <\/tbody><\/table>
+                <tr><td>Todos os períodos</td><td>R$ ${totalGeral.toLocaleString('pt-BR')}</td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}</td></tr>
+                <td><td>Este mês</td><td>R$ ${totalMA.toLocaleString('pt-BR')}</td><td>R$ ${(totalMA*0.15).toLocaleString('pt-BR')}</td></tr>
+                <tr><td>Mês passado</td><td>R$ ${totalMP.toLocaleString('pt-BR')}</td><td>R$ ${(totalMP*0.15).toLocaleString('pt-BR')}</td></tr>
+                <tr><td>Últimos 3 meses</td><td>R$ ${total3M.toLocaleString('pt-BR')}</td><td>R$ ${(total3M*0.15).toLocaleString('pt-BR')}</td></tr>
+            </tbody></table>
         `;
         
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
