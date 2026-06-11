@@ -186,13 +186,32 @@
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    // ==================== FUNÇÃO PRINCIPAL CORRIGIDA ====================
+    // ==================== FUNÇÕES AUXILIARES ====================
     function formatarData(dataStr) {
         if (!dataStr) return "-";
         try {
             const date = new Date(dataStr);
             if (isNaN(date.getTime())) return "-";
-            return date.toLocaleDateString('pt-BR');
+            const dia = date.getDate().toString().padStart(2, '0');
+            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
+            const ano = date.getFullYear();
+            return `${dia}/${mes}/${ano}`;
+        } catch(e) {
+            return "-";
+        }
+    }
+
+    function formatarDataHora(dataHoraStr) {
+        if (!dataHoraStr) return "-";
+        try {
+            const date = new Date(dataHoraStr);
+            if (isNaN(date.getTime())) return "-";
+            const dia = date.getDate().toString().padStart(2, '0');
+            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
+            const ano = date.getFullYear();
+            const hora = date.getHours().toString().padStart(2, '0');
+            const min = date.getMinutes().toString().padStart(2, '0');
+            return `${dia}/${mes}/${ano} ${hora}:${min}`;
         } catch(e) {
             return "-";
         }
@@ -202,9 +221,10 @@
         if (!horarioStr) return "-";
         try {
             if (horarioStr.includes("T")) {
-                return horarioStr.substring(11, 16);
+                const timePart = horarioStr.split('T')[1];
+                if (timePart) return timePart.substring(0, 5);
             }
-            if (horarioStr.length >= 5) {
+            if (horarioStr.length >= 5 && horarioStr.includes(':')) {
                 return horarioStr.substring(0, 5);
             }
             return "-";
@@ -224,6 +244,41 @@
         return partes.length > 0 ? partes.join(', ') : 'Nenhuma';
     }
 
+    function mostrarErro(mensagem) {
+        const errorDiv = document.getElementById('errorDisplay');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem + '<br><br>Soluções:<br>• Verifique se a planilha está compartilhada<br>• Verifique se o Apps Script está implantado<br>• Clique em "Atualizar" para tentar novamente';
+        document.getElementById('lastUpdate').innerHTML = 'Erro ao carregar dados.';
+    }
+
+    function esconderErro() {
+        document.getElementById('errorDisplay').style.display = 'none';
+    }
+
+    async function carregarDados() {
+        esconderErro();
+        document.getElementById('lastUpdate').innerHTML = 'Carregando dados da planilha...';
+        
+        try {
+            const response = await fetch(WEBAPP_URL);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const dados = await response.json();
+            if (dados && dados.error) throw new Error(dados.error);
+            transfers = Array.isArray(dados) ? dados : [];
+            document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
+            updateDashboard();
+            updateHistoryTable();
+            updateComissaoTab(currentPeriodo);
+        } catch (erro) {
+            console.error('Erro:', erro);
+            mostrarErro(erro.message);
+            transfers = [];
+            updateDashboard();
+            updateHistoryTable();
+            updateComissaoTab(currentPeriodo);
+        }
+    }
+
     function enviarConfirmacao(transfer) {
         const telefone = transfer["Telefone"] || "";
         if (!telefone) {
@@ -239,7 +294,6 @@
         
         const idioma = transfer["Idioma"] || "pt";
         
-        // Formatar dados corretamente
         const dataViagem = formatarData(transfer["Data Viagem"]);
         const horario = formatarHorario(transfer["Horário"]);
         const bagagensTexto = formatarBagagens(transfer);
@@ -248,7 +302,6 @@
         const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
         const pagamento = transfer["Pagamento"] || "-";
         
-        // Mensagem em português (sem emojis)
         const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
 
 Sua solicitação foi confirmada!
@@ -298,57 +351,15 @@ Casas Brancas Boutique Hotel`;
         window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
     }
 
-    function mostrarErro(mensagem) {
-        const errorDiv = document.getElementById('errorDisplay');
-        errorDiv.style.display = 'block';
-        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem + '<br><br>Soluções:<br>• Verifique se a planilha está compartilhada<br>• Verifique se o Apps Script está implantado<br>• Clique em "Atualizar" para tentar novamente';
-        document.getElementById('lastUpdate').innerHTML = 'Erro ao carregar dados.';
-    }
-
-    function esconderErro() {
-        document.getElementById('errorDisplay').style.display = 'none';
-    }
-
-    async function carregarDados() {
-        esconderErro();
-        document.getElementById('lastUpdate').innerHTML = 'Carregando dados da planilha...';
-        
-        try {
-            const response = await fetch(WEBAPP_URL);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const dados = await response.json();
-            if (dados && dados.error) throw new Error(dados.error);
-            transfers = Array.isArray(dados) ? dados : [];
-            document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
-            updateDashboard();
-            updateHistoryTable();
-            updateComissaoTab(currentPeriodo);
-        } catch (erro) {
-            console.error('Erro:', erro);
-            mostrarErro(erro.message);
-            transfers = [];
-            updateDashboard();
-            updateHistoryTable();
-            updateComissaoTab(currentPeriodo);
-        }
-    }
-
     function updateDashboard() {
         const total = transfers.length;
-        const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+        const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
         const avgValue = total > 0 ? totalValue / total : 0;
         const totalComissao = totalValue * 0.15;
         
         const vehicleCount = {};
-        transfers.forEach(t => { 
-            const v = t["Veículo"] || t["Veiculo"];
-            if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; 
-        });
-        
-        let topVehicle = '-';
-        if (Object.keys(vehicleCount).length > 0) {
-            topVehicle = Object.keys(vehicleCount).reduce((a, b) => vehicleCount[a] > vehicleCount[b] ? a : b);
-        }
+        transfers.forEach(t => { const v = t["Veículo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
+        let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
         
         document.getElementById('totalTransfers').innerText = total;
         document.getElementById('totalValue').innerHTML = `R$ ${totalValue.toLocaleString('pt-BR')}`;
@@ -356,13 +367,15 @@ Casas Brancas Boutique Hotel`;
         document.getElementById('topVehicle').innerText = topVehicle;
         document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
         
+        // Dados mensais baseados na DATA DA VIAGEM
         const monthlyData = {};
         transfers.forEach(t => {
-            const dataHora = t["Data/Hora"];
-            if (dataHora) {
-                const date = new Date(dataHora);
-                const month = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
-                monthlyData[month] = (monthlyData[month] || 0) + 1;
+            if (t["Data Viagem"]) {
+                const date = new Date(t["Data Viagem"]);
+                if (!isNaN(date.getTime())) {
+                    const month = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
+                    monthlyData[month] = (monthlyData[month] || 0) + 1;
+                }
             }
         });
         drawMonthlyChart(monthlyData);
@@ -398,11 +411,19 @@ Casas Brancas Boutique Hotel`;
             return;
         }
         
-        const sorted = [...transfers].sort((a,b) => new Date(b["Data/Hora"]) - new Date(a["Data/Hora"]));
+        // ORDENAR POR DATA DA VIAGEM (mais recente primeiro)
+        const sorted = [...transfers].sort((a, b) => {
+            const dataA = a["Data Viagem"] ? new Date(a["Data Viagem"]) : new Date(0);
+            const dataB = b["Data Viagem"] ? new Date(b["Data Viagem"]) : new Date(0);
+            return dataB - dataA;
+        });
+        
+        // AGRUPAR POR MÊS DA VIAGEM
         const grouped = {};
         sorted.forEach(t => {
-            if (!t["Data/Hora"]) return;
-            const date = new Date(t["Data/Hora"]);
+            if (!t["Data Viagem"]) return;
+            const date = new Date(t["Data Viagem"]);
+            if (isNaN(date.getTime())) return;
             const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
             if (!grouped[monthYear]) grouped[monthYear] = [];
             grouped[monthYear].push(t);
@@ -410,19 +431,24 @@ Casas Brancas Boutique Hotel`;
         
         let html = '';
         for (const [monthYear, items] of Object.entries(grouped)) {
-            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${items.length} traslados)<\/td><\/tr>`;
+            const totalMes = items.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+            const comissaoMes = totalMes * 0.15;
+            
+            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${items.length} traslados) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
+            
             items.forEach(t => {
                 const telefone = t["Telefone"] || "";
-                const valor = parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0;
-                const veiculo = t["Veículo"] || t["Veiculo"] || "-";
+                const valor = parseFloat(t["Valor Total"]) || 0;
+                const veiculo = t["Veículo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 const dataViagem = formatarData(t["Data Viagem"]);
+                const dataHora = formatarDataHora(t["Data/Hora"]);
                 const horario = formatarHorario(t["Horário"]);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
                 
                 html += `
                     <tr>
-                        <td>${t["Data/Hora"] ? new Date(t["Data/Hora"]).toLocaleString('pt-BR') : '-'}<\/td>
+                        <td>${dataHora}<\/td>
                         <td>${t["Nome"] || '-'}<\/td>
                         <td>${telefone}<\/td>
                         <td>${sentido}<\/td>
@@ -450,45 +476,48 @@ Casas Brancas Boutique Hotel`;
         let filtered = transfers;
         if (periodo === 'mesAtual') {
             filtered = transfers.filter(t => {
-                if (!t["Data/Hora"]) return false;
-                const d = new Date(t["Data/Hora"]);
+                if (!t["Data Viagem"]) return false;
+                const d = new Date(t["Data Viagem"]);
                 return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
             });
         } else if (periodo === 'mesAnterior') {
             filtered = transfers.filter(t => {
-                if (!t["Data/Hora"]) return false;
-                const d = new Date(t["Data/Hora"]);
+                if (!t["Data Viagem"]) return false;
+                const d = new Date(t["Data Viagem"]);
                 return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
             });
         } else if (periodo === 'trimestre') {
-            filtered = transfers.filter(t => new Date(t["Data/Hora"]) >= tresMesesAtras);
+            filtered = transfers.filter(t => {
+                if (!t["Data Viagem"]) return false;
+                return new Date(t["Data Viagem"]) >= tresMesesAtras;
+            });
         }
         
-        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
         const comissaoPeriodo = totalPeriodo * 0.15;
         document.getElementById('comissaoTotal').innerHTML = `R$ ${comissaoPeriodo.toLocaleString('pt-BR')}`;
         
-        const totalGeral = transfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+        const totalGeral = transfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         const totalMesAtual = transfers.filter(t => {
-            if (!t["Data/Hora"]) return false;
-            const d = new Date(t["Data/Hora"]);
+            if (!t["Data Viagem"]) return false;
+            const d = new Date(t["Data Viagem"]);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         const totalMesPassado = transfers.filter(t => {
-            if (!t["Data/Hora"]) return false;
-            const d = new Date(t["Data/Hora"]);
+            if (!t["Data Viagem"]) return false;
+            const d = new Date(t["Data Viagem"]);
             return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         const totalTrimestre = transfers.filter(t => {
-            if (!t["Data/Hora"]) return false;
-            return new Date(t["Data/Hora"]) >= tresMesesAtras;
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
+            if (!t["Data Viagem"]) return false;
+            return new Date(t["Data Viagem"]) >= tresMesesAtras;
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
             <tr><td>Todos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr><td>Este mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr><td>Mês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr>.htmlÚltimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <\/tbody><\/table>
         `;
