@@ -172,8 +172,8 @@
 
     <div id="tab-dashboard" class="tab-content active">
         <div class="dashboard-grid">
-            <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados (Ativos)</div></div>
-            <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total (Ativos)</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total</div></div>
             <div class="metric-card"><div class="metric-value" id="avgValue">R$ -</div><div class="metric-label">Valor Médio</div></div>
             <div class="metric-card"><div class="metric-value" id="topVehicle">-</div><div class="metric-label">Veículo + Solicitado</div></div>
             <div class="metric-card"><div class="metric-value" id="totalComissao">R$ -</div><div class="metric-label">Total em Comissões (15%)</div></div>
@@ -184,7 +184,7 @@
 
     <div id="tab-comissao" class="tab-content">
         <div class="comissao-card">
-            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados (não cancelados)</div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados</div>
             <div class="comissao-valor" id="comissaoTotal">R$ -</div>
             <div class="comissao-periodo">
                 <button class="periodo-btn active" data-periodo="todos">Todos</button>
@@ -227,17 +227,13 @@
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    function formatarHorario(horarioRaw) {
-        if (!horarioRaw) return "-";
-        let horaStr = horarioRaw.toString();
-        if (horaStr.match(/^\d{2}:\d{2}$/)) return horaStr;
-        if (horaStr.includes('T')) {
-            const timePart = horaStr.split('T')[1];
-            if (timePart) return timePart.substring(0, 5);
-        }
-        const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
-        if (timeMatch) return `${timeMatch[1]}:${timeMatch[2]}`;
-        return "-";
+    // ==================== FUNÇÕES ====================
+    function formatarHorario(horario) {
+        if (!horario) return "-";
+        let h = horario.toString();
+        if (h.match(/^\d{2}:\d{2}$/)) return h;
+        const match = h.match(/(\d{2}):(\d{2})/);
+        return match ? `${match[1]}:${match[2]}` : "-";
     }
 
     function getStatus(transfer) {
@@ -271,12 +267,12 @@
     function updateDashboard() {
         const activeTransfers = transfers.filter(t => !isCancelled(t));
         const total = activeTransfers.length;
-        const totalValue = activeTransfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalValue = activeTransfers.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
         const avgValue = total > 0 ? totalValue / total : 0;
         const totalComissao = totalValue * 0.15;
         
         const vehicleCount = {};
-        activeTransfers.forEach(t => { const v = t["Veículo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
+        activeTransfers.forEach(t => { const v = t["Veiculo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
         let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
         
         document.getElementById('totalTransfers').innerText = total;
@@ -287,8 +283,8 @@
         
         const monthlyData = {};
         activeTransfers.forEach(t => {
-            if (t["Data Viagem"]) {
-                const date = new Date(t["Data Viagem"]);
+            if (t["DataViagem"]) {
+                const date = new Date(t["DataViagem"]);
                 if (!isNaN(date.getTime())) {
                     const month = date.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
                     monthlyData[month] = (monthlyData[month] || 0) + 1;
@@ -305,7 +301,7 @@
         if (monthlyChart) monthlyChart.destroy();
         monthlyChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados Ativos', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
+            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
             options: { responsive: true, maintainAspectRatio: true }
         });
     }
@@ -328,15 +324,15 @@
         if (telefoneLimpo.length < 10) { alert("Número de telefone inválido!"); return; }
         
         let dataViagem = "-";
-        if (transfer["Data Viagem"]) {
-            const d = new Date(transfer["Data Viagem"]);
+        if (transfer["DataViagem"]) {
+            const d = new Date(transfer["DataViagem"]);
             if (!isNaN(d.getTime())) {
                 dataViagem = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
             }
         }
-        const horario = formatarHorario(transfer["Horário"]);
-        const valor = parseFloat(transfer["Valor Total"]) || 0;
-        const veiculo = transfer["Veículo"] || "-";
+        const horario = formatarHorario(transfer["Horario"]);
+        const valor = parseFloat(transfer["ValorTotal"]) || 0;
+        const veiculo = transfer["Veiculo"] || "-";
         const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
         
         const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
@@ -386,20 +382,20 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<td><td colspan="8" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
         const sorted = [...transfers].sort((a, b) => {
-            const dataA = a["Data Viagem"] ? new Date(a["Data Viagem"]) : new Date(0);
-            const dataB = b["Data Viagem"] ? new Date(b["Data Viagem"]) : new Date(0);
+            const dataA = a["DataViagem"] ? new Date(a["DataViagem"]) : new Date(0);
+            const dataB = b["DataViagem"] ? new Date(b["DataViagem"]) : new Date(0);
             return dataA - dataB;
         });
         
         const grouped = {};
         sorted.forEach(t => {
-            if (!t["Data Viagem"]) return;
-            const date = new Date(t["Data Viagem"]);
+            if (!t["DataViagem"]) return;
+            const date = new Date(t["DataViagem"]);
             if (isNaN(date.getTime())) return;
             const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
             if (!grouped[monthYear]) grouped[monthYear] = [];
@@ -409,25 +405,25 @@ Casas Brancas Boutique Hotel`;
         let html = '';
         for (const [monthYear, items] of Object.entries(grouped)) {
             const activeItems = items.filter(t => !isCancelled(t));
-            const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+            const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
             const comissaoMes = totalMes * 0.15;
             
             html += `<tr class="month-group"><td colspan="8"><strong>${monthYear}<\/strong> (${activeItems.length} ativos de ${items.length} total) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
             
             items.forEach(t => {
                 const telefone = t["Telefone"] || "";
-                const valor = parseFloat(t["Valor Total"]) || 0;
-                const veiculo = t["Veículo"] || "-";
+                const valor = parseFloat(t["ValorTotal"]) || 0;
+                const veiculo = t["Veiculo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 
                 let dataTransfer = "-";
-                if (t["Data Viagem"]) {
-                    const d = new Date(t["Data Viagem"]);
+                if (t["DataViagem"]) {
+                    const d = new Date(t["DataViagem"]);
                     if (!isNaN(d.getTime())) {
                         dataTransfer = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
                     }
                 }
-                const horario = formatarHorario(t["Horário"]);
+                const horario = formatarHorario(t["Horario"]);
                 
                 const isCompletedStatus = isCompleted(t);
                 const isCancelledStatus = isCancelled(t);
@@ -490,42 +486,42 @@ Casas Brancas Boutique Hotel`;
         let filtered = activeTransfers;
         if (periodo === 'mesAtual') {
             filtered = activeTransfers.filter(t => {
-                if (!t["Data Viagem"]) return false;
-                const d = new Date(t["Data Viagem"]);
+                if (!t["DataViagem"]) return false;
+                const d = new Date(t["DataViagem"]);
                 return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
             });
         } else if (periodo === 'mesAnterior') {
             filtered = activeTransfers.filter(t => {
-                if (!t["Data Viagem"]) return false;
-                const d = new Date(t["Data Viagem"]);
+                if (!t["DataViagem"]) return false;
+                const d = new Date(t["DataViagem"]);
                 return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
             });
         } else if (periodo === 'trimestre') {
             filtered = activeTransfers.filter(t => {
-                if (!t["Data Viagem"]) return false;
-                return new Date(t["Data Viagem"]) >= tresMesesAtras;
+                if (!t["DataViagem"]) return false;
+                return new Date(t["DataViagem"]) >= tresMesesAtras;
             });
         }
         
-        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["ValorTotal"]) || 0), 0);
         const comissaoPeriodo = totalPeriodo * 0.15;
         document.getElementById('comissaoTotal').innerHTML = `R$ ${comissaoPeriodo.toLocaleString('pt-BR')}`;
         
-        const totalGeral = activeTransfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalGeral = activeTransfers.reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
         const totalMesAtual = activeTransfers.filter(t => {
-            if (!t["Data Viagem"]) return false;
-            const d = new Date(t["Data Viagem"]);
+            if (!t["DataViagem"]) return false;
+            const d = new Date(t["DataViagem"]);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
         const totalMesPassado = activeTransfers.filter(t => {
-            if (!t["Data Viagem"]) return false;
-            const d = new Date(t["Data Viagem"]);
+            if (!t["DataViagem"]) return false;
+            const d = new Date(t["DataViagem"]);
             return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
         const totalTrimestre = activeTransfers.filter(t => {
-            if (!t["Data Viagem"]) return false;
-            return new Date(t["Data Viagem"]) >= tresMesesAtras;
-        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+            if (!t["DataViagem"]) return false;
+            return new Date(t["DataViagem"]) >= tresMesesAtras;
+        }).reduce((s,t) => s + (parseFloat(t["ValorTotal"]) || 0), 0);
         
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
