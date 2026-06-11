@@ -107,7 +107,7 @@
             border-radius: 40px;
             border: 1px solid #e8e0d8;
         }
-        .bagagem-item label { margin: 0; font-size: 0.75rem; }
+        .bagagem-item label { margin: 0; font-size: 0.75rem; color: #7a8b6e; }
         .bagagem-item input { width: 70px; padding: 8px; text-align: center; }
         
         .categoria-grid {
@@ -282,11 +282,8 @@
             totalValue: "Valor total",
             date: "Data",
             payment: "Pagamento",
-            categoriaPrivativo: "Transporte Privativo",
-            categoriaExecutivo: "Carro Executivo",
-            categoriaEspecial: "Carro Executivo Especial",
             labelDataEmbarque: "Data de embarque (Rio)",
-            labelHoraEmbarque: "Horário do voo",
+            labelHoraEmbarque: "Horário de chegada",
             labelEndereco: "Endereço de embarque",
             placeholderEndereco: "Aeroporto GIG",
             labelVoo: "Número do voo",
@@ -354,11 +351,8 @@
             totalValue: "Total amount",
             date: "Date",
             payment: "Payment",
-            categoriaPrivativo: "Private Transport",
-            categoriaExecutivo: "Executive Car",
-            categoriaEspecial: "Special Executive Car",
             labelDataEmbarque: "Departure date (Rio)",
-            labelHoraEmbarque: "Flight time",
+            labelHoraEmbarque: "Arrival time",
             labelEndereco: "Pickup address",
             placeholderEndereco: "GIG Airport",
             labelVoo: "Flight number",
@@ -426,11 +420,8 @@
             totalValue: "Valor total",
             date: "Fecha",
             payment: "Pago",
-            categoriaPrivativo: "Transporte Privado",
-            categoriaExecutivo: "Auto Ejecutivo",
-            categoriaEspecial: "Auto Ejecutivo Especial",
             labelDataEmbarque: "Fecha de embarque (Río)",
-            labelHoraEmbarque: "Hora del vuelo",
+            labelHoraEmbarque: "Hora de llegada",
             labelEndereco: "Dirección de recogida",
             placeholderEndereco: "Aeropuerto GIG",
             labelVoo: "Número de vuelo",
@@ -521,7 +512,6 @@
 
     let veiculosCache = { "centro-sul": null, "zona-oeste": null };
 
-    // ==================== FUNÇÕES ====================
     function toggleHorasParada() {
         const paradaCheck = document.getElementById("parada");
         const horasDiv = document.getElementById("horasParadaDiv");
@@ -603,12 +593,11 @@
         const veiculoSelecionadoAtual = document.getElementById("veiculoSelecionado").value;
         const novoContainer = veiculosCache[regiao].cloneNode(true);
         
-        // Traduzir os títulos das categorias no container clonado
         const categoriasTitulos = novoContainer.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
-            categoriasTitulos[0].innerText = t.categoriaPrivativo;
-            categoriasTitulos[1].innerText = t.categoriaExecutivo;
-            categoriasTitulos[2].innerText = t.categoriaEspecial;
+            categoriasTitulos[0].innerText = "Transporte Privativo";
+            categoriasTitulos[1].innerText = "Carro Executivo";
+            categoriasTitulos[2].innerText = "Carro Executivo Especial";
         }
         
         container.innerHTML = novoContainer.innerHTML;
@@ -647,19 +636,13 @@
         const regiao = document.querySelector('input[name="regiao"]:checked').value;
         const catalogo = precosVeiculos[regiao];
         const container = document.getElementById("veiculosContainer");
-        const t = translations[currentLang];
-        container.innerHTML = "";
-
+        const tempContainer = document.createElement('div');
+        
         for (const [categoria, veiculos] of Object.entries(catalogo)) {
-            let categoriaTraduzida = categoria;
-            if (categoria === "Transporte Privativo") categoriaTraduzida = t.categoriaPrivativo;
-            else if (categoria === "Carro Executivo") categoriaTraduzida = t.categoriaExecutivo;
-            else if (categoria === "Carro Executivo Especial") categoriaTraduzida = t.categoriaEspecial;
-            
             const categoriaDiv = document.createElement("div");
             categoriaDiv.className = "categoria-grid";
-            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoriaTraduzida}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
-            container.appendChild(categoriaDiv);
+            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
+            tempContainer.appendChild(categoriaDiv);
             const grid = categoriaDiv.querySelector(`.veiculos-grid`);
             
             veiculos.forEach((veic) => {
@@ -674,21 +657,25 @@
                     ${obsHtml}
                     <div class="veiculo-preco">R$ ${veic.preco.toLocaleString('pt-BR')}</div>
                 `;
-                card.addEventListener("click", () => {
-                    document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
-                    card.classList.add("selected");
-                    document.getElementById("veiculoSelecionado").value = veic.nome;
-                    document.getElementById("precoBase").value = veic.preco;
-                    scheduleUpdate();
-                });
                 grid.appendChild(card);
             });
         }
         
-        // Salvar no cache
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = container.innerHTML;
         veiculosCache[regiao] = tempContainer;
+        container.innerHTML = tempContainer.innerHTML;
+        
+        document.querySelectorAll(".veiculo-card").forEach(card => {
+            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
+            card.addEventListener("click", () => {
+                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
+                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
+                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
+                document.getElementById("precoBase").value = preco;
+                scheduleUpdate();
+            });
+        });
     }
 
     function renderForm() {
@@ -1038,15 +1025,13 @@
         const footerText = document.getElementById("footerText");
         if (footerText) footerText.innerHTML = t.footer;
         
-        // ATUALIZAR OS TÍTULOS DAS CATEGORIAS DOS VEÍCULOS
         const categoriasTitulos = document.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
-            categoriasTitulos[0].innerText = t.categoriaPrivativo;
-            categoriasTitulos[1].innerText = t.categoriaExecutivo;
-            categoriasTitulos[2].innerText = t.categoriaEspecial;
+            categoriasTitulos[0].innerText = "Transporte Privativo";
+            categoriasTitulos[1].innerText = "Carro Executivo";
+            categoriasTitulos[2].innerText = "Carro Executivo Especial";
         }
         
-        // Atualizar os campos locais se já existirem
         const localFields = document.getElementById("localFields");
         if (localFields && localFields.children.length > 0) {
             renderLocalFields();
