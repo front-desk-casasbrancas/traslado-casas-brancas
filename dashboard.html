@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas - Dashboard de Traslados</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f0;
+            padding: 20px;
+            color: #2c3e2f;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: white;
+            border: 1px solid #d4cbb8;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            color: #5a6e4a;
+        }
+        .tab-btn.active {
+            background: #2c5f2d;
+            border-color: #2c5f2d;
+            color: white;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e8e0d8;
+        }
+        .metric-value { font-size: 2rem; font-weight: 600; color: #2c5f2d; }
+        .metric-label { font-size: 0.8rem; color: #7a8b6e; margin-top: 6px; }
+        .table-container {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid #e8e0d8;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ebe5db; font-size: 0.85rem; }
+        th { background: #fafaf7; font-weight: 600; color: #2c5f2d; }
+        .month-group td { background: #e8f0e5; padding: 12px; font-weight: 600; color: #2c5f2d; }
+        .comissao-card {
+            background: linear-gradient(135deg, #2c5f2d, #1e4520);
+            color: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .comissao-valor { font-size: 2.5rem; font-weight: 600; }
+        .comissao-periodo { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+        .periodo-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+        }
+        .periodo-btn.active { background: #c8b88a; color: #2c5f2d; font-weight: 600; }
+        .refresh-btn {
+            background: #2c5f2d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .confirm-btn {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .confirm-btn:hover { background: #128C7E; }
+        .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
+        .error-message {
+            background: #faecec;
+            color: #b85c5a;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="comissao">Comissões (15%)</button>
+        <button class="tab-btn" data-tab="lista">Lista de Transfers</button>
+    </div>
+
+    <div class="header-actions">
+        <div class="last-update" id="lastUpdate">Clique em "Atualizar" para carregar os dados</div>
+        <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
+    </div>
+
+    <div id="errorDisplay" class="error-message"></div>
+
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="dashboard-grid">
+            <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total</div></div>
+            <div class="metric-card"><div class="metric-value" id="avgValue">R$ -</div><div class="metric-label">Valor Médio</div></div>
+            <div class="metric-card"><div class="metric-value" id="topVehicle">-</div><div class="metric-label">Veículo + Solicitado</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalComissao">R$ -</div><div class="metric-label">Total em Comissões (15%)</div></div>
+        </div>
+        <div class="table-container"><h3>Traslados por Mês</h3><canvas id="monthlyChart" style="max-height: 250px;"></canvas></div>
+        <div class="table-container"><h3>Ranking de Veículos</h3><canvas id="vehicleChart" style="max-height: 250px;"></canvas></div>
+    </div>
+
+    <div id="tab-comissao" class="tab-content">
+        <div class="comissao-card">
+            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados</div>
+            <div class="comissao-valor" id="comissaoTotal">R$ -</div>
+            <div class="comissao-periodo">
+                <button class="periodo-btn active" data-periodo="todos">Todos</button>
+                <button class="periodo-btn" data-periodo="mesAtual">Este mês</button>
+                <button class="periodo-btn" data-periodo="mesAnterior">Mês passado</button>
+                <button class="periodo-btn" data-periodo="trimestre">3 meses</button>
+            </div>
+        </div>
+        <div class="table-container"><h3>Detalhamento por período</h3><div id="comissaoDetalhe"></div></div>
+    </div>
+
+    <div id="tab-lista" class="tab-content">
+        <div class="table-container">
+            <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+                <table id="historyTable">
+                    <thead>
+                        <tr><th>Data/Hora</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Veículo</th><th>Data Viagem</th><th>Horário</th><th>Valor</th><th>Confirmar</th></tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="9" style="text-align: center;">Carregando...<\/td><\/tr>
+                    <\/tbody>
+                <\/table>
+            <\/div>
+        <\/div>
+    <\/div>
+<\/div>
+
+<script>
+    // ==================== CONFIGURAÇÃO ====================
+    const WEBAPP_URL = "https:\/\/script.google.com\/macros\/s\/AKfycbxEbaFYPp9LGdbg0R5C2ZJIqV85o7JiSuJWioQEUGI\/dev";
+    
+    let transfers = [];
+    let monthlyChart, vehicleChart;
+    let currentPeriodo = 'todos';
+
+    // ==================== MENSAGENS DE CONFIRMAÇÃO ====================
+    const mensagens = {
+        pt: {
+            titulo: "TRANSFER CONFIRMED - CASAS BRANCAS\n\nYour request has been confirmed!",
+            detalhes: "Trip details:",
+            hospede: "Guest:",
+            reserva: "Reservation:",
+            data: "Date:",
+            horario: "Time:",
+            sentido: "Direction:",
+            veiculo: "Vehicle:",
+            bagagens: "Luggage:",
+            valor: "Total amount:",
+            pagamento: "Payment:",
+            politicas: "Transfer Service Policies",
+            obs1: "The driver will be waiting at the hotel lobby or airport arrivals area, with a sign bearing the hotel's name.",
+            obs2: "Payment must be made directly to the driver (credit card or cash).",
+            obs3: "Cancellations, changes or new bookings must be requested at least 24 hours in advance, otherwise the full amount will be charged.",
+            obs4: "Estimated travel time: 3h00 to 3h30, may vary during high season periods such as New Year's Eve, Carnival, holidays and high season.",
+            obs5: "For safety reasons, drivers strictly respect speed limits.",
+            obsImportantes: "Important Notes",
+            obsImp1: "This is a third-party service, and the hotel is not responsible for any issues.",
+            obsImp2: "We do not make transfer reservations through agencies or intermediaries. Requests must be made directly by the guest.",
+            obsImp3: "If you have any questions, please do not hesitate to contact us. We will be happy to help.",
+            agradecimento: "Thank you for choosing us!\nCasas Brancas Boutique Hotel"
+        }
+    };
+
+    function mostrarErro(mensagem) {
+        const errorDiv = document.getElementById('errorDisplay');
+        errorDiv.style.display = 'block';
+        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem + '<br><br>Soluções:<br>• Verifique se a planilha está compartilhada<br>• Verifique se o Apps Script está implantado<br>• Clique em "Atualizar" para tentar novamente';
+        document.getElementById('lastUpdate').innerHTML = 'Erro ao carregar dados.';
+    }
+
+    function esconderErro() {
+        document.getElementById('errorDisplay').style.display = 'none';
+    }
+
+    async function carregarDados() {
+        esconderErro();
+        document.getElementById('lastUpdate').innerHTML = 'Carregando dados da planilha...';
+        
+        try {
+            const response = await fetch(WEBAPP_URL);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const dados = await response.json();
+            if (dados && dados.error) throw new Error(dados.error);
+            transfers = Array.isArray(dados) ? dados : [];
+            document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
+            updateDashboard();
+            updateHistoryTable();
+            updateComissaoTab(currentPeriodo);
+        } catch (erro) {
+            console.error('Erro:', erro);
+            mostrarErro(erro.message);
+            transfers = [];
+            updateDashboard();
+            updateHistoryTable();
+            updateComissaoTab(currentPeriodo);
+        }
+    }
+
+    function enviarConfirmacao(transfer) {
+        const telefone = transfer["Telefone"] || "";
+        if (!telefone) {
+            alert("Cliente não tem telefone cadastrado!");
+            return;
+        }
+        
+        const telefoneLimpo = telefone.replace(/\D/g, "");
+        if (telefoneLimpo.length < 10) {
+            alert("Número de telefone inválido!");
+            return;
+        }
+        
+        const idioma = transfer["Idioma"] || "pt";
+        const t = mensagens[idioma] || mensagens.pt;
+        
+        const bag23 = transfer["Bagagem23kg"] || 0;
+        const bag10 = transfer["Bagagem10kg"] || 0;
+        const bagMao = transfer["BagagemMao"] || 0;
+        const bagagensTexto = `${bag23}x23kg, ${bag10}x10kg, ${bagMao}x carry-on`;
+        
+        const mensagem = `${t.titulo}\n\n` +
+            `${t.detalhes}\n` +
+            `${t.hospede} ${transfer["Nome"] || "-"}\n` +
+            `${t.reserva} ${transfer["Reserva"] || "-"}\n` +
+            `${t.data} ${transfer["Data Viagem"] || "-"}\n` +
+            `${t.horario} ${transfer["Horário"] || "-"}\n` +
+            `${t.sentido} ${transfer["Sentido"] || "-"}\n` +
+            `${t.veiculo} ${transfer["Veículo"] || "-"}\n` +
+            `${t.bagagens} ${bagagensTexto}\n\n` +
+            `${t.valor} R$ ${(parseFloat(transfer["Valor Total"]) || 0).toLocaleString('pt-BR')}\n` +
+            `${t.pagamento} ${transfer["Pagamento"] || "-"}\n\n` +
+            `---\n${t.politicas}\n\n` +
+            `- ${t.obs1}\n\n- ${t.obs2}\n\n- ${t.obs3}\n\n- ${t.obs4}\n\n- ${t.obs5}\n\n---\n${t.obsImportantes}\n\n` +
+            `- ${t.obsImp1}\n\n- ${t.obsImp2}\n\n- ${t.obsImp3}\n\n---\n${t.agradecimento}`;
+        
+        const msgCodificada = encodeURIComponent(mensagem);
+        window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
+    }
+
+    function updateDashboard() {
+        const total = transfers.length;
+        const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+        const avgValue = total > 0 ? totalValue / total : 0;
+        const totalComissao = totalValue * 0.15;
+        
+        const vehicleCount = {};
+        transfers.forEach(t => { const v = t["Veículo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
+        let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
+        
+        document.getElementById('totalTransfers').innerText = total;
+        document.getElementById('totalValue').innerHTML = `R$ ${totalValue.toLocaleString('pt-BR')}`;
+        document.getElementById('avgValue').innerHTML = `R$ ${avgValue.toLocaleString('pt-BR')}`;
+        document.getElementById('topVehicle').innerText = topVehicle;
+        document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
+        
+        const monthlyData = {};
+        transfers.forEach(t => {
+            if (t["Data/Hora"]) {
+                const month = new Date(t["Data/Hora"]).toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
+                monthlyData[month] = (monthlyData[month] || 0) + 1;
+            }
+        });
+        drawMonthlyChart(monthlyData);
+        drawVehicleChart(vehicleCount);
+    }
+
+    function drawMonthlyChart(data) {
+        const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+        if (!ctx) return;
+        if (monthlyChart) monthlyChart.destroy();
+        monthlyChart = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+    }
+
+    function drawVehicleChart(data) {
+        const ctx = document.getElementById('vehicleChart')?.getContext('2d');
+        if (!ctx) return;
+        if (vehicleChart) vehicleChart.destroy();
+        vehicleChart = new Chart(ctx, {
+            type: 'pie',
+            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#2c5f2d','#4ade80','#86efac','#c8b88a','#a3e635'] }] },
+            options: { responsive: true, maintainAspectRatio: true }
+        });
+    }
+
+    function updateHistoryTable() {
+        const tbody = document.getElementById('historyBody');
+        if (!transfers.length) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            return;
+        }
+        
+        const sorted = [...transfers].sort((a,b) => new Date(b["Data/Hora"]) - new Date(a["Data/Hora"]));
+        const grouped = {};
+        sorted.forEach(t => {
+            if (!t["Data/Hora"]) return;
+            const date = new Date(t["Data/Hora"]);
+            const monthYear = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+            if (!grouped[monthYear]) grouped[monthYear] = [];
+            grouped[monthYear].push(t);
+        });
+        
+        let html = '';
+        for (const [monthYear, items] of Object.entries(grouped)) {
+            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${items.length} traslados)<\/td><\/tr>`;
+            items.forEach(t => {
+                const telefone = t["Telefone"] || "";
+                const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+                html += `
+                    <tr>
+                        <td>${t["Data/Hora"] ? new Date(t["Data/Hora"]).toLocaleString('pt-BR') : '-'}<\/td>
+                        <td>${t["Nome"] || '-'}<\/td>
+                        <td>${telefone}<\/td>
+                        <td>${t["Sentido"] || '-'}<\/td>
+                        <td>${t["Veículo"] || '-'}<\/td>
+                        <td>${t["Data Viagem"] || '-'}<\/td>
+                        <td>${t["Horário"] || '-'}<\/td>
+                        <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
+                        <td><button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})'>Confirmar<\/button><\/td>
+                    <\/tr>
+                `;
+            });
+        }
+        tbody.innerHTML = html;
+    }
+
+    function updateComissaoTab(periodo = 'todos') {
+        currentPeriodo = periodo;
+        const now = new Date();
+        const mesAtual = now.getMonth();
+        const anoAtual = now.getFullYear();
+        const mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1;
+        const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+        const tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
+        
+        let filtered = transfers;
+        if (periodo === 'mesAtual') {
+            filtered = transfers.filter(t => {
+                if (!t["Data/Hora"]) return false;
+                const d = new Date(t["Data/Hora"]);
+                return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+            });
+        } else if (periodo === 'mesAnterior') {
+            filtered = transfers.filter(t => {
+                if (!t["Data/Hora"]) return false;
+                const d = new Date(t["Data/Hora"]);
+                return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
+            });
+        } else if (periodo === 'trimestre') {
+            filtered = transfers.filter(t => new Date(t["Data/Hora"]) >= tresMesesAtras);
+        }
+        
+        const totalPeriodo = filtered.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+        const comissaoPeriodo = totalPeriodo * 0.15;
+        document.getElementById('comissaoTotal').innerHTML = `R$ ${comissaoPeriodo.toLocaleString('pt-BR')}`;
+        
+        const totalGeral = transfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalMesAtual = transfers.filter(t => {
+            if (!t["Data/Hora"]) return false;
+            const d = new Date(t["Data/Hora"]);
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalMesPassado = transfers.filter(t => {
+            if (!t["Data/Hora"]) return false;
+            const d = new Date(t["Data/Hora"]);
+            return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalTrimestre = transfers.filter(t => {
+            if (!t["Data/Hora"]) return false;
+            return new Date(t["Data/Hora"]) >= tresMesesAtras;
+        }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        
+        document.getElementById('comissaoDetalhe').innerHTML = `
+            <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
+            <tr><td>Todos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr><td>Este mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr><td>Mês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr><td>Últimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <\/tbody><\/table>
+        `;
+        
+        document.querySelectorAll('.periodo-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active');
+        });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    document.querySelectorAll('.periodo-btn').forEach(btn => {
+        btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo')));
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', carregarDados);
+    
+    carregarDados();
+</script>
+</body>
+</html>
