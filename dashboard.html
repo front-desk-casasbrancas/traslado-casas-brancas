@@ -64,6 +64,7 @@
         th { background: #fafaf7; font-weight: 600; color: #2c5f2d; }
         .month-group td { background: #e8f0e5; padding: 12px; font-weight: 600; color: #2c5f2d; }
         .completed-row td { background: #d4edda; text-decoration: line-through; color: #6c7a5e; }
+        .cancelled-row td { background: #f8d7da; text-decoration: line-through; color: #721c24; }
         .comissao-card {
             background: linear-gradient(135deg, #2c5f2d, #1e4520);
             color: white;
@@ -94,10 +95,10 @@
             background: #25D366;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             margin-right: 5px;
         }
         .confirm-btn:hover { background: #128C7E; }
@@ -105,17 +106,32 @@
             background: #6c757d;
             color: white;
             border: none;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
+            margin-right: 5px;
         }
         .complete-btn.completed {
             background: #28a745;
             cursor: default;
             opacity: 0.7;
         }
-        .complete-btn:hover:not(.completed) { background: #5a6268; }
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        .cancel-btn.cancelled {
+            background: #6c757d;
+            cursor: default;
+            opacity: 0.7;
+        }
+        .complete-btn:hover:not(.completed), .cancel-btn:hover:not(.cancelled) { opacity: 0.8; }
         .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
         .error-message {
             background: #faecec;
@@ -135,7 +151,7 @@
         }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .confirm-btn, .complete-btn { padding: 4px 8px; font-size: 0.7rem; }
+            .confirm-btn, .complete-btn, .cancel-btn { padding: 4px 6px; font-size: 0.65rem; }
         }
     </style>
 </head>
@@ -156,8 +172,8 @@
 
     <div id="tab-dashboard" class="tab-content active">
         <div class="dashboard-grid">
-            <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados</div></div>
-            <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados (Ativos)</div></div>
+            <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total (Ativos)</div></div>
             <div class="metric-card"><div class="metric-value" id="avgValue">R$ -</div><div class="metric-label">Valor Médio</div></div>
             <div class="metric-card"><div class="metric-value" id="topVehicle">-</div><div class="metric-label">Veículo + Solicitado</div></div>
             <div class="metric-card"><div class="metric-value" id="totalComissao">R$ -</div><div class="metric-label">Total em Comissões (15%)</div></div>
@@ -168,7 +184,7 @@
 
     <div id="tab-comissao" class="tab-content">
         <div class="comissao-card">
-            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados</div>
+            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados (não cancelados)</div>
             <div class="comissao-valor" id="comissaoTotal">R$ -</div>
             <div class="comissao-periodo">
                 <button class="periodo-btn active" data-periodo="todos">Todos</button>
@@ -253,6 +269,17 @@
         if (bag10 > 0) partes.push(`${bag10}x10kg`);
         if (bagMao > 0) partes.push(`${bagMao}x mão`);
         return partes.length > 0 ? partes.join(', ') : 'Nenhuma';
+    }
+
+    function getStatus(transfer) {
+        const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
+        return status[transfer["ID"]] || 'active';
+    }
+
+    function setStatus(transfer, newStatus) {
+        const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
+        status[transfer["ID"]] = newStatus;
+        localStorage.setItem('transferStatus', JSON.stringify(status));
     }
 
     function mostrarErro(mensagem) {
@@ -363,16 +390,47 @@ Casas Brancas Boutique Hotel`;
     }
 
     function marcarFinalizado(transfer) {
-        const finalized = JSON.parse(localStorage.getItem('finalizedTransfers') || '{}');
-        finalized[transfer["ID"]] = true;
-        localStorage.setItem('finalizedTransfers', JSON.stringify(finalized));
+        if (getStatus(transfer) === 'cancelled') {
+            alert("Este transfer está cancelado. Para finalizar, primeiro reative-o.");
+            return;
+        }
+        setStatus(transfer, 'completed');
         updateHistoryTable();
+        updateDashboard();
+        updateComissaoTab(currentPeriodo);
         mostrarFeedback(`Transfer para ${transfer["Nome"]} marcado como finalizado!`, "success");
     }
 
-    function isFinalizado(transfer) {
-        const finalized = JSON.parse(localStorage.getItem('finalizedTransfers') || '{}');
-        return finalized[transfer["ID"]] === true;
+    function marcarCancelado(transfer) {
+        if (getStatus(transfer) === 'completed') {
+            alert("Este transfer já está finalizado. Para cancelar, primeiro reative-o.");
+            return;
+        }
+        setStatus(transfer, 'cancelled');
+        updateHistoryTable();
+        updateDashboard();
+        updateComissaoTab(currentPeriodo);
+        mostrarFeedback(`Transfer para ${transfer["Nome"]} cancelado!`, "error");
+    }
+
+    function reativarTransfer(transfer) {
+        setStatus(transfer, 'active');
+        updateHistoryTable();
+        updateDashboard();
+        updateComissaoTab(currentPeriodo);
+        mostrarFeedback(`Transfer para ${transfer["Nome"]} reativado!`, "success");
+    }
+
+    function isActive(transfer) {
+        return getStatus(transfer) === 'active';
+    }
+
+    function isCompleted(transfer) {
+        return getStatus(transfer) === 'completed';
+    }
+
+    function isCancelled(transfer) {
+        return getStatus(transfer) === 'cancelled';
     }
 
     function mostrarFeedback(msg, tipo) {
@@ -392,13 +450,15 @@ Casas Brancas Boutique Hotel`;
     }
 
     function updateDashboard() {
-        const total = transfers.length;
-        const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+        // Filtrar apenas transfers ativos (não cancelados)
+        const activeTransfers = transfers.filter(t => !isCancelled(t));
+        const total = activeTransfers.length;
+        const totalValue = activeTransfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
         const avgValue = total > 0 ? totalValue / total : 0;
         const totalComissao = totalValue * 0.15;
         
         const vehicleCount = {};
-        transfers.forEach(t => { const v = t["Veículo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
+        activeTransfers.forEach(t => { const v = t["Veículo"]; if (v) vehicleCount[v] = (vehicleCount[v] || 0) + 1; });
         let topVehicle = Object.keys(vehicleCount).length ? Object.keys(vehicleCount).reduce((a,b) => vehicleCount[a] > vehicleCount[b] ? a : b) : '-';
         
         document.getElementById('totalTransfers').innerText = total;
@@ -408,7 +468,7 @@ Casas Brancas Boutique Hotel`;
         document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
         
         const monthlyData = {};
-        transfers.forEach(t => {
+        activeTransfers.forEach(t => {
             if (t["Data Viagem"]) {
                 const date = new Date(t["Data Viagem"]);
                 if (!isNaN(date.getTime())) {
@@ -427,7 +487,7 @@ Casas Brancas Boutique Hotel`;
         if (monthlyChart) monthlyChart.destroy();
         monthlyChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
+            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados Ativos', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
             options: { responsive: true, maintainAspectRatio: true }
         });
     }
@@ -446,7 +506,7 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
@@ -470,10 +530,12 @@ Casas Brancas Boutique Hotel`;
         
         let html = '';
         for (const [monthYear, items] of Object.entries(grouped)) {
-            const totalMes = items.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
+            // Calcular totais apenas dos ativos
+            const activeItems = items.filter(t => !isCancelled(t));
+            const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
             const comissaoMes = totalMes * 0.15;
             
-            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${items.length} traslados) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
+            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${activeItems.length} ativos de ${items.length} total) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
             
             items.forEach(t => {
                 const telefone = t["Telefone"] || "";
@@ -482,13 +544,32 @@ Casas Brancas Boutique Hotel`;
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 const dataTransfer = formatarData(t["Data Viagem"]);
                 const horario = formatarHorario(t["Horário"]);
-                const finalized = isFinalizado(t);
+                const isCompletedStatus = isCompleted(t);
+                const isCancelledStatus = isCancelled(t);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
                 
-                const rowClass = finalized ? 'completed-row' : '';
-                const confirmBtnDisabled = finalized ? 'disabled' : '';
-                const completeBtnText = finalized ? '✅ Finalizado' : '⬜ Finalizar';
-                const completeBtnClass = finalized ? 'complete-btn completed' : 'complete-btn';
+                let rowClass = '';
+                let confirmDisabled = false;
+                let completeBtnText = 'Finalizar';
+                let completeBtnClass = 'complete-btn';
+                let cancelBtnText = 'Cancelar';
+                let cancelBtnClass = 'cancel-btn';
+                
+                if (isCancelledStatus) {
+                    rowClass = 'cancelled-row';
+                    confirmDisabled = true;
+                    completeBtnText = 'Finalizado';
+                    completeBtnClass = 'complete-btn completed';
+                    cancelBtnText = '❌ Cancelado';
+                    cancelBtnClass = 'cancel-btn cancelled';
+                } else if (isCompletedStatus) {
+                    rowClass = 'completed-row';
+                    confirmDisabled = true;
+                    completeBtnText = '✅ Finalizado';
+                    completeBtnClass = 'complete-btn completed';
+                    cancelBtnText = 'Cancelar';
+                    cancelBtnClass = 'cancel-btn';
+                }
                 
                 html += `
                     <tr class="${rowClass}">
@@ -501,8 +582,9 @@ Casas Brancas Boutique Hotel`;
                         <td>${horario}<\/td>
                         <td>R$ ${valor.toLocaleString('pt-BR')}<\/td>
                         <td>
-                            <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${confirmBtnDisabled}>Confirmar<\/button>
-                            <button class="${completeBtnClass}" onclick='marcarFinalizado(${transferJson})' ${confirmBtnDisabled}>${completeBtnText}<\/button>
+                            <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${confirmDisabled ? 'disabled' : ''}>Confirmar<\/button>
+                            <button class="${completeBtnClass}" onclick='marcarFinalizado(${transferJson})' ${confirmDisabled ? 'disabled' : ''}>${completeBtnText}<\/button>
+                            <button class="${cancelBtnClass}" onclick='marcarCancelado(${transferJson})' ${isCancelledStatus ? 'disabled' : ''}>${cancelBtnText}<\/button>
                         <\/td>
                     <\/tr>
                 `;
@@ -520,21 +602,24 @@ Casas Brancas Boutique Hotel`;
         const anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
         const tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         
-        let filtered = transfers;
+        // Filtrar apenas transfers ativos (não cancelados)
+        const activeTransfers = transfers.filter(t => !isCancelled(t));
+        
+        let filtered = activeTransfers;
         if (periodo === 'mesAtual') {
-            filtered = transfers.filter(t => {
+            filtered = activeTransfers.filter(t => {
                 if (!t["Data Viagem"]) return false;
                 const d = new Date(t["Data Viagem"]);
                 return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
             });
         } else if (periodo === 'mesAnterior') {
-            filtered = transfers.filter(t => {
+            filtered = activeTransfers.filter(t => {
                 if (!t["Data Viagem"]) return false;
                 const d = new Date(t["Data Viagem"]);
                 return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
             });
         } else if (periodo === 'trimestre') {
-            filtered = transfers.filter(t => {
+            filtered = activeTransfers.filter(t => {
                 if (!t["Data Viagem"]) return false;
                 return new Date(t["Data Viagem"]) >= tresMesesAtras;
             });
@@ -544,27 +629,27 @@ Casas Brancas Boutique Hotel`;
         const comissaoPeriodo = totalPeriodo * 0.15;
         document.getElementById('comissaoTotal').innerHTML = `R$ ${comissaoPeriodo.toLocaleString('pt-BR')}`;
         
-        const totalGeral = transfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
-        const totalMesAtual = transfers.filter(t => {
+        const totalGeral = activeTransfers.reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        const totalMesAtual = activeTransfers.filter(t => {
             if (!t["Data Viagem"]) return false;
             const d = new Date(t["Data Viagem"]);
             return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
         }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
-        const totalMesPassado = transfers.filter(t => {
+        const totalMesPassado = activeTransfers.filter(t => {
             if (!t["Data Viagem"]) return false;
             const d = new Date(t["Data Viagem"]);
             return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior;
         }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
-        const totalTrimestre = transfers.filter(t => {
+        const totalTrimestre = activeTransfers.filter(t => {
             if (!t["Data Viagem"]) return false;
             return new Date(t["Data Viagem"]) >= tresMesesAtras;
         }).reduce((s,t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período<\/th><th>Total em Traslados<\/th><th>Comissão (15%)<\/th><\/thead><tbody>
-            <tr><td>Todos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr>.htmlTodos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr>.htmlEste mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <td>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr>.htmlMês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr>.htmlÚltimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <\/tbody><\/table>
         `;
