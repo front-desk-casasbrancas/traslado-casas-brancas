@@ -180,87 +180,123 @@
 
 <script>
     // ==================== CONFIGURAÇÃO ====================
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+    const WEBAPP_URL = "https:\/\/script.google.com\/macros\/s\/AKfycbxEbaFYPp9LGdbg0R5C2ZJIqV85o7JiSuJWioQEUGI\/dev";
     
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    // ==================== MENSAGENS DE CONFIRMAÇÃO ====================
-    const mensagens = {
-        pt: {
-            titulo: "TRASLADO CONFIRMADO - CASAS BRANCAS\n\nSua solicitação foi confirmada!",
-            detalhes: "Detalhes da viagem:",
-            hospede: "Hóspede:",
-            reserva: "Reserva:",
-            data: "Data:",
-            horario: "Horário:",
-            sentido: "Sentido:",
-            veiculo: "Veículo:",
-            bagagens: "Bagagens:",
-            valor: "Valor total:",
-            pagamento: "Pagamento:",
-            politicas: "Políticas do Serviço de Transfer",
-            obs1: "O motorista estará aguardando no lobby do hotel ou na área de desembarque do aeroporto, com uma placa contendo o nome do hotel.",
-            obs2: "O pagamento deve ser realizado diretamente ao motorista (cartão de crédito ou dinheiro).",
-            obs3: "Cancelamentos, alterações ou novas reservas devem ser solicitados com mínimo de 24 horas de antecedência, caso contrário será cobrado o valor integral.",
-            obs4: "Tempo estimado de viagem: 3h00 a 3h30, podendo variar em períodos de alta demanda como Réveillon, Carnaval, feriados e alta temporada.",
-            obs5: "Por questões de segurança, os motoristas respeitam rigorosamente os limites de velocidade.",
-            obsImportantes: "Observações Importantes",
-            obsImp1: "Este é um serviço terceirizado, e o hotel não se responsabiliza por eventuais intercorrências.",
-            obsImp2: "Não realizamos reservas de transfer por meio de agências ou intermediários. As solicitações devem ser feitas diretamente pelo hóspede.",
-            obsImp3: "Caso tenha alguma dúvida, por favor, não hesite em nos contatar. Teremos prazer em ajudar.",
-            agradecimento: "Agradecemos a preferência!\nCasas Brancas Boutique Hotel"
-        },
-        en: {
-            titulo: "TRANSFER CONFIRMED - CASAS BRANCAS\n\nYour request has been confirmed!",
-            detalhes: "Trip details:",
-            hospede: "Guest:",
-            reserva: "Reservation:",
-            data: "Date:",
-            horario: "Time:",
-            sentido: "Direction:",
-            veiculo: "Vehicle:",
-            bagagens: "Luggage:",
-            valor: "Total amount:",
-            pagamento: "Payment:",
-            politicas: "Transfer Service Policies",
-            obs1: "The driver will be waiting at the hotel lobby or airport arrivals area, with a sign bearing the hotel's name.",
-            obs2: "Payment must be made directly to the driver (credit card or cash).",
-            obs3: "Cancellations, changes or new bookings must be requested at least 24 hours in advance, otherwise the full amount will be charged.",
-            obs4: "Estimated travel time: 3h00 to 3h30, may vary during high season periods such as New Year's Eve, Carnival, holidays and high season.",
-            obs5: "For safety reasons, drivers strictly respect speed limits.",
-            obsImportantes: "Important Notes",
-            obsImp1: "This is a third-party service, and the hotel is not responsible for any issues.",
-            obsImp2: "We do not make transfer reservations through agencies or intermediaries. Requests must be made directly by the guest.",
-            obsImp3: "If you have any questions, please do not hesitate to contact us. We will be happy to help.",
-            agradecimento: "Thank you for choosing us!\nCasas Brancas Boutique Hotel"
-        },
-        es: {
-            titulo: "TRASLADO CONFIRMADO - CASAS BRANCAS\n\n¡Su solicitud ha sido confirmada!",
-            detalhes: "Detalles del viaje:",
-            hospede: "Huésped:",
-            reserva: "Reserva:",
-            data: "Fecha:",
-            horario: "Hora:",
-            sentido: "Dirección:",
-            veiculo: "Vehículo:",
-            bagagens: "Equipaje:",
-            valor: "Valor total:",
-            pagamento: "Pago:",
-            politicas: "Políticas del Servicio de Traslado",
-            obs1: "El conductor estará esperando en el lobby del hotel o en el área de llegadas del aeropuerto, con un cartel que indica el nombre del hotel.",
-            obs2: "El pago debe realizarse directamente al conductor (tarjeta de crédito o efectivo).",
-            obs3: "Las cancelaciones, cambios o nuevas reservas deben solicitarse con un mínimo de 24 horas de anticipación, de lo contrario se cobrará el valor completo.",
-            obs4: "Tiempo estimado de viaje: 3h00 a 3h30, pudiendo variar en períodos de alta demanda como Año Nuevo, Carnaval, feriados y temporada alta.",
-            obs5: "Por razones de seguridad, los conductores respetan estrictamente los límites de velocidad.",
-            obsImportantes: "Observaciones Importantes",
-            obsImp1: "Este es un servicio tercerizado, y el hotel no se responsabiliza por posibles incidentes.",
-            obsImp2: "No realizamos reservas de traslado a través de agencias o intermediarios. Las solicitudes deben ser realizadas directamente por el huésped.",
-            obsImp3: "Si tiene alguna duda, por favor no dude en contactarnos. Estaremos encantados de ayudarle.",
-            agradecimento: "¡Gracias por su preferencia!\nCasas Brancas Boutique Hotel"
+    // ==================== FUNÇÃO PRINCIPAL CORRIGIDA ====================
+    function formatarData(dataStr) {
+        if (!dataStr) return "-";
+        try {
+            const date = new Date(dataStr);
+            if (isNaN(date.getTime())) return "-";
+            return date.toLocaleDateString('pt-BR');
+        } catch(e) {
+            return "-";
         }
-    };
+    }
+
+    function formatarHorario(horarioStr) {
+        if (!horarioStr) return "-";
+        try {
+            if (horarioStr.includes("T")) {
+                return horarioStr.substring(11, 16);
+            }
+            if (horarioStr.length >= 5) {
+                return horarioStr.substring(0, 5);
+            }
+            return "-";
+        } catch(e) {
+            return "-";
+        }
+    }
+
+    function formatarBagagens(transfer) {
+        const bag23 = parseInt(transfer["Bagagem23kg"]) || 0;
+        const bag10 = parseInt(transfer["Bagagem10kg"]) || 0;
+        const bagMao = parseInt(transfer["BagagemMao"]) || 0;
+        const partes = [];
+        if (bag23 > 0) partes.push(`${bag23}x23kg`);
+        if (bag10 > 0) partes.push(`${bag10}x10kg`);
+        if (bagMao > 0) partes.push(`${bagMao}x mão`);
+        return partes.length > 0 ? partes.join(', ') : 'Nenhuma';
+    }
+
+    function enviarConfirmacao(transfer) {
+        const telefone = transfer["Telefone"] || "";
+        if (!telefone) {
+            alert("Cliente não tem telefone cadastrado!");
+            return;
+        }
+        
+        const telefoneLimpo = telefone.toString().replace(/\D/g, "");
+        if (telefoneLimpo.length < 10) {
+            alert("Número de telefone inválido!");
+            return;
+        }
+        
+        const idioma = transfer["Idioma"] || "pt";
+        
+        // Formatar dados corretamente
+        const dataViagem = formatarData(transfer["Data Viagem"]);
+        const horario = formatarHorario(transfer["Horário"]);
+        const bagagensTexto = formatarBagagens(transfer);
+        const valor = parseFloat(transfer["Valor Total"]) || 0;
+        const veiculo = transfer["Veículo"] || "-";
+        const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const pagamento = transfer["Pagamento"] || "-";
+        
+        // Mensagem em português (sem emojis)
+        const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
+
+Sua solicitação foi confirmada!
+
+Detalhes da viagem:
+Hóspede: ${transfer["Nome"] || "-"}
+Reserva: ${transfer["Reserva"] || "-"}
+Data: ${dataViagem}
+Horário: ${horario}
+Sentido: ${sentido}
+Veículo: ${veiculo}
+Bagagens: ${bagagensTexto}
+
+Valor total: R$ ${valor.toLocaleString('pt-BR')}
+Pagamento: ${pagamento}
+
+---
+
+Políticas do Serviço de Transfer
+
+- O motorista estará aguardando no lobby do hotel ou na área de desembarque do aeroporto, com uma placa contendo o nome do hotel.
+
+- O pagamento deve ser realizado diretamente ao motorista (cartão de crédito ou dinheiro).
+
+- Cancelamentos, alterações ou novas reservas devem ser solicitados com mínimo de 24 horas de antecedência, caso contrário será cobrado o valor integral.
+
+- Tempo estimado de viagem: 3h00 a 3h30, podendo variar em períodos de alta demanda como Réveillon, Carnaval, feriados e alta temporada.
+
+- Por questões de segurança, os motoristas respeitam rigorosamente os limites de velocidade.
+
+---
+
+Observações Importantes
+
+- Este é um serviço terceirizado, e o hotel não se responsabiliza por eventuais intercorrências.
+
+- Não realizamos reservas de transfer por meio de agências ou intermediários. As solicitações devem ser feitas diretamente pelo hóspede.
+
+- Caso tenha alguma dúvida, por favor, não hesite em nos contatar. Teremos prazer em ajudar.
+
+---
+
+Agradecemos a preferência!
+Casas Brancas Boutique Hotel`;
+        
+        const msgCodificada = encodeURIComponent(mensagem);
+        window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
+    }
 
     function mostrarErro(mensagem) {
         const errorDiv = document.getElementById('errorDisplay');
@@ -297,64 +333,12 @@
         }
     }
 
-    function enviarConfirmacao(transfer) {
-        const telefone = transfer["Telefone"] || "";
-        if (!telefone) {
-            alert("Cliente não tem telefone cadastrado!");
-            return;
-        }
-        
-        const telefoneLimpo = telefone.toString().replace(/\D/g, "");
-        if (telefoneLimpo.length < 10) {
-            alert("Número de telefone inválido!");
-            return;
-        }
-        
-        const idioma = transfer["Idioma"] || "pt";
-        const t = mensagens[idioma] || mensagens.pt;
-        
-        const bag23 = transfer["Bagagem23kg"] || 0;
-        const bag10 = transfer["Bagagem10kg"] || 0;
-        const bagMao = transfer["BagagemMao"] || 0;
-        const bagagensTexto = `${bag23}x23kg, ${bag10}x10kg, ${bagMao}x mão`;
-        
-        const dataViagem = transfer["Data Viagem"] ? new Date(transfer["Data Viagem"]).toLocaleDateString('pt-BR') : "-";
-        const horario = transfer["Horário"] ? transfer["Horário"].substring(11, 16) : "-";
-        const valor = parseFloat(transfer["Valor Total"]) || parseFloat(transfer["ValorTotal"]) || 0;
-        const veiculo = transfer["Veículo"] || transfer["Veiculo"] || "-";
-        const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-        
-        const mensagem = `${t.titulo}\n\n` +
-            `${t.detalhes}\n` +
-            `${t.hospede} ${transfer["Nome"] || "-"}\n` +
-            `${t.reserva} ${transfer["Reserva"] || "-"}\n` +
-            `${t.data} ${dataViagem}\n` +
-            `${t.horario} ${horario}\n` +
-            `${t.sentido} ${sentido}\n` +
-            `${t.veiculo} ${veiculo}\n` +
-            `${t.bagagens} ${bagagensTexto}\n\n` +
-            `${t.valor} R$ ${valor.toLocaleString('pt-BR')}\n` +
-            `${t.pagamento} ${transfer["Pagamento"] || "-"}\n\n` +
-            `---\n${t.politicas}\n\n` +
-            `- ${t.obs1}\n\n- ${t.obs2}\n\n- ${t.obs3}\n\n- ${t.obs4}\n\n- ${t.obs5}\n\n---\n${t.obsImportantes}\n\n` +
-            `- ${t.obsImp1}\n\n- ${t.obsImp2}\n\n- ${t.obsImp3}\n\n---\n${t.agradecimento}`;
-        
-        const msgCodificada = encodeURIComponent(mensagem);
-        window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
-    }
-
     function updateDashboard() {
-        console.log("Atualizando dashboard com", transfers.length, "transferências");
-        
         const total = transfers.length;
-        const totalValue = transfers.reduce((sum, t) => {
-            const valor = parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0;
-            return sum + valor;
-        }, 0);
+        const totalValue = transfers.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0), 0);
         const avgValue = total > 0 ? totalValue / total : 0;
         const totalComissao = totalValue * 0.15;
         
-        // Contagem de veículos
         const vehicleCount = {};
         transfers.forEach(t => { 
             const v = t["Veículo"] || t["Veiculo"];
@@ -372,7 +356,6 @@
         document.getElementById('topVehicle').innerText = topVehicle;
         document.getElementById('totalComissao').innerHTML = `R$ ${totalComissao.toLocaleString('pt-BR')}`;
         
-        // Dados mensais
         const monthlyData = {};
         transfers.forEach(t => {
             const dataHora = t["Data/Hora"];
@@ -411,7 +394,7 @@
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
@@ -433,8 +416,8 @@
                 const valor = parseFloat(t["Valor Total"]) || parseFloat(t["ValorTotal"]) || 0;
                 const veiculo = t["Veículo"] || t["Veiculo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-                const dataViagem = t["Data Viagem"] ? new Date(t["Data Viagem"]).toLocaleDateString('pt-BR') : "-";
-                const horario = t["Horário"] ? t["Horário"].substring(11, 16) : "-";
+                const dataViagem = formatarData(t["Data Viagem"]);
+                const horario = formatarHorario(t["Horário"]);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
                 
                 html += `
@@ -506,7 +489,7 @@
             <tr><td>Todos os períodos<\/td><td>R$ ${totalGeral.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalGeral*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr><td>Este mês<\/td><td>R$ ${totalMesAtual.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesAtual*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <tr><td>Mês passado<\/td><td>R$ ${totalMesPassado.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalMesPassado*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
-            <tr><td>Últimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
+            <tr>.htmlÚltimos 3 meses<\/td><td>R$ ${totalTrimestre.toLocaleString('pt-BR')}<\/td><td>R$ ${(totalTrimestre*0.15).toLocaleString('pt-BR')}<\/td><\/tr>
             <\/tbody><\/table>
         `;
         
