@@ -202,18 +202,17 @@
                 <table id="historyTable">
                     <thead>
                         <tr>
-                            <th>Data/Hora</th>
+                            <th>Data Viagem</th>
+                            <th>Horário</th>
                             <th>Hóspede</th>
                             <th>Telefone</th>
                             <th>Sentido</th>
                             <th>Veículo</th>
-                            <th>Data Viagem</th>
-                            <th>Horário</th>
                             <th>Valor</th>
                             <th>Ações</th>
                         </thead>
                     <tbody id="historyBody">
-                        <td><td colspan="9" style="text-align: center;">Carregando...<\/td><\/tr>
+                        <td><td colspan="8" style="text-align: center;">Carregando...<\/td><\/tr>
                     <\/tbody>
                 <\/table>
             <\/div>
@@ -222,64 +221,23 @@
 <\/div>
 
 <script>
-    // ==================== CONFIGURAÇÃO ====================
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
     
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
 
-    // ==================== FUNÇÕES AUXILIARES ====================
-    function formatarData(dataStr) {
-        if (!dataStr) return "-";
-        try {
-            const date = new Date(dataStr);
-            if (isNaN(date.getTime())) return "-";
-            const dia = date.getDate().toString().padStart(2, '0');
-            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
-            const ano = date.getFullYear();
-            return `${dia}/${mes}/${ano}`;
-        } catch(e) {
-            return "-";
-        }
-    }
-
-    // 🔧 FUNÇÃO CORRIGIDA - Lê diretamente o valor da coluna H
-    function formatarHorario(horarioStr) {
-        if (!horarioStr) return "-";
-        
-        // Converter para string
-        let horaStr = horarioStr.toString();
-        
-        // Se já for texto no formato "HH:MM" (ex: "06:00", "12:45")
-        if (horaStr.match(/^\d{2}:\d{2}$/)) {
-            return horaStr;
-        }
-        
-        // Se for string ISO (ex: "1899-12-30T06:00:00.000Z")
+    function formatarHorario(horarioRaw) {
+        if (!horarioRaw) return "-";
+        let horaStr = horarioRaw.toString();
+        if (horaStr.match(/^\d{2}:\d{2}$/)) return horaStr;
         if (horaStr.includes('T')) {
             const timePart = horaStr.split('T')[1];
             if (timePart) return timePart.substring(0, 5);
         }
-        
-        // Tentar extrair com regex
         const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
-        if (timeMatch) {
-            return `${timeMatch[1]}:${timeMatch[2]}`;
-        }
-        
+        if (timeMatch) return `${timeMatch[1]}:${timeMatch[2]}`;
         return "-";
-    }
-
-    function formatarBagagens(transfer) {
-        const bag23 = parseInt(transfer["Bagagem23kg"]) || 0;
-        const bag10 = parseInt(transfer["Bagagem10kg"]) || 0;
-        const bagMao = parseInt(transfer["BagagemMao"]) || 0;
-        const partes = [];
-        if (bag23 > 0) partes.push(`${bag23}x23kg`);
-        if (bag10 > 0) partes.push(`${bag10}x10kg`);
-        if (bagMao > 0) partes.push(`${bagMao}x mão`);
-        return partes.length > 0 ? partes.join(', ') : 'Nenhuma';
     }
 
     function getStatus(transfer) {
@@ -296,98 +254,18 @@
     function isCompleted(transfer) { return getStatus(transfer) === 'completed'; }
     function isCancelled(transfer) { return getStatus(transfer) === 'cancelled'; }
 
-    function mostrarErro(mensagem) {
-        const errorDiv = document.getElementById('errorDisplay');
-        errorDiv.style.display = 'block';
-        errorDiv.innerHTML = 'Erro ao carregar dados:<br>' + mensagem;
-        document.getElementById('lastUpdate').innerHTML = 'Erro ao carregar dados.';
-    }
-
-    function esconderErro() {
-        document.getElementById('errorDisplay').style.display = 'none';
-    }
-
     async function carregarDados() {
-        esconderErro();
-        document.getElementById('lastUpdate').innerHTML = 'Carregando dados da planilha...';
         try {
             const response = await fetch(WEBAPP_URL);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const dados = await response.json();
-            if (dados && dados.error) throw new Error(dados.error);
             transfers = Array.isArray(dados) ? dados : [];
             document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
             updateDashboard();
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
         } catch (erro) {
-            mostrarErro(erro.message);
-            transfers = [];
-            updateDashboard();
-            updateHistoryTable();
-            updateComissaoTab(currentPeriodo);
+            console.error(erro);
         }
-    }
-
-    function enviarConfirmacao(transfer) {
-        const telefone = transfer["Telefone"] || "";
-        if (!telefone) { alert("Cliente não tem telefone cadastrado!"); return; }
-        const telefoneLimpo = telefone.toString().replace(/\D/g, "");
-        if (telefoneLimpo.length < 10) { alert("Número de telefone inválido!"); return; }
-        
-        const dataViagem = formatarData(transfer["Data Viagem"]);
-        const horario = formatarHorario(transfer["Horário"]);
-        const bagagensTexto = formatarBagagens(transfer);
-        const valor = parseFloat(transfer["Valor Total"]) || 0;
-        const veiculo = transfer["Veículo"] || "-";
-        const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-        const pagamento = transfer["Pagamento"] || "-";
-        
-        const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
-
-Sua solicitação foi confirmada!
-
-Detalhes da viagem:
-Hóspede: ${transfer["Nome"] || "-"}
-Reserva: ${transfer["Reserva"] || "-"}
-Data: ${dataViagem}
-Horário: ${horario}
-Sentido: ${sentido}
-Veículo: ${veiculo}
-Bagagens: ${bagagensTexto}
-
-Valor total: R$ ${valor.toLocaleString('pt-BR')}
-Pagamento: ${pagamento}
-
----
-
-Políticas do Serviço de Transfer
-
-- O motorista estará aguardando no lobby do hotel ou na área de desembarque do aeroporto, com uma placa contendo o nome do hotel.
-- O pagamento deve ser realizado diretamente ao motorista (cartão de crédito ou dinheiro).
-- Cancelamentos com mínimo 24h de antecedência.
-- Tempo estimado: 3h00 a 3h30.
-
-Agradecemos a preferência!
-Casas Brancas Boutique Hotel`;
-        
-        window.open(`https://wa.me/${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
-    }
-
-    function marcarFinalizado(transfer) {
-        if (isCancelled(transfer)) { alert("Transfer cancelado. Reative-o primeiro."); return; }
-        setStatus(transfer, 'completed');
-        updateHistoryTable();
-        updateDashboard();
-        updateComissaoTab(currentPeriodo);
-    }
-
-    function marcarCancelado(transfer) {
-        if (isCompleted(transfer)) { alert("Transfer finalizado. Reative-o primeiro."); return; }
-        setStatus(transfer, 'cancelled');
-        updateHistoryTable();
-        updateDashboard();
-        updateComissaoTab(currentPeriodo);
     }
 
     function updateDashboard() {
@@ -443,10 +321,72 @@ Casas Brancas Boutique Hotel`;
         });
     }
 
+    function enviarConfirmacao(transfer) {
+        const telefone = transfer["Telefone"] || "";
+        if (!telefone) { alert("Cliente não tem telefone cadastrado!"); return; }
+        const telefoneLimpo = telefone.toString().replace(/\D/g, "");
+        if (telefoneLimpo.length < 10) { alert("Número de telefone inválido!"); return; }
+        
+        let dataViagem = "-";
+        if (transfer["Data Viagem"]) {
+            const d = new Date(transfer["Data Viagem"]);
+            if (!isNaN(d.getTime())) {
+                dataViagem = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+            }
+        }
+        const horario = formatarHorario(transfer["Horário"]);
+        const valor = parseFloat(transfer["Valor Total"]) || 0;
+        const veiculo = transfer["Veículo"] || "-";
+        const sentido = transfer["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        
+        const mensagem = `TRASLADO CONFIRMADO - CASAS BRANCAS
+
+Sua solicitação foi confirmada!
+
+Detalhes da viagem:
+Hóspede: ${transfer["Nome"] || "-"}
+Reserva: ${transfer["Reserva"] || "-"}
+Data: ${dataViagem}
+Horário: ${horario}
+Sentido: ${sentido}
+Veículo: ${veiculo}
+
+Valor total: R$ ${valor.toLocaleString('pt-BR')}
+
+---
+
+Políticas do Serviço de Transfer
+
+- Motorista aguarda com placa do hotel
+- Pagamento direto ao motorista
+- Cancelamento com 24h de antecedência
+
+Agradecemos a preferência!
+Casas Brancas Boutique Hotel`;
+        
+        window.open(`https://wa.me/${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
+    }
+
+    function marcarFinalizado(transfer) {
+        if (isCancelled(transfer)) { alert("Transfer cancelado."); return; }
+        setStatus(transfer, 'completed');
+        updateHistoryTable();
+        updateDashboard();
+        updateComissaoTab(currentPeriodo);
+    }
+
+    function marcarCancelado(transfer) {
+        if (isCompleted(transfer)) { alert("Transfer finalizado."); return; }
+        setStatus(transfer, 'cancelled');
+        updateHistoryTable();
+        updateDashboard();
+        updateComissaoTab(currentPeriodo);
+    }
+
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<td><td colspan="8" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
@@ -472,16 +412,23 @@ Casas Brancas Boutique Hotel`;
             const totalMes = activeItems.reduce((sum, t) => sum + (parseFloat(t["Valor Total"]) || 0), 0);
             const comissaoMes = totalMes * 0.15;
             
-            html += `<tr class="month-group"><td colspan="9"><strong>${monthYear}<\/strong> (${activeItems.length} ativos de ${items.length} total) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
+            html += `<tr class="month-group"><td colspan="8"><strong>${monthYear}<\/strong> (${activeItems.length} ativos de ${items.length} total) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${comissaoMes.toLocaleString('pt-BR')}<\/td><\/tr>`;
             
             items.forEach(t => {
                 const telefone = t["Telefone"] || "";
                 const valor = parseFloat(t["Valor Total"]) || 0;
                 const veiculo = t["Veículo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-                const dataTransfer = formatarData(t["Data Viagem"]);
+                
+                let dataTransfer = "-";
+                if (t["Data Viagem"]) {
+                    const d = new Date(t["Data Viagem"]);
+                    if (!isNaN(d.getTime())) {
+                        dataTransfer = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+                    }
+                }
                 const horario = formatarHorario(t["Horário"]);
-                const dataHoraTransfer = `${dataTransfer} ${horario}`;
+                
                 const isCompletedStatus = isCompleted(t);
                 const isCancelledStatus = isCancelled(t);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
@@ -511,13 +458,12 @@ Casas Brancas Boutique Hotel`;
                 
                 html += `
                     <tr class="${rowClass}">
-                        <td>${dataHoraTransfer}<\/td>
+                        <td>${dataTransfer}<\/td>
+                        <td>${horario}<\/td>
                         <td>${t["Nome"] || '-'}<\/td>
                         <td>${telefone}<\/td>
                         <td>${sentido}<\/td>
                         <td>${veiculo}<\/td>
-                        <td>${dataTransfer}<\/td>
-                        <td>${horario}<\/td>
                         <td>R$ ${valor.toLocaleString('pt-BR')}<\/td>
                         <td>
                             <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${confirmDisabled ? 'disabled' : ''}>Confirmar<\/button>
