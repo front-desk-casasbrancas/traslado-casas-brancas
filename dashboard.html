@@ -244,52 +244,18 @@
         }
     }
 
-    function formatarDataHora(dataHoraStr) {
-        if (!dataHoraStr) return "-";
-        try {
-            const date = new Date(dataHoraStr);
-            if (isNaN(date.getTime())) return "-";
-            const dia = date.getDate().toString().padStart(2, '0');
-            const mes = (date.getMonth() + 1).toString().padStart(2, '0');
-            const ano = date.getFullYear();
-            const hora = date.getHours().toString().padStart(2, '0');
-            const min = date.getMinutes().toString().padStart(2, '0');
-            return `${dia}/${mes}/${ano} ${hora}:${min}`;
-        } catch(e) {
-            return "-";
-        }
-    }
-
-    // 🔧 FUNÇÃO CORRIGIDA PARA EXTRAIR APENAS HORA:MINUTO
     function formatarHorario(horarioStr) {
         if (!horarioStr) return "-";
         try {
             let horaStr = horarioStr.toString();
-            
-            // Caso 1: Formato ISO com T (ex: "1899-12-30T09:06:28.000Z")
             if (horaStr.includes('T')) {
                 const timePart = horaStr.split('T')[1];
-                if (timePart) {
-                    // Pega apenas HH:MM
-                    const horaMin = timePart.substring(0, 5);
-                    return horaMin;
-                }
+                if (timePart) return timePart.substring(0, 5);
             }
-            
-            // Caso 2: Já está no formato HH:MM
-            if (horaStr.match(/^\d{2}:\d{2}/)) {
-                return horaStr.substring(0, 5);
-            }
-            
-            // Caso 3: Tentar extrair via regex
             const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
-            if (timeMatch) {
-                return `${timeMatch[1]}:${timeMatch[2]}`;
-            }
-            
+            if (timeMatch) return `${timeMatch[1]}:${timeMatch[2]}`;
             return "-";
         } catch(e) {
-            console.error("Erro ao formatar horário:", e);
             return "-";
         }
     }
@@ -316,6 +282,9 @@
         localStorage.setItem('transferStatus', JSON.stringify(status));
     }
 
+    function isCompleted(transfer) { return getStatus(transfer) === 'completed'; }
+    function isCancelled(transfer) { return getStatus(transfer) === 'cancelled'; }
+
     function mostrarErro(mensagem) {
         const errorDiv = document.getElementById('errorDisplay');
         errorDiv.style.display = 'block';
@@ -330,7 +299,6 @@
     async function carregarDados() {
         esconderErro();
         document.getElementById('lastUpdate').innerHTML = 'Carregando dados da planilha...';
-        
         try {
             const response = await fetch(WEBAPP_URL);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -342,7 +310,6 @@
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
         } catch (erro) {
-            console.error('Erro:', erro);
             mostrarErro(erro.message);
             transfers = [];
             updateDashboard();
@@ -353,18 +320,9 @@
 
     function enviarConfirmacao(transfer) {
         const telefone = transfer["Telefone"] || "";
-        if (!telefone) {
-            alert("Cliente não tem telefone cadastrado!");
-            return;
-        }
-        
+        if (!telefone) { alert("Cliente não tem telefone cadastrado!"); return; }
         const telefoneLimpo = telefone.toString().replace(/\D/g, "");
-        if (telefoneLimpo.length < 10) {
-            alert("Número de telefone inválido!");
-            return;
-        }
-        
-        const idioma = transfer["Idioma"] || "pt";
+        if (telefoneLimpo.length < 10) { alert("Número de telefone inválido!"); return; }
         
         const dataViagem = formatarData(transfer["Data Viagem"]);
         const horario = formatarHorario(transfer["Horário"]);
@@ -395,84 +353,30 @@ Pagamento: ${pagamento}
 Políticas do Serviço de Transfer
 
 - O motorista estará aguardando no lobby do hotel ou na área de desembarque do aeroporto, com uma placa contendo o nome do hotel.
-
 - O pagamento deve ser realizado diretamente ao motorista (cartão de crédito ou dinheiro).
-
-- Cancelamentos, alterações ou novas reservas devem ser solicitados com mínimo de 24 horas de antecedência, caso contrário será cobrado o valor integral.
-
-- Tempo estimado de viagem: 3h00 a 3h30, podendo variar em períodos de alta demanda como Réveillon, Carnaval, feriados e alta temporada.
-
-- Por questões de segurança, os motoristas respeitam rigorosamente os limites de velocidade.
-
----
-
-Observações Importantes
-
-- Este é um serviço terceirizado, e o hotel não se responsabiliza por eventuais intercorrências.
-
-- Não realizamos reservas de transfer por meio de agências ou intermediários. As solicitações devem ser feitas diretamente pelo hóspede.
-
-- Caso tenha alguma dúvida, por favor, não hesite em nos contatar. Teremos prazer em ajudar.
-
----
+- Cancelamentos com mínimo 24h de antecedência.
+- Tempo estimado: 3h00 a 3h30.
 
 Agradecemos a preferência!
 Casas Brancas Boutique Hotel`;
         
-        const msgCodificada = encodeURIComponent(mensagem);
-        window.open(`https://wa.me/${telefoneLimpo}?text=${msgCodificada}`, '_blank');
+        window.open(`https://wa.me/${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`, '_blank');
     }
 
     function marcarFinalizado(transfer) {
-        if (getStatus(transfer) === 'cancelled') {
-            alert("Este transfer está cancelado. Para finalizar, primeiro reative-o.");
-            return;
-        }
+        if (isCancelled(transfer)) { alert("Transfer cancelado. Reative-o primeiro."); return; }
         setStatus(transfer, 'completed');
         updateHistoryTable();
         updateDashboard();
         updateComissaoTab(currentPeriodo);
-        mostrarFeedback(`Transfer para ${transfer["Nome"]} marcado como finalizado!`, "success");
     }
 
     function marcarCancelado(transfer) {
-        if (getStatus(transfer) === 'completed') {
-            alert("Este transfer já está finalizado. Para cancelar, primeiro reative-o.");
-            return;
-        }
+        if (isCompleted(transfer)) { alert("Transfer finalizado. Reative-o primeiro."); return; }
         setStatus(transfer, 'cancelled');
         updateHistoryTable();
         updateDashboard();
         updateComissaoTab(currentPeriodo);
-        mostrarFeedback(`Transfer para ${transfer["Nome"]} cancelado!`, "error");
-    }
-
-    function isActive(transfer) {
-        return getStatus(transfer) === 'active';
-    }
-
-    function isCompleted(transfer) {
-        return getStatus(transfer) === 'completed';
-    }
-
-    function isCancelled(transfer) {
-        return getStatus(transfer) === 'cancelled';
-    }
-
-    function mostrarFeedback(msg, tipo) {
-        const feedback = document.createElement('div');
-        feedback.style.position = 'fixed';
-        feedback.style.bottom = '20px';
-        feedback.style.right = '20px';
-        feedback.style.backgroundColor = tipo === 'success' ? '#28a745' : '#dc3545';
-        feedback.style.color = 'white';
-        feedback.style.padding = '12px 20px';
-        feedback.style.borderRadius = '8px';
-        feedback.style.zIndex = '9999';
-        feedback.style.fontSize = '0.9rem';
-        feedback.innerText = msg;
-        document.body.appendChild(feedback);
-        setTimeout(() => feedback.remove(), 3000);
     }
 
     function updateDashboard() {
@@ -531,7 +435,7 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
@@ -565,8 +469,8 @@ Casas Brancas Boutique Hotel`;
                 const veiculo = t["Veículo"] || "-";
                 const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 const dataTransfer = formatarData(t["Data Viagem"]);
-                const dataHora = formatarDataHora(t["Data/Hora"]);
                 const horario = formatarHorario(t["Horário"]);
+                const dataHoraTransfer = `${dataTransfer} ${horario}`;
                 const isCompletedStatus = isCompleted(t);
                 const isCancelledStatus = isCancelled(t);
                 const transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
@@ -596,7 +500,7 @@ Casas Brancas Boutique Hotel`;
                 
                 html += `
                     <tr class="${rowClass}">
-                        <td>${dataTransfer} ${horario}<\/td>
+                        <td>${dataHoraTransfer}<\/td>
                         <td>${t["Nome"] || '-'}<\/td>
                         <td>${telefone}<\/td>
                         <td>${sentido}<\/td>
@@ -626,7 +530,6 @@ Casas Brancas Boutique Hotel`;
         const tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         
         const activeTransfers = transfers.filter(t => !isCancelled(t));
-        
         let filtered = activeTransfers;
         if (periodo === 'mesAtual') {
             filtered = activeTransfers.filter(t => {
