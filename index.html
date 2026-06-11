@@ -282,11 +282,9 @@
             totalValue: "Valor total",
             date: "Data",
             payment: "Pagamento",
-            // Categorias dos veículos
             categoriaPrivativo: "Transporte Privativo",
             categoriaExecutivo: "Carro Executivo",
             categoriaEspecial: "Carro Executivo Especial",
-            // Labels para localFields
             labelDataEmbarque: "Data de embarque (Rio)",
             labelHoraEmbarque: "Horário do voo",
             labelEndereco: "Endereço de embarque",
@@ -356,11 +354,9 @@
             totalValue: "Total amount",
             date: "Date",
             payment: "Payment",
-            // Categorias dos veículos
             categoriaPrivativo: "Private Transport",
             categoriaExecutivo: "Executive Car",
             categoriaEspecial: "Special Executive Car",
-            // Labels for localFields
             labelDataEmbarque: "Departure date (Rio)",
             labelHoraEmbarque: "Flight time",
             labelEndereco: "Pickup address",
@@ -430,11 +426,9 @@
             totalValue: "Valor total",
             date: "Fecha",
             payment: "Pago",
-            // Categorias dos veículos
             categoriaPrivativo: "Transporte Privado",
             categoriaExecutivo: "Auto Ejecutivo",
             categoriaEspecial: "Auto Ejecutivo Especial",
-            // Labels for localFields
             labelDataEmbarque: "Fecha de embarque (Río)",
             labelHoraEmbarque: "Hora del vuelo",
             labelEndereco: "Dirección de recogida",
@@ -657,7 +651,6 @@
         container.innerHTML = "";
 
         for (const [categoria, veiculos] of Object.entries(catalogo)) {
-            // Traduz o nome da categoria
             let categoriaTraduzida = categoria;
             if (categoria === "Transporte Privativo") categoriaTraduzida = t.categoriaPrivativo;
             else if (categoria === "Carro Executivo") categoriaTraduzida = t.categoriaExecutivo;
@@ -1045,7 +1038,7 @@
         const footerText = document.getElementById("footerText");
         if (footerText) footerText.innerHTML = t.footer;
         
-        // Atualizar as categorias dos veículos (títulos)
+        // ATUALIZAR OS TÍTULOS DAS CATEGORIAS DOS VEÍCULOS
         const categoriasTitulos = document.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
             categoriasTitulos[0].innerText = t.categoriaPrivativo;
