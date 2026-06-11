@@ -244,20 +244,31 @@
         }
     }
 
+    // 🔧 FUNÇÃO CORRIGIDA - Lê diretamente o valor da coluna H
     function formatarHorario(horarioStr) {
         if (!horarioStr) return "-";
-        try {
-            let horaStr = horarioStr.toString();
-            if (horaStr.includes('T')) {
-                const timePart = horaStr.split('T')[1];
-                if (timePart) return timePart.substring(0, 5);
-            }
-            const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
-            if (timeMatch) return `${timeMatch[1]}:${timeMatch[2]}`;
-            return "-";
-        } catch(e) {
-            return "-";
+        
+        // Converter para string
+        let horaStr = horarioStr.toString();
+        
+        // Se já for texto no formato "HH:MM" (ex: "06:00", "12:45")
+        if (horaStr.match(/^\d{2}:\d{2}$/)) {
+            return horaStr;
         }
+        
+        // Se for string ISO (ex: "1899-12-30T06:00:00.000Z")
+        if (horaStr.includes('T')) {
+            const timePart = horaStr.split('T')[1];
+            if (timePart) return timePart.substring(0, 5);
+        }
+        
+        // Tentar extrair com regex
+        const timeMatch = horaStr.match(/(\d{2}):(\d{2})/);
+        if (timeMatch) {
+            return `${timeMatch[1]}:${timeMatch[2]}`;
+        }
+        
+        return "-";
     }
 
     function formatarBagagens(transfer) {
@@ -435,7 +446,7 @@ Casas Brancas Boutique Hotel`;
     function updateHistoryTable() {
         const tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<td><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
         
