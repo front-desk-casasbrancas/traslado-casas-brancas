@@ -45,6 +45,17 @@
             color: #7a8b6e;
             margin-top: 6px;
         }
+        .partner-line {
+            font-size: 0.72rem;
+            color: #8b7a5c;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #e8e0d8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .partner-line img { height: 30px; width: 30px; border-radius: 50%; display: block; flex: 0 0 auto; }
         .language-bar {
             display: flex;
             justify-content: flex-end;
@@ -291,6 +302,7 @@
             </div>
             <h1 id="mainTitle">Solicitação de Traslado</h1>
             <div class="sub" id="subTitle">Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios</div>
+            <div class="partner-line" id="partnerLine"><img src="mflogo.jpg" alt="MF Transporte Executivo"><span id="partnerText">Serviço realizado pelo parceiro Casas Brancas: MF Transporte Executivo</span></div>
         </div>
         <div class="card-body">
             <div class="language-bar">
@@ -352,6 +364,10 @@
     const translations = {
         pt: {
             mainTitle: "Solicitação de Traslado",
+            parceiro: "Serviço realizado pelo parceiro Casas Brancas: MF Transporte Executivo",
+            aceite: "Li e concordo com as políticas",
+            erroAceite: "Você precisa concordar com as políticas para enviar.",
+            recomendacao6h: "Recomendamos considerar uma antecedência mínima de 6h em relação ao voo.",
             subTitle: "Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios",
             infoTitle: "Informações importantes:",
             infoText: "Valores por trecho. Tempo estimado: 3h00 a 3h30. Pagamento direto ao motorista (cartão ou dinheiro). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.",
@@ -432,6 +448,10 @@
         },
         en: {
             mainTitle: "Transfer Request",
+            parceiro: "Service provided by Casas Brancas partner: MF Transporte Executivo",
+            aceite: "I have read and agree to the policies",
+            erroAceite: "You must agree to the policies to submit.",
+            recomendacao6h: "We recommend allowing at least 6h before the flight.",
             subTitle: "Casas Brancas Boutique Hotel · Private transfer Rio ↔ Búzios",
             infoTitle: "Important information:",
             infoText: "Prices per leg. Estimated time: 3h00 to 3h30. Payment directly to driver (card or cash). Night transfer (00h-06h): + R$ 100. Stop: + R$ 100/hour.",
@@ -512,6 +532,10 @@
         },
         es: {
             mainTitle: "Solicitud de Traslado",
+            parceiro: "Servicio realizado por el socio Casas Brancas: MF Transporte Executivo",
+            aceite: "He leído y acepto las políticas",
+            erroAceite: "Debes aceptar las políticas para enviar.",
+            recomendacao6h: "Recomendamos considerar una antelación mínima de 6h respecto al vuelo.",
             subTitle: "Casas Brancas Boutique Hotel · Transporte privado Rio ↔ Búzios",
             infoTitle: "Información importante:",
             infoText: "Precios por tramo. Tiempo estimado: 3h00 a 3h30. Pago directo al conductor (tarjeta o efectivo). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.",
@@ -977,7 +1001,9 @@
                     <div class="bagagem-item"><label>${t.bagMao}</label>${stepperHtml('bagMao', 0, 0)}</div>
                 </div>
             </div>
-            <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div></div>
+            <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div>
+                <div id="rec6h" style="margin-top:14px;padding:10px 14px;background:#fafaf7;border-left:3px solid #c8b88a;border-radius:8px;font-size:0.72rem;color:#6a7e5a;"><span id="rec6hText">${t.recomendacao6h}</span></div>
+            </div>
             <div class="step-section"><div class="step-title">${t.step5}</div>
                 <div class="radio-group" id="regiaoGroup">
                     <label><input type="radio" name="regiao" value="centro-sul" checked> ${t.regiaoCentro}</label>
@@ -1001,6 +1027,7 @@
                 </div>
             </div>
             <div class="resumo-area" id="resumoPreview"></div>
+            <div class="form-row" style="margin-bottom:18px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="aceitePoliticas" style="width:auto;"> <span id="aceiteText">${t.aceite}</span></label></div>
             <div class="btn-group">
                 <button type="button" class="btn-submit" id="enviarBtn">${t.enviar}</button>
                 <button type="button" class="btn-copy" id="copiarBtn">${t.copiar}</button>
@@ -1095,8 +1122,10 @@
         mensagem += `Endereço: ${endereco}\n`;
         mensagem += `Voo: ${voo} - ${ciaAerea}\n\n`;
         mensagem += `Pagamento: ${pagamento}\n`;
-        mensagem += `Observações: ${obs}\n\n`;
-        mensagem += `---\n${t.policies}`;
+        mensagem += `Observações: ${obs}\n`;
+        mensagem += `Cliente concordou com as políticas: Sim\n`;
+        if (voo && voo !== "-") mensagem += `Recomendação: ${t.recomendacao6h}\n`;
+        mensagem += `\n---\n${t.policies}`;
         return mensagem;
     }
 
@@ -1136,15 +1165,17 @@
         const nome = (document.getElementById("nome")?.value || "").trim();
         const tel = getTelefone();
 
+        const aceite = document.getElementById("aceitePoliticas")?.checked;
         let ok = true;
         marcarErro('nome', !nome); if (!nome) ok = false;
         marcarErro('telefone', tel.numLen < 8); if (tel.numLen < 8) ok = false;
         if (!veiculo) ok = false;
+        if (!aceite) ok = false;
 
         if (!ok) {
-            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : t.erroTelefone);
+            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : (tel.numLen < 8 ? t.erroTelefone : t.erroAceite));
             mostrarFeedback(msg, "error");
-            let alvo = !nome ? 'nome' : (tel.numLen < 8 ? 'telefone' : 'veiculosContainer');
+            let alvo = !nome ? 'nome' : (tel.numLen < 8 ? 'telefone' : (!veiculo ? 'veiculosContainer' : 'aceitePoliticas'));
             document.getElementById(alvo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
@@ -1171,7 +1202,8 @@
             endereco: document.getElementById("endereco")?.value || "",
             voo: document.getElementById("voo")?.value || "",
             ciaAerea: document.getElementById("ciaAerea")?.value || "",
-            idioma: currentLang
+            idioma: currentLang,
+            aceitePoliticas: true
         };
 
         mostrarFeedback(t.enviando, "success");
@@ -1228,6 +1260,12 @@
         const t = translations[currentLang];
         document.getElementById('mainTitle').innerText = t.mainTitle;
         document.getElementById('subTitle').innerText = t.subTitle;
+        const partnerText = document.getElementById('partnerText');
+        if (partnerText) partnerText.innerText = t.parceiro;
+        const aceiteText = document.getElementById('aceiteText');
+        if (aceiteText) aceiteText.innerHTML = t.aceite;
+        const rec6hText = document.getElementById('rec6hText');
+        if (rec6hText) rec6hText.innerHTML = t.recomendacao6h;
         document.getElementById('infoTitle').innerHTML = t.infoTitle;
         document.getElementById('infoText').innerHTML = t.infoText;
 

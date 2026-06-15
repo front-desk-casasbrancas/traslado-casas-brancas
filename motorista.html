@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas - Escala de Motoristas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f0;
+            padding: 20px;
+            color: #2c3e2f;
+        }
+        .container { max-width: 1500px; margin: 0 auto; }
+        .header-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 14px; margin-bottom: 18px;
+        }
+        h1 { font-size: 1.3rem; font-weight: 500; color: #2c5f2d; }
+        .sub { font-size: 0.8rem; color: #7a8b6e; margin-top: 2px; }
+        .refresh-btn {
+            background: #2c5f2d; color: white; border: none;
+            padding: 10px 20px; border-radius: 40px; cursor: pointer;
+        }
+        .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+        .filtros-bar input, .filtros-bar select {
+            padding: 9px 12px; border: 1px solid #d4cbb8; border-radius: 10px;
+            font-size: 0.85rem; background: #fff; color: #2c3e2f;
+        }
+        .filtros-bar input.busca { flex: 1; min-width: 180px; }
+        .chip {
+            background: #fff; border: 1px solid #d4cbb8; padding: 9px 16px;
+            border-radius: 40px; font-size: 0.82rem; cursor: pointer; color: #5a6e4a;
+        }
+        .chip.active { background: #2c5f2d; border-color: #2c5f2d; color: #fff; }
+        .table-container {
+            background: white; border-radius: 16px; padding: 16px;
+            overflow-x: auto; border: 1px solid #e8e0d8;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid #ebe5db; font-size: 0.82rem; vertical-align: top; }
+        th { background: #fafaf7; font-weight: 600; color: #2c5f2d; position: sticky; top: 0; }
+        .month-group td { background: #e8f0e5; font-weight: 600; color: #2c5f2d; }
+        tr.cancelled td { opacity: 0.5; text-decoration: line-through; }
+        .motorista-input {
+            width: 130px; padding: 7px 9px; border: 1px solid #d4cbb8;
+            border-radius: 8px; font-size: 0.8rem; background: #fffdf7;
+        }
+        .motorista-input.preenchido { background: #e8f0e5; border-color: #9cbf8f; }
+        .wa-link { color: #25D366; text-decoration: none; font-size: 0.75rem; white-space: nowrap; }
+        .last-update { font-size: 0.78rem; color: #7a8b6e; }
+        .error-message { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; margin-bottom: 16px; display: none; }
+        @media (max-width: 768px) { .motorista-input { width: 110px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-bar">
+        <div>
+            <h1>Escala de Motoristas</h1>
+            <div class="sub">Casas Brancas · MF Transporte Executivo — preencha o motorista de cada traslado</div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+            <span class="last-update" id="lastUpdate">Carregando...</span>
+            <button class="refresh-btn" id="refreshBtn">Atualizar</button>
+        </div>
+    </div>
+
+    <div id="errorDisplay" class="error-message"></div>
+
+    <div class="filtros-bar">
+        <button class="chip active" data-quick="todos">Todos</button>
+        <button class="chip" data-quick="hoje">Hoje</button>
+        <button class="chip" data-quick="amanha">Amanhã</button>
+        <input type="text" id="filtroBusca" class="busca" placeholder="Buscar por hóspede, telefone ou motorista...">
+        <input type="date" id="filtroData" title="Filtrar por data">
+        <select id="filtroSentido">
+            <option value="todos">Ambos os sentidos</option>
+            <option value="IN">Rio → Búzios</option>
+            <option value="OUT">Búzios → Rio</option>
+        </select>
+        <button class="chip" id="limparFiltros">Limpar</button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th><th>Horário</th><th>Hóspede</th><th>Telefone</th>
+                    <th>Sentido</th><th>Endereço / Local</th><th>Voo</th><th>Veículo</th>
+                    <th>Observações</th><th>Motorista</th>
+                </tr>
+            </thead>
+            <tbody id="corpo">
+                <tr><td colspan="10" style="text-align:center;">Carregando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+    let transfers = [];
+    let quick = 'todos';
+
+    // ===== HELPERS =====
+    function getHorario(t) {
+        let h = t["Horario"] || t["Horário"] || t["horario"] || "";
+        if (h === null || h === undefined || h === "") return "-";
+        h = h.toString().trim();
+        let m = h.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if (m) {
+            let s = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) - (6 * 60 + 28);
+            s = ((s % 86400) + 86400) % 86400;
+            return `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}`;
+        }
+        m = h.match(/T(\d{2}):(\d{2})/);
+        if (m) return `${m[1]}:${m[2]}`;
+        m = h.match(/^(\d{1,2}):(\d{2})/);
+        if (m) return `${m[1].padStart(2, '0')}:${m[2]}`;
+        return h;
+    }
+    function dateKeyFromDate(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function dataKey(t) {
+        if (!t || !t["Data Viagem"]) return null;
+        let d = new Date(t["Data Viagem"]);
+        return isNaN(d.getTime()) ? null : dateKeyFromDate(d);
+    }
+    function formatarData(v) {
+        if (!v) return "-";
+        let d = new Date(v);
+        if (isNaN(d.getTime())) return "-";
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+    function waLink(tel) {
+        let d = (tel || "").toString().replace(/\D/g, "");
+        if (!d) return "";
+        if (!(d.startsWith("55") && d.length >= 12) && (d.length === 10 || d.length === 11)) d = "55" + d;
+        return `https://wa.me/${d}`;
+    }
+
+    // ===== STATUS (compartilhado com o dashboard) =====
+    function getStatus(t) {
+        const s = JSON.parse(localStorage.getItem('transferStatus') || '{}');
+        return s[t["ID"]] || 'active';
+    }
+    function isCancelled(t) { return getStatus(t) === 'cancelled'; }
+
+    // ===== MOTORISTA (salvo localmente por enquanto) =====
+    function getMotorista(id) {
+        const m = JSON.parse(localStorage.getItem('motoristas') || '{}');
+        return m[id] || '';
+    }
+    function setMotorista(id, nome) {
+        let m = JSON.parse(localStorage.getItem('motoristas') || '{}');
+        if (nome) m[id] = nome; else delete m[id];
+        localStorage.setItem('motoristas', JSON.stringify(m));
+    }
+
+    // ===== CARREGAR =====
+    async function carregar() {
+        try {
+            const r = await fetch(WEBAPP_URL);
+            const d = await r.json();
+            transfers = Array.isArray(d) ? d : [];
+            document.getElementById('lastUpdate').innerText = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length})`;
+            render();
+        } catch (e) {
+            console.error(e);
+            const err = document.getElementById('errorDisplay');
+            err.style.display = 'block';
+            err.innerText = 'Erro ao carregar dados: ' + e.message;
+        }
+    }
+
+    function getFiltros() {
+        return {
+            busca: (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim(),
+            data: document.getElementById('filtroData')?.value || '',
+            sentido: document.getElementById('filtroSentido')?.value || 'todos'
+        };
+    }
+
+    function render() {
+        const corpo = document.getElementById('corpo');
+        if (!transfers.length) { corpo.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado encontrado</td></tr>'; return; }
+
+        const f = getFiltros();
+        const hojeKey = dateKeyFromDate(new Date());
+        const amanhaDate = new Date(); amanhaDate.setDate(amanhaDate.getDate() + 1);
+        const amanhaKey = dateKeyFromDate(amanhaDate);
+
+        let lista = transfers.filter(t => {
+            if (quick === 'hoje' && dataKey(t) !== hojeKey) return false;
+            if (quick === 'amanha' && dataKey(t) !== amanhaKey) return false;
+            if (f.data && dataKey(t) !== f.data) return false;
+            if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
+            if (f.busca) {
+                let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '') + ' ' + getMotorista(t["ID"])).toLowerCase();
+                if (!alvo.includes(f.busca)) return false;
+            }
+            return true;
+        });
+
+        if (!lista.length) { corpo.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado com esses filtros</td></tr>'; return; }
+
+        lista.sort((a, b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+
+        // agrupar por mês
+        let grupos = {};
+        lista.forEach(t => {
+            let d = new Date(t["Data Viagem"]);
+            let chave = isNaN(d.getTime()) ? 'Sem data' : d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+            (grupos[chave] = grupos[chave] || []).push(t);
+        });
+
+        let html = '';
+        for (let [mes, itens] of Object.entries(grupos)) {
+            html += `<tr class="month-group"><td colspan="10"><strong>${mes}</strong> (${itens.length})</td></tr>`;
+            itens.forEach(t => {
+                const id = t["ID"];
+                const cancelado = isCancelled(t);
+                const tel = t["Telefone"] || '-';
+                const wa = waLink(t["Telefone"]);
+                const endereco = t["Endereço"] || t["Endereco"] || '-';
+                const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
+                const mot = getMotorista(id).replace(/"/g, '&quot;');
+                html += `<tr class="${cancelado ? 'cancelled' : ''}">
+                    <td>${formatarData(t["Data Viagem"])}</td>
+                    <td><strong>${getHorario(t)}</strong></td>
+                    <td>${t["Nome"] || '-'}</td>
+                    <td>${tel}${wa ? ` <br><a class="wa-link" href="${wa}" target="_blank">WhatsApp</a>` : ''}</td>
+                    <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
+                    <td>${endereco}</td>
+                    <td>${voo}</td>
+                    <td>${t["Veículo"] || '-'}</td>
+                    <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
+                    <td><input class="motorista-input ${mot ? 'preenchido' : ''}" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
+                </tr>`;
+            });
+        }
+        corpo.innerHTML = html;
+
+        document.querySelectorAll('.motorista-input').forEach(inp => {
+            inp.addEventListener('change', () => {
+                setMotorista(inp.getAttribute('data-id'), inp.value.trim());
+                inp.classList.toggle('preenchido', !!inp.value.trim());
+            });
+        });
+    }
+
+    // ===== EVENTOS =====
+    document.querySelectorAll('.chip[data-quick]').forEach(c => c.addEventListener('click', () => {
+        quick = c.getAttribute('data-quick');
+        document.querySelectorAll('.chip[data-quick]').forEach(x => x.classList.remove('active'));
+        c.classList.add('active');
+        render();
+    }));
+    document.getElementById('refreshBtn').addEventListener('click', carregar);
+    ['filtroBusca', 'filtroData', 'filtroSentido'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.addEventListener('input', render); el.addEventListener('change', render); }
+    });
+    document.getElementById('limparFiltros').addEventListener('click', () => {
+        document.getElementById('filtroBusca').value = '';
+        document.getElementById('filtroData').value = '';
+        document.getElementById('filtroSentido').value = 'todos';
+        quick = 'todos';
+        document.querySelectorAll('.chip[data-quick]').forEach(x => x.classList.toggle('active', x.getAttribute('data-quick') === 'todos'));
+        render();
+    });
+
+    carregar();
+</script>
+</body>
+</html>
