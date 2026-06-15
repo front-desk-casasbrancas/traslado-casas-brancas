@@ -90,11 +90,11 @@
                 <tr>
                     <th>Data</th><th>Horário</th><th>Hóspede</th><th>Telefone</th>
                     <th>Sentido</th><th>Endereço / Local</th><th>Voo</th><th>Veículo</th>
-                    <th>Observações</th><th>Motorista</th>
+                    <th>Observações</th><th>Status</th><th>Motorista</th>
                 </tr>
             </thead>
             <tbody id="corpo">
-                <tr><td colspan="10" style="text-align:center;">Carregando...</td></tr>
+                <tr><td colspan="11" style="text-align:center;">Carregando...</td></tr>
             </tbody>
         </table>
     </div>
@@ -193,7 +193,7 @@
 
     function render() {
         const corpo = document.getElementById('corpo');
-        if (!transfers.length) { corpo.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado encontrado</td></tr>'; return; }
+        if (!transfers.length) { corpo.innerHTML = '<tr><td colspan="11" style="text-align:center;">Nenhum traslado encontrado</td></tr>'; return; }
 
         const f = getFiltros();
         const hojeKey = dateKeyFromDate(new Date());
@@ -212,7 +212,7 @@
             return true;
         });
 
-        if (!lista.length) { corpo.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado com esses filtros</td></tr>'; return; }
+        if (!lista.length) { corpo.innerHTML = '<tr><td colspan="11" style="text-align:center;">Nenhum traslado com esses filtros</td></tr>'; return; }
 
         lista.sort((a, b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
 
@@ -226,7 +226,7 @@
 
         let html = '';
         for (let [mes, itens] of Object.entries(grupos)) {
-            html += `<tr class="month-group"><td colspan="10"><strong>${mes}</strong> (${itens.length})</td></tr>`;
+            html += `<tr class="month-group"><td colspan="11"><strong>${mes}</strong> (${itens.length})</td></tr>`;
             itens.forEach(t => {
                 const id = t["ID"];
                 const st = getStatus(t);
@@ -236,6 +236,8 @@
                 const endereco = t["Endereço"] || t["Endereco"] || '-';
                 const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
                 const mot = getMotorista(t).replace(/"/g, '&quot;');
+                const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : 'Ativo');
+                const stStyle = st === 'completed' ? 'color:#2c5f2d;background:#e8f0e5' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : 'color:#7a8b6e;background:#f0ede5');
                 html += `<tr class="${rowClass}">
                     <td>${formatarData(t["Data Viagem"])}</td>
                     <td><strong>${getHorario(t)}</strong></td>
@@ -246,6 +248,7 @@
                     <td>${voo}</td>
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
+                    <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span></td>
                     <td><input class="motorista-input ${mot ? 'preenchido' : ''}" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
                 </tr>`;
             });

@@ -242,10 +242,10 @@
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
                     <thead>
-                        <tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Veículo</th><th>Valor</th><th>Ações</th></tr>
+                        <tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Endereço / Local</th><th>Voo</th><th>Veículo</th><th>Valor</th><th>Ações</th></tr>
                     </thead>
                     <tbody id="historyBody">
-                        <tr><td colspan="8" style="text-align: center;">Carregando...</td></tr>
+                        <tr><td colspan="10" style="text-align: center;">Carregando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -497,7 +497,7 @@
     function updateHistoryTable() {
         let tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado encontrado<\/td><\/tr>';
             return;
         }
 
@@ -516,7 +516,7 @@
         });
 
         if (!lista.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum traslado com esses filtros<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado com esses filtros<\/td><\/tr>';
             return;
         }
 
@@ -539,11 +539,13 @@
         for (let [my, items] of Object.entries(grouped)) {
             let ativos = items.filter(t => !isCancelled(t));
             let totalMes = ativos.reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
-            html += `<tr class="month-group"><td colspan="8"><strong>${my}</strong> (${ativos.length} ativos de ${items.length}) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${(totalMes*0.15).toLocaleString('pt-BR')}<\/td><\/tr>`;
+            html += `<tr class="month-group"><td colspan="10"><strong>${my}</strong> (${ativos.length} ativos de ${items.length}) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${(totalMes*0.15).toLocaleString('pt-BR')}<\/td><\/tr>`;
 
             items.forEach(t => {
                 let data = formatarData(t["Data Viagem"]);
                 let horario = getHorario(t);
+                let endereco = t["Endereço"] || t["Endereco"] || '-';
+                let voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
 
                 let completed = isCompleted(t);
                 let cancelled = isCancelled(t);
@@ -557,6 +559,8 @@
                     <td>${t["Nome"] || '-'}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
+                    <td>${endereco}<\/td>
+                    <td>${voo}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
                     <td>
