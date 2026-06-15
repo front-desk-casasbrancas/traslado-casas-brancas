@@ -798,8 +798,9 @@
         // Barra de preço fixa
         let pbLabel = document.getElementById("priceBarLabel");
         let pbValue = document.getElementById("priceBarValue");
+        let veicSel = document.getElementById("veiculoSelecionado")?.value;
         if (pbLabel) pbLabel.innerText = t.total;
-        if (pbValue) pbValue.innerHTML = `R$ ${total.toLocaleString('pt-BR')}`;
+        if (pbValue) pbValue.innerHTML = veicSel ? `R$ ${total.toLocaleString('pt-BR')}` : "—";
     }
 
     // ==================== VEÍCULOS ====================
