@@ -216,9 +216,19 @@
         let horario = transfer["Horario"] || transfer["Horário"] || transfer["horario"] || "";
         if (horario === null || horario === undefined || horario === "") return "-";
         horario = horario.toString().trim();
-        // A planilha guarda "hora pura" como data-base de 1899 (ex.: 1899-12-30T13:06:28.000Z).
-        // Extrai apenas HH:MM da parte após o "T".
-        let m = horario.match(/T(\d{2}):(\d{2})/);
+        // A planilha guarda "hora pura" na data-base de 1899 (ex.: 1899-12-30T13:06:28.000Z).
+        // Nesse caso o fuso de São Paulo era Hora Local Média (-03:06:28), o que adianta
+        // 6min28s. Descontamos esse deslocamento para mostrar exatamente a hora da planilha.
+        let m = horario.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if (m) {
+            let totalSeg = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) - (6 * 60 + 28);
+            totalSeg = ((totalSeg % 86400) + 86400) % 86400;
+            let hh = Math.floor(totalSeg / 3600);
+            let mm = Math.floor((totalSeg % 3600) / 60);
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+        }
+        // Outro datetime com "T": extrai HH:MM direto.
+        m = horario.match(/T(\d{2}):(\d{2})/);
         if (m) return `${m[1]}:${m[2]}`;
         // Caso já venha como "13:06:28" ou "13:06".
         m = horario.match(/^(\d{1,2}):(\d{2})/);
