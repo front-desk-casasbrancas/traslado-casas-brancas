@@ -214,8 +214,16 @@
     function getHorario(transfer) {
         // Tenta diferentes nomes que o campo pode ter
         let horario = transfer["Horario"] || transfer["Horário"] || transfer["horario"] || "";
-        if (horario && horario !== "") return horario;
-        return "-";
+        if (horario === null || horario === undefined || horario === "") return "-";
+        horario = horario.toString().trim();
+        // A planilha guarda "hora pura" como data-base de 1899 (ex.: 1899-12-30T13:06:28.000Z).
+        // Extrai apenas HH:MM da parte após o "T".
+        let m = horario.match(/T(\d{2}):(\d{2})/);
+        if (m) return `${m[1]}:${m[2]}`;
+        // Caso já venha como "13:06:28" ou "13:06".
+        m = horario.match(/^(\d{1,2}):(\d{2})/);
+        if (m) return `${m[1].padStart(2, '0')}:${m[2]}`;
+        return horario;
     }
 
     // ==================== STATUS ====================
