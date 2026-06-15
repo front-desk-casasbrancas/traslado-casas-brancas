@@ -43,6 +43,7 @@
         th { background: #fafaf7; font-weight: 600; color: #2c5f2d; position: sticky; top: 0; }
         .month-group td { background: #e8f0e5; font-weight: 600; color: #2c5f2d; }
         tr.cancelled td { opacity: 0.5; text-decoration: line-through; }
+        tr.completed td { background: #eef6ea; color: #6c7a5e; }
         .motorista-input {
             width: 130px; padding: 7px 9px; border: 1px solid #d4cbb8;
             border-radius: 8px; font-size: 0.8rem; background: #fffdf7;
@@ -100,7 +101,7 @@
 </div>
 
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwVb1QVifXpwwy6bS1xJOkXmL4GVpD7sHcQ1vewuHF0t-WnSZP5XeICEbpiZ8gJmXCo/exec";
     let transfers = [];
     let quick = 'todos';
 
@@ -142,22 +143,28 @@
         return `https://wa.me/${d}`;
     }
 
-    // ===== STATUS (compartilhado com o dashboard) =====
+    // ===== STATUS (sincronizado na planilha, igual ao dashboard) =====
     function getStatus(t) {
-        const s = JSON.parse(localStorage.getItem('transferStatus') || '{}');
-        return s[t["ID"]] || 'active';
+        let s = (t["Status"] || 'active').toString().toLowerCase();
+        return s || 'active';
     }
     function isCancelled(t) { return getStatus(t) === 'cancelled'; }
+    function isCompleted(t) { return getStatus(t) === 'completed'; }
 
-    // ===== MOTORISTA (salvo localmente por enquanto) =====
-    function getMotorista(id) {
-        const m = JSON.parse(localStorage.getItem('motoristas') || '{}');
-        return m[id] || '';
+    function transferPorId(id) { return transfers.find(x => (x["ID"] || '').toString() === (id || '').toString()); }
+    function postUpdate(id, campos) {
+        try {
+            fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({ action: 'update', id: id }, campos)) });
+        } catch (e) { console.error(e); }
     }
+
+    // ===== MOTORISTA (sincronizado na planilha) =====
+    function getMotorista(t) { return (t["Motorista"] || '').toString(); }
     function setMotorista(id, nome) {
-        let m = JSON.parse(localStorage.getItem('motoristas') || '{}');
-        if (nome) m[id] = nome; else delete m[id];
-        localStorage.setItem('motoristas', JSON.stringify(m));
+        let item = transferPorId(id);
+        if (item) item["Motorista"] = nome;
+        postUpdate(id, { motorista: nome });
     }
 
     // ===== CARREGAR =====
@@ -199,7 +206,7 @@
             if (f.data && dataKey(t) !== f.data) return false;
             if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
             if (f.busca) {
-                let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '') + ' ' + getMotorista(t["ID"])).toLowerCase();
+                let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '') + ' ' + getMotorista(t)).toLowerCase();
                 if (!alvo.includes(f.busca)) return false;
             }
             return true;
@@ -222,13 +229,14 @@
             html += `<tr class="month-group"><td colspan="10"><strong>${mes}</strong> (${itens.length})</td></tr>`;
             itens.forEach(t => {
                 const id = t["ID"];
-                const cancelado = isCancelled(t);
+                const st = getStatus(t);
+                const rowClass = st === 'cancelled' ? 'cancelled' : (st === 'completed' ? 'completed' : '');
                 const tel = t["Telefone"] || '-';
                 const wa = waLink(t["Telefone"]);
                 const endereco = t["Endereço"] || t["Endereco"] || '-';
                 const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
-                const mot = getMotorista(id).replace(/"/g, '&quot;');
-                html += `<tr class="${cancelado ? 'cancelled' : ''}">
+                const mot = getMotorista(t).replace(/"/g, '&quot;');
+                html += `<tr class="${rowClass}">
                     <td>${formatarData(t["Data Viagem"])}</td>
                     <td><strong>${getHorario(t)}</strong></td>
                     <td>${t["Nome"] || '-'}</td>
@@ -274,6 +282,11 @@
     });
 
     carregar();
+    // Auto-atualiza a cada 60s para refletir mudanças feitas no dashboard (sem interromper edição em andamento).
+    setInterval(() => {
+        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('motorista-input')) return;
+        carregar();
+    }, 60000);
 </script>
 </body>
 </html>

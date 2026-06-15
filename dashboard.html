@@ -255,7 +255,7 @@
 
 <script>
     // ==================== CONFIGURAÇÃO ====================
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwVb1QVifXpwwy6bS1xJOkXmL4GVpD7sHcQ1vewuHF0t-WnSZP5XeICEbpiZ8gJmXCo/exec";
     const AUTO_REFRESH_MIN = 5; // intervalo de auto-atualização (minutos)
 
     let transfers = [];
@@ -318,16 +318,18 @@
 
     // ==================== STATUS ====================
     function getStatus(t) {
-        const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
-        return status[t["ID"]] || 'active';
-    }
-    function setStatus(t, s) {
-        let st = JSON.parse(localStorage.getItem('transferStatus') || '{}');
-        st[t["ID"]] = s;
-        localStorage.setItem('transferStatus', JSON.stringify(st));
+        let s = (t["Status"] || 'active').toString().toLowerCase();
+        return s || 'active';
     }
     function isCompleted(t) { return getStatus(t) === 'completed'; }
     function isCancelled(t) { return getStatus(t) === 'cancelled'; }
+    function transferPorId(id) { return transfers.find(x => (x["ID"] || '').toString() === (id || '').toString()); }
+    function postUpdate(id, campos) {
+        try {
+            fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({ action: 'update', id: id }, campos)) });
+        } catch (e) { console.error(e); }
+    }
 
     // ==================== CARREGAR DADOS ====================
     async function carregarDados() {
@@ -461,8 +463,10 @@
 
     // ==================== AÇÕES ====================
     function marcarFinalizado(t) {
-        if (isCancelled(t)) { alert("Transfer cancelado!"); return; }
-        setStatus(t, 'completed');
+        let item = transferPorId(t["ID"]) || t;
+        if (isCancelled(item)) { alert("Transfer cancelado!"); return; }
+        item["Status"] = 'completed';
+        postUpdate(item["ID"], { status: 'completed' });
         updateHistoryTable();
         updateDashboard();
         renderProximos();
@@ -470,8 +474,10 @@
     }
 
     function marcarCancelado(t) {
-        if (isCompleted(t)) { alert("Transfer finalizado!"); return; }
-        setStatus(t, 'cancelled');
+        let item = transferPorId(t["ID"]) || t;
+        if (isCompleted(item)) { alert("Transfer finalizado!"); return; }
+        item["Status"] = 'cancelled';
+        postUpdate(item["ID"], { status: 'cancelled' });
         updateHistoryTable();
         updateDashboard();
         renderProximos();
