@@ -9,7 +9,7 @@
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f5f0;
-            padding: 20px;
+            padding: 20px 20px 110px;
             color: #2c3e2f;
         }
         .container { max-width: 800px; margin: 0 auto; }
@@ -22,11 +22,19 @@
             border: 1px solid #e8e0d8;
         }
         .card-header {
-            background: #fafaf5;
+            background: linear-gradient(135deg, #fafaf5 0%, #eef2e8 100%);
             color: #2c5f2d;
-            padding: 24px 28px;
+            padding: 26px 28px;
             border-bottom: 1px solid #e8e0d8;
+            position: relative;
         }
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .brand-mark svg { flex: 0 0 auto; }
         .card-header h1 {
             font-size: 1.6rem;
             font-weight: 400;
@@ -87,6 +95,7 @@
             border-radius: 12px;
             font-size: 0.9rem;
             background: #fff;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
         input:focus, select:focus, textarea:focus {
             outline: none;
@@ -96,23 +105,38 @@
         .radio-group { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 6px; }
         .radio-group label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
         .radio-group input { width: auto; margin: 0; }
+        /* Telefone com DDI */
+        .tel-row { display: flex; gap: 10px; }
+        .tel-row select { width: 130px; flex: 0 0 auto; }
+        .tel-row input { flex: 1; }
+        /* Stepper +/- */
+        .stepper { display: inline-flex; align-items: center; border: 1px solid #e2d9cf; border-radius: 40px; overflow: hidden; background: #fff; }
+        .stepper input {
+            width: 56px; border: none; text-align: center; padding: 10px 0; border-radius: 0;
+            -moz-appearance: textfield;
+        }
+        .stepper input::-webkit-outer-spin-button, .stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .stepper input:focus { box-shadow: none; }
+        .stepper-btn {
+            width: 42px; height: 42px; border: none; background: #f3f0e8; color: #2c5f2d;
+            font-size: 1.3rem; line-height: 1; cursor: pointer; padding: 0;
+        }
+        .stepper-btn:hover { background: #e7e1d2; }
         .bagagem-row { display: flex; gap: 16px; flex-wrap: wrap; }
         .bagagem-item {
             flex: 1;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             background: #fafaf7;
-            padding: 8px 16px;
-            border-radius: 40px;
+            padding: 12px 16px;
+            border-radius: 16px;
             border: 1px solid #e8e0d8;
         }
         .bagagem-item label { margin: 0; font-size: 0.75rem; color: #7a8b6e; }
-        .bagagem-item input { width: 70px; padding: 8px; text-align: center; }
 
-        .categoria-grid {
-            margin-bottom: 36px;
-        }
+        .categoria-grid { margin-bottom: 36px; }
         .categoria-nome {
             font-weight: 500;
             font-size: 0.9rem;
@@ -143,10 +167,21 @@
         .veiculo-card.selected {
             background: #f6f4ef;
             border-color: #c8b88a;
+            box-shadow: 0 0 0 2px #c8b88a inset;
         }
+        .veiculo-card.insuficiente {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(0.4);
+        }
+        .veiculo-foto { margin-bottom: 8px; }
+        .veiculo-foto img { width: 100%; height: 96px; object-fit: cover; border-radius: 10px; display: block; background: #f0ede5; }
+        .veiculo-icone { height: 34px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
         .veiculo-nome { font-weight: 500; font-size: 0.85rem; color: #3a4c30; margin-bottom: 6px; }
         .veiculo-capacidade { font-size: 0.7rem; color: #8b9a7a; margin: 4px 0; }
         .veiculo-preco { font-size: 0.85rem; font-weight: 500; color: #8b7a5c; margin-top: 8px; }
+        .veiculo-aviso { display: none; font-size: 0.65rem; color: #b85c5a; margin-top: 6px; font-weight: 600; }
+        .veiculo-card.insuficiente .veiculo-aviso { display: block; }
 
         .resumo-area {
             background: #fafaf7;
@@ -167,16 +202,9 @@
             cursor: pointer;
             border: none;
         }
-        .btn-submit {
-            background: #2c5f2d;
-            color: white;
-        }
+        .btn-submit { background: #2c5f2d; color: white; }
         .btn-submit:hover { background: #1e4520; }
-        .btn-copy {
-            background: transparent;
-            color: #5a6e4a;
-            border: 1px solid #d4cbb8;
-        }
+        .btn-copy { background: transparent; color: #5a6e4a; border: 1px solid #d4cbb8; }
         .btn-copy:hover { background: #f0ede5; }
         .feedback { margin-top: 18px; text-align: center; font-size: 0.8rem; padding: 12px; border-radius: 40px; }
         .feedback.success { background: #e8f0e5; color: #2c5f2d; }
@@ -190,12 +218,64 @@
             font-size: 0.75rem;
             color: #6a7e5a;
         }
+        .footer-policies {
+            margin-top: 24px;
+            padding: 16px 18px;
+            background: #f6f4ef;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            color: #8b9a7a;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        /* Barra de preço fixa */
+        .price-bar {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #fff;
+            border-top: 1px solid #e2d9cf;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 12px 20px;
+            z-index: 50;
+        }
+        .price-bar-inner { max-width: 800px; margin: 0 auto; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+        .price-bar-label { font-size: 0.7rem; color: #7a8b6e; }
+        .price-bar-value { font-size: 1.3rem; font-weight: 700; color: #2c5f2d; }
+        .price-bar .btn-submit { flex: 0 0 auto; padding: 12px 26px; }
+        /* Overlay de sucesso */
+        .overlay {
+            position: fixed; inset: 0;
+            background: rgba(30,45,30,0.55);
+            display: none;
+            align-items: center; justify-content: center;
+            z-index: 100; padding: 20px;
+        }
+        .overlay.show { display: flex; }
+        .overlay-card {
+            background: #fff; border-radius: 20px; padding: 36px 28px;
+            max-width: 420px; width: 100%; text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .overlay-check {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: #e8f0e5; color: #2c5f2d;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin: 0 auto 18px;
+        }
+        .overlay-card h2 { font-family: 'Georgia', serif; font-weight: 400; color: #2c5f2d; margin-bottom: 12px; }
+        .overlay-card p { font-size: 0.9rem; color: #6a7e5a; line-height: 1.6; margin-bottom: 24px; }
         @media (max-width: 550px) {
             .card-body { padding: 20px; }
             .veiculos-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
             .btn-group { flex-direction: column; }
             .bagagem-row { flex-direction: column; }
-            .bagagem-item { width: 100%; }
+            .bagagem-item { width: 100%; flex-direction: row; justify-content: space-between; }
+            .price-bar-value { font-size: 1.1rem; }
+            .price-bar .btn-submit { padding: 12px 18px; font-size: 0.85rem; }
         }
     </style>
 </head>
@@ -203,6 +283,12 @@
 <div class="container">
     <div class="card">
         <div class="card-header">
+            <div class="brand-mark">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/>
+                </svg>
+                <span style="font-family:'Georgia',serif; font-size:0.95rem; color:#2c5f2d; letter-spacing:1px;">CASAS BRANCAS</span>
+            </div>
             <h1 id="mainTitle">Solicitação de Traslado</h1>
             <div class="sub" id="subTitle">Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios</div>
         </div>
@@ -223,10 +309,44 @@
     </div>
 </div>
 
+<div class="price-bar">
+    <div class="price-bar-inner">
+        <div>
+            <div class="price-bar-label" id="priceBarLabel">Total</div>
+            <div class="price-bar-value" id="priceBarValue">R$ 0</div>
+        </div>
+        <button type="button" class="btn-submit" id="enviarBtnBar">Enviar via WhatsApp</button>
+    </div>
+</div>
+
+<div class="overlay" id="sucessoOverlay">
+    <div class="overlay-card">
+        <div class="overlay-check">&#10003;</div>
+        <h2 id="sucessoTitulo">Solicitação enviada!</h2>
+        <p id="sucessoTexto">Abrimos o WhatsApp com os dados da sua solicitação. Toque em enviar para a recepção confirmar.</p>
+        <button type="button" class="btn-submit" id="novaSolicitacaoBtn">Fazer nova solicitação</button>
+    </div>
+</div>
+
 <script>
     // ==================== CONFIGURAÇÃO ====================
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
     const HOTEL_PHONE = "5522997909544";
+
+    // Países comuns (DDI). Brasil como padrão.
+    const PAISES = [
+        { code: "55", label: "🇧🇷 +55" },
+        { code: "1", label: "🇺🇸 +1" },
+        { code: "54", label: "🇦🇷 +54" },
+        { code: "598", label: "🇺🇾 +598" },
+        { code: "56", label: "🇨🇱 +56" },
+        { code: "351", label: "🇵🇹 +351" },
+        { code: "34", label: "🇪🇸 +34" },
+        { code: "33", label: "🇫🇷 +33" },
+        { code: "44", label: "🇬🇧 +44" },
+        { code: "49", label: "🇩🇪 +49" },
+        { code: "39", label: "🇮🇹 +39" }
+    ];
 
     // ==================== TRADUÇÕES ====================
     const translations = {
@@ -246,7 +366,8 @@
             outOption: "Transfer OUT (Búzios → Rio)",
             nome: "Nome completo (titular da reserva)",
             reserva: "Número da reserva",
-            telefone: "Telefone celular (com DDD)",
+            telefone: "Telefone celular (WhatsApp)",
+            pais: "País",
             adultos: "Adultos",
             criancas: "Crianças",
             bag23kg: "23kg",
@@ -280,8 +401,18 @@
             nightExtra: "Adicional madrugada",
             stopExtra: "Adicional parada",
             totalValue: "Valor total",
+            total: "Total",
             date: "Data",
             payment: "Pagamento",
+            capInsuficiente: "Não comporta",
+            erroVeiculo: "Selecione um veículo.",
+            erroNome: "Informe o nome do hóspede.",
+            erroTelefone: "Informe um telefone válido.",
+            enviando: "Enviando...",
+            copiado: "Resumo copiado!",
+            sucessoTitulo: "Solicitação enviada!",
+            sucessoTexto: "Abrimos o WhatsApp com os dados da sua solicitação. Toque em enviar para a recepção confirmar.",
+            novaSolicitacao: "Fazer nova solicitação",
             labelDataEmbarque: "Data de embarque (Rio)",
             labelHoraEmbarque: "Horário de chegada",
             labelEndereco: "Endereço de embarque",
@@ -315,7 +446,8 @@
             outOption: "Transfer OUT (Búzios → Rio)",
             nome: "Full name (reservation holder)",
             reserva: "Reservation number",
-            telefone: "Cell phone (with area code)",
+            telefone: "Mobile phone (WhatsApp)",
+            pais: "Country",
             adultos: "Adults",
             criancas: "Children",
             bag23kg: "23kg",
@@ -349,8 +481,18 @@
             nightExtra: "Night additional",
             stopExtra: "Stop additional",
             totalValue: "Total amount",
+            total: "Total",
             date: "Date",
             payment: "Payment",
+            capInsuficiente: "Too small",
+            erroVeiculo: "Please select a vehicle.",
+            erroNome: "Please enter the guest name.",
+            erroTelefone: "Please enter a valid phone.",
+            enviando: "Sending...",
+            copiado: "Summary copied!",
+            sucessoTitulo: "Request sent!",
+            sucessoTexto: "We opened WhatsApp with your request. Tap send so the front desk can confirm.",
+            novaSolicitacao: "Make a new request",
             labelDataEmbarque: "Departure date (Rio)",
             labelHoraEmbarque: "Arrival time",
             labelEndereco: "Pickup address",
@@ -384,7 +526,8 @@
             outOption: "Traslado OUT (Búzios → Rio)",
             nome: "Nombre completo (titular de la reserva)",
             reserva: "Número de reserva",
-            telefone: "Teléfono celular (con código de área)",
+            telefone: "Teléfono celular (WhatsApp)",
+            pais: "País",
             adultos: "Adultos",
             criancas: "Niños",
             bag23kg: "23kg",
@@ -418,8 +561,18 @@
             nightExtra: "Adicional madrugada",
             stopExtra: "Adicional parada",
             totalValue: "Valor total",
+            total: "Total",
             date: "Fecha",
             payment: "Pago",
+            capInsuficiente: "No caben",
+            erroVeiculo: "Seleccione un vehículo.",
+            erroNome: "Ingrese el nombre del huésped.",
+            erroTelefone: "Ingrese un teléfono válido.",
+            enviando: "Enviando...",
+            copiado: "¡Resumen copiado!",
+            sucessoTitulo: "¡Solicitud enviada!",
+            sucessoTexto: "Abrimos WhatsApp con tu solicitud. Toca enviar para que la recepción confirme.",
+            novaSolicitacao: "Hacer una nueva solicitud",
             labelDataEmbarque: "Fecha de embarque (Río)",
             labelHoraEmbarque: "Hora de llegada",
             labelEndereco: "Dirección de recogida",
@@ -441,6 +594,46 @@
 
     let currentLang = 'pt';
     let updateTimeout = null;
+
+    // ==================== ÍCONES DE VEÍCULO (SVG leve) ====================
+    function tipoVeiculo(nome) {
+        let n = (nome || "").toLowerCase();
+        if (n.includes("van grande") || n.includes("van")) return "van";
+        if (n.includes("carnival") || n.includes("jumpy") || n.includes("scudo") || n.includes("minivan")) return "minivan";
+        if (n.includes("versa") || n.includes("sedan") || n.includes("byd king")) return "sedan";
+        return "suv";
+    }
+    function iconeVeiculo(nome) {
+        const c = "#5a6e4a";
+        const tipos = {
+            sedan: `<svg width="58" height="30" viewBox="0 0 80 40" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M6 28 L13 16 H45 L58 23 H72 a2 2 0 0 1 2 2 V28"/><path d="M4 28 H76"/><circle cx="24" cy="29" r="5.5" fill="#fff"/><circle cx="58" cy="29" r="5.5" fill="#fff"/></svg>`,
+            suv: `<svg width="58" height="30" viewBox="0 0 80 40" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 27 L8 14 H50 L64 21 H72 a2 2 0 0 1 2 2 V27"/><path d="M5 27 H77"/><circle cx="24" cy="29" r="5.5" fill="#fff"/><circle cx="58" cy="29" r="5.5" fill="#fff"/></svg>`,
+            minivan: `<svg width="58" height="30" viewBox="0 0 80 40" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 27 L10 13 H60 L70 19 H72 a2 2 0 0 1 2 2 V27"/><path d="M5 27 H77"/><circle cx="24" cy="29" r="5.5" fill="#fff"/><circle cx="58" cy="29" r="5.5" fill="#fff"/></svg>`,
+            van: `<svg width="58" height="30" viewBox="0 0 80 40" fill="none" stroke="${c}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M6 27 L6 12 H66 a4 4 0 0 1 4 4 V27"/><path d="M4 27 H76"/><path d="M30 12 V27"/><circle cx="22" cy="29" r="5.5" fill="#fff"/><circle cx="58" cy="29" r="5.5" fill="#fff"/></svg>`
+        };
+        return tipos[tipoVeiculo(nome)] || tipos.suv;
+    }
+    function fotoVeiculo(nome) {
+        let n = (nome || "").toLowerCase();
+        if (n.includes("versa")) return "versa.jpg";
+        if (n.includes("spin")) return "spin.jpg";
+        if (n.includes("jumpy") || n.includes("scudo")) return "jumpy.jpg";
+        if (n.includes("van grande")) return "vangrande.jpg";
+        if (n.includes("corolla cross")) return "corollacross.jpg";
+        if (n.includes("hr-v")) return "hrv.jpg";
+        if (n.includes("kicks")) return "kicks.jpg";
+        if (n.includes("corolla sedan")) return "corollasedan.jpg";
+        if (n.includes("byd king")) return "bydking.jpg";
+        if (n.includes("song pro")) return "bydsongpro.jpg";
+        if (n.includes("tiggo")) return "tiggo8.jpg";
+        if (n.includes("carnival")) return "carnival.jpg";
+        if (n.includes("cherokee")) return "grandcherokee.jpg";
+        return "";
+    }
+    function capacidadeNum(texto) {
+        let m = (texto || "").match(/(\d+)/);
+        return m ? parseInt(m[1]) : 0;
+    }
 
     // ==================== DADOS DOS VEÍCULOS ====================
     const precosVeiculos = {
@@ -512,6 +705,19 @@
 
     let veiculosCache = { "centro-sul": null, "zona-oeste": null };
 
+    // ==================== TELEFONE ====================
+    function getTelefone() {
+        let ddi = document.getElementById("ddi")?.value || "55";
+        let raw = (document.getElementById("telefone")?.value || "").trim();
+        let num = raw.replace(/\D/g, "");
+        if (!num) return { display: "", whats: "", numLen: 0 };
+        return { display: `+${ddi} ${raw}`, whats: ddi + num, numLen: num.length };
+    }
+
+    function totalPassageiros() {
+        return (parseInt(document.getElementById("adultos")?.value) || 0) + (parseInt(document.getElementById("criancas")?.value) || 0);
+    }
+
     function toggleHorasParada() {
         const paradaCheck = document.getElementById("parada");
         const horasDiv = document.getElementById("horasParadaDiv");
@@ -538,6 +744,16 @@
             atualizarResumo();
             updateTimeout = null;
         }, 10);
+    }
+
+    // Marca automaticamente "madrugada" quando o horário é entre 00h e 06h.
+    function autoMadrugada() {
+        let hora = document.getElementById("horaEmbarque")?.value;
+        let mad = document.getElementById("madrugada");
+        if (hora && mad) {
+            let h = parseInt(hora.split(":")[0]);
+            mad.checked = (h >= 0 && h < 6);
+        }
     }
 
     function atualizarResumo() {
@@ -578,17 +794,57 @@
                 ${t.payment}: ${document.getElementById("pagamento")?.options[document.getElementById("pagamento")?.selectedIndex]?.text || "-"}
             `;
         }
+
+        // Barra de preço fixa
+        let pbLabel = document.getElementById("priceBarLabel");
+        let pbValue = document.getElementById("priceBarValue");
+        if (pbLabel) pbLabel.innerText = t.total;
+        if (pbValue) pbValue.innerHTML = `R$ ${total.toLocaleString('pt-BR')}`;
+    }
+
+    // ==================== VEÍCULOS ====================
+    function bindVeiculoCards() {
+        document.querySelectorAll(".veiculo-card").forEach(card => {
+            const nomeVeiculo = card.getAttribute('data-nome') || card.querySelector('.veiculo-nome')?.innerText || "";
+            card.addEventListener("click", () => {
+                if (card.classList.contains("insuficiente")) return;
+                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
+                card.classList.add("selected");
+                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
+                const preco = parseFloat(card.getAttribute('data-preco')) || 0;
+                document.getElementById("precoBase").value = preco;
+                marcarErro('veiculosContainer', false);
+                scheduleUpdate();
+            });
+        });
+    }
+
+    // Bloqueia visualmente os veículos que não comportam os passageiros.
+    function aplicarFitVeiculos() {
+        const t = translations[currentLang];
+        let pax = totalPassageiros();
+        document.querySelectorAll(".veiculo-card").forEach(card => {
+            let cap = parseInt(card.getAttribute('data-cap')) || 0;
+            let aviso = card.querySelector('.veiculo-aviso');
+            if (aviso) aviso.innerText = t.capInsuficiente;
+            if (pax > 0 && cap > 0 && cap < pax) {
+                card.classList.add("insuficiente");
+                if (card.classList.contains("selected")) {
+                    card.classList.remove("selected");
+                    document.getElementById("veiculoSelecionado").value = "";
+                    document.getElementById("precoBase").value = "";
+                }
+            } else {
+                card.classList.remove("insuficiente");
+            }
+        });
     }
 
     function trocarRegiao() {
         const regiao = document.querySelector('input[name="regiao"]:checked').value;
         const container = document.getElementById("veiculosContainer");
-        const t = translations[currentLang];
 
-        if (!veiculosCache[regiao]) {
-            renderVeiculos();
-            return;
-        }
+        if (!veiculosCache[regiao]) { renderVeiculos(); return; }
 
         const veiculoSelecionadoAtual = document.getElementById("veiculoSelecionado").value;
         const novoContainer = veiculosCache[regiao].cloneNode(true);
@@ -604,31 +860,19 @@
 
         let veiculoEncontrado = false;
         document.querySelectorAll(".veiculo-card").forEach(card => {
-            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
-            card.addEventListener("click", () => {
-                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
-                card.classList.add("selected");
-                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
-                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
-                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
-                document.getElementById("precoBase").value = preco;
-                scheduleUpdate();
-            });
-
-            if (nomeVeiculo === veiculoSelecionadoAtual) {
+            if ((card.getAttribute('data-nome') || "") === veiculoSelecionadoAtual) {
                 card.classList.add("selected");
                 veiculoEncontrado = true;
             }
         });
+        bindVeiculoCards();
 
-        if (!veiculoEncontrado && veiculoSelecionadoAtual) {
-            document.getElementById("veiculoSelecionado").value = "";
-            document.getElementById("precoBase").value = "";
-        } else if (!veiculoEncontrado) {
+        if (!veiculoEncontrado) {
             document.getElementById("veiculoSelecionado").value = "";
             document.getElementById("precoBase").value = "";
         }
 
+        aplicarFitVeiculos();
         scheduleUpdate();
     }
 
@@ -641,7 +885,7 @@
         for (const [categoria, veiculos] of Object.entries(catalogo)) {
             const categoriaDiv = document.createElement("div");
             categoriaDiv.className = "categoria-grid";
-            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
+            categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid"></div>`;
             tempContainer.appendChild(categoriaDiv);
             const grid = categoriaDiv.querySelector(`.veiculos-grid`);
 
@@ -650,12 +894,19 @@
                 card.className = "veiculo-card";
                 card.setAttribute("data-preco", veic.preco);
                 card.setAttribute("data-nome", veic.nome);
+                card.setAttribute("data-cap", capacidadeNum(veic.capacidade));
                 let obsHtml = veic.obs ? `<div style="font-size:0.65rem; color:#8b9a7a;">${veic.obs}</div>` : "";
+                let foto = fotoVeiculo(veic.nome);
+                let visualHtml = foto
+                    ? `<img src="${foto}" alt="${veic.nome}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="veiculo-icone" style="display:none;">${iconeVeiculo(veic.nome)}</div>`
+                    : `<div class="veiculo-icone">${iconeVeiculo(veic.nome)}</div>`;
                 card.innerHTML = `
+                    <div class="veiculo-foto">${visualHtml}</div>
                     <div class="veiculo-nome">${veic.nome}</div>
                     <div class="veiculo-capacidade">${veic.capacidade}</div>
                     ${obsHtml}
                     <div class="veiculo-preco">R$ ${veic.preco.toLocaleString('pt-BR')}</div>
+                    <div class="veiculo-aviso"></div>
                 `;
                 grid.appendChild(card);
             });
@@ -663,24 +914,40 @@
 
         veiculosCache[regiao] = tempContainer;
         container.innerHTML = tempContainer.innerHTML;
+        bindVeiculoCards();
+        aplicarFitVeiculos();
+    }
 
-        document.querySelectorAll(".veiculo-card").forEach(card => {
-            const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
-            card.addEventListener("click", () => {
-                document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
-                card.classList.add("selected");
-                document.getElementById("veiculoSelecionado").value = nomeVeiculo;
-                const precoTexto = card.querySelector('.veiculo-preco')?.innerText || "R$ 0";
-                const preco = parseFloat(precoTexto.replace('R$ ', '').replace(/\./g, '').replace(',', '.'));
-                document.getElementById("precoBase").value = preco;
+    // ==================== STEPPER (+/-) ====================
+    function bindSteppers() {
+        document.querySelectorAll(".stepper-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                let el = document.getElementById(btn.getAttribute("data-target"));
+                if (!el) return;
+                let min = el.getAttribute("min") !== null ? parseInt(el.getAttribute("min")) : 0;
+                let max = el.getAttribute("max") !== null ? parseInt(el.getAttribute("max")) : Infinity;
+                let v = (parseInt(el.value) || 0) + parseInt(btn.getAttribute("data-delta"));
+                v = Math.max(min, Math.min(max, v));
+                el.value = v;
+                if (["adultos", "criancas"].includes(btn.getAttribute("data-target"))) aplicarFitVeiculos();
                 scheduleUpdate();
             });
         });
     }
 
+    function stepperHtml(id, valor, min) {
+        return `<div class="stepper">
+            <button type="button" class="stepper-btn" data-target="${id}" data-delta="-1">&minus;</button>
+            <input type="number" id="${id}" value="${valor}" min="${min}" inputmode="numeric" readonly>
+            <button type="button" class="stepper-btn" data-target="${id}" data-delta="1">+</button>
+        </div>`;
+    }
+
+    // ==================== FORMULÁRIO ====================
     function renderForm() {
         const t = translations[currentLang];
         const container = document.getElementById('formContent');
+        let paisOptions = PAISES.map(p => `<option value="${p.code}">${p.label}</option>`).join('');
         container.innerHTML = `
             <div class="step-section"><div class="step-title">${t.step1}</div>
                 <div class="radio-group" id="sentidoGroup">
@@ -691,15 +958,22 @@
             <div class="step-section"><div class="step-title">${t.step2}</div>
                 <div class="form-row"><label>${t.nome}</label><input type="text" id="nome" required></div>
                 <div class="form-row"><label>${t.reserva}</label><input type="text" id="reserva"></div>
-                <div class="form-row"><label>${t.telefone}</label><input type="tel" id="telefone"></div>
-                <div class="form-row"><label>${t.adultos}</label><input type="number" id="adultos" value="2" style="width:100px"></div>
-                <div class="form-row"><label>${t.criancas}</label><input type="number" id="criancas" value="0" style="width:100px"></div>
+                <div class="form-row"><label>${t.telefone}</label>
+                    <div class="tel-row">
+                        <select id="ddi" title="${t.pais}">${paisOptions}</select>
+                        <input type="tel" id="telefone" inputmode="tel" placeholder="(21) 99999-9999">
+                    </div>
+                </div>
+                <div class="form-row" style="display:flex; gap:24px; flex-wrap:wrap;">
+                    <div><label>${t.adultos}</label>${stepperHtml('adultos', 2, 1)}</div>
+                    <div><label>${t.criancas}</label>${stepperHtml('criancas', 0, 0)}</div>
+                </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step3}</div>
                 <div class="bagagem-row">
-                    <div class="bagagem-item"><label>${t.bag23kg}</label><input type="number" id="bag23kg" value="0" min="0"></div>
-                    <div class="bagagem-item"><label>${t.bag10kg}</label><input type="number" id="bag10kg" value="0" min="0"></div>
-                    <div class="bagagem-item"><label>${t.bagMao}</label><input type="number" id="bagMao" value="0" min="0"></div>
+                    <div class="bagagem-item"><label>${t.bag23kg}</label>${stepperHtml('bag23kg', 0, 0)}</div>
+                    <div class="bagagem-item"><label>${t.bag10kg}</label>${stepperHtml('bag10kg', 0, 0)}</div>
+                    <div class="bagagem-item"><label>${t.bagMao}</label>${stepperHtml('bagMao', 0, 0)}</div>
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div></div>
@@ -714,11 +988,11 @@
                 <input type="hidden" id="veiculoSelecionado"><input type="hidden" id="precoBase">
             </div>
             <div class="step-section"><div class="step-title">${t.step7}</div>
-                <div class="form-row"><label><input type="checkbox" id="madrugada"> ${t.madrugada}</label></div>
-                <div class="form-row"><label><input type="checkbox" id="parada"> ${t.parada}</label></div>
+                <div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="madrugada" style="width:auto;"> ${t.madrugada}</label></div>
+                <div class="form-row"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="parada" style="width:auto;"> ${t.parada}</label></div>
                 <div class="form-row" id="horasParadaDiv" style="display: none;">
                     <label>${t.horasParada}</label>
-                    <input type="number" id="horasParada" value="1" min="1" max="4" style="width:100px">
+                    ${stepperHtml('horasParada', 1, 1)}
                 </div>
                 <div class="form-row"><label id="obsLabel">${t.obs}</label><textarea id="obs" rows="2"></textarea></div>
                 <div class="form-row"><label id="pagamentoLabel">${t.pagamento}</label>
@@ -731,10 +1005,16 @@
                 <button type="button" class="btn-copy" id="copiarBtn">${t.copiar}</button>
             </div>
             <div id="feedbackMsg" class="feedback"></div>
+            <div class="footer-policies" id="footerText"></div>
         `;
+        // horasParada tem máximo 4
+        let hp = document.getElementById('horasParada');
+        if (hp) hp.setAttribute('max', '4');
+
         renderLocalFields();
         renderVeiculos();
         bindEvents();
+        bindSteppers();
         scheduleUpdate();
     }
 
@@ -742,54 +1022,28 @@
         const sentido = document.querySelector('input[name="sentido"]:checked').value;
         const container = document.getElementById("localFields");
         const t = translations[currentLang];
+        const hoje = new Date().toISOString().slice(0, 10);
 
         if (sentido === "IN") {
             container.innerHTML = `
-                <div class="form-row">
-                    <label>${t.labelDataEmbarque}</label>
-                    <input type="date" id="dataViagem" value="${new Date().toISOString().slice(0,10)}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelHoraEmbarque}</label>
-                    <input type="time" id="horaEmbarque" value="05:30">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelEndereco}</label>
-                    <input type="text" id="endereco" placeholder="${t.placeholderEndereco}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelVoo}</label>
-                    <input type="text" id="voo" placeholder="${t.placeholderVoo}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelCia}</label>
-                    <input type="text" id="ciaAerea" placeholder="${t.placeholderCia}">
-                </div>
+                <div class="form-row"><label>${t.labelDataEmbarque}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
+                <div class="form-row"><label>${t.labelHoraEmbarque}</label><input type="time" id="horaEmbarque" value="05:30"></div>
+                <div class="form-row"><label>${t.labelEndereco}</label><input type="text" id="endereco" placeholder="${t.placeholderEndereco}"></div>
+                <div class="form-row"><label>${t.labelVoo}</label><input type="text" id="voo" placeholder="${t.placeholderVoo}"></div>
+                <div class="form-row"><label>${t.labelCia}</label><input type="text" id="ciaAerea" placeholder="${t.placeholderCia}"></div>
             `;
         } else {
             container.innerHTML = `
-                <div class="form-row">
-                    <label>${t.labelDataSaida}</label>
-                    <input type="date" id="dataViagem" value="${new Date().toISOString().slice(0,10)}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelHoraSaida}</label>
-                    <input type="time" id="horaEmbarque" value="10:00">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelDestino}</label>
-                    <input type="text" id="endereco" placeholder="${t.placeholderDestino}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelVooOut}</label>
-                    <input type="text" id="voo" placeholder="${t.placeholderVooOut}">
-                </div>
-                <div class="form-row">
-                    <label>${t.labelCiaOut}</label>
-                    <input type="text" id="ciaAerea" placeholder="${t.placeholderCiaOut}">
-                </div>
+                <div class="form-row"><label>${t.labelDataSaida}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
+                <div class="form-row"><label>${t.labelHoraSaida}</label><input type="time" id="horaEmbarque" value="10:00"></div>
+                <div class="form-row"><label>${t.labelDestino}</label><input type="text" id="endereco" placeholder="${t.placeholderDestino}"></div>
+                <div class="form-row"><label>${t.labelVooOut}</label><input type="text" id="voo" placeholder="${t.placeholderVooOut}"></div>
+                <div class="form-row"><label>${t.labelCiaOut}</label><input type="text" id="ciaAerea" placeholder="${t.placeholderCiaOut}"></div>
             `;
         }
+        let he = document.getElementById("horaEmbarque");
+        if (he) he.addEventListener("change", () => { autoMadrugada(); scheduleUpdate(); });
+        autoMadrugada();
     }
 
     function getBagagemTexto() {
@@ -808,7 +1062,7 @@
         const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
-        const telefone = document.getElementById("telefone")?.value || "-";
+        const telefone = getTelefone().display || "-";
         const adultos = document.getElementById("adultos")?.value || "0";
         const criancas = document.getElementById("criancas")?.value || "0";
         const bagagemTexto = getBagagemTexto();
@@ -842,7 +1096,6 @@
         mensagem += `Pagamento: ${pagamento}\n`;
         mensagem += `Observações: ${obs}\n\n`;
         mensagem += `---\n${t.policies}`;
-
         return mensagem;
     }
 
@@ -861,15 +1114,37 @@
         }
     }
 
+    function marcarErro(id, on) {
+        let el = document.getElementById(id);
+        if (!el) return;
+        el.style.borderColor = on ? '#dc3545' : '';
+        el.style.boxShadow = on ? '0 0 0 3px rgba(220,53,69,0.12)' : '';
+    }
+
+    function mostrarSucesso() {
+        const t = translations[currentLang];
+        document.getElementById('sucessoTitulo').innerText = t.sucessoTitulo;
+        document.getElementById('sucessoTexto').innerText = t.sucessoTexto;
+        document.getElementById('novaSolicitacaoBtn').innerText = t.novaSolicitacao;
+        document.getElementById('sucessoOverlay').classList.add('show');
+    }
+
     async function enviarWhatsApp() {
+        const t = translations[currentLang];
         const veiculo = document.getElementById("veiculoSelecionado")?.value;
-        if (!veiculo) {
-            mostrarFeedback("Selecione um veículo.", "error");
-            return;
-        }
-        const nome = document.getElementById("nome")?.value.trim();
-        if (!nome) {
-            mostrarFeedback("Informe o nome do hóspede.", "error");
+        const nome = (document.getElementById("nome")?.value || "").trim();
+        const tel = getTelefone();
+
+        let ok = true;
+        marcarErro('nome', !nome); if (!nome) ok = false;
+        marcarErro('telefone', tel.numLen < 8); if (tel.numLen < 8) ok = false;
+        if (!veiculo) ok = false;
+
+        if (!ok) {
+            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : t.erroTelefone);
+            mostrarFeedback(msg, "error");
+            let alvo = !nome ? 'nome' : (tel.numLen < 8 ? 'telefone' : 'veiculosContainer');
+            document.getElementById(alvo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
@@ -877,7 +1152,7 @@
             id: Date.now(),
             nome: nome,
             reserva: document.getElementById("reserva")?.value || "",
-            telefone: document.getElementById("telefone")?.value || "",
+            telefone: tel.display,
             sentido: document.querySelector('input[name="sentido"]:checked').value,
             dataViagem: document.getElementById("dataViagem")?.value,
             horario: document.getElementById("horaEmbarque")?.value,
@@ -898,71 +1173,54 @@
             idioma: currentLang
         };
 
-        mostrarFeedback("Enviando...", "success");
+        mostrarFeedback(t.enviando, "success");
         await enviarParaGoogleSheets(dadosPlanilha);
 
         const mensagem = montarMensagem();
-        const msgCodificada = encodeURIComponent(mensagem);
-        window.open(`https://wa.me/${HOTEL_PHONE}?text=${msgCodificada}`, '_blank');
-
-        mostrarFeedback("Dados salvos e WhatsApp aberto!", "success");
-
-        document.getElementById("veiculoSelecionado").value = "";
-        document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
-        scheduleUpdate();
+        window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
+        mostrarSucesso();
     }
 
     function copiarMensagem() {
+        const t = translations[currentLang];
         const veiculo = document.getElementById("veiculoSelecionado")?.value;
-        if (!veiculo) {
-            mostrarFeedback("Selecione um veículo.", "error");
-            return;
-        }
-        const mensagem = montarMensagem();
-        navigator.clipboard.writeText(mensagem);
-        mostrarFeedback("Mensagem copiada!", "success");
+        if (!veiculo) { mostrarFeedback(t.erroVeiculo, "error"); return; }
+        navigator.clipboard.writeText(montarMensagem());
+        mostrarFeedback(t.copiado, "success");
     }
 
     function mostrarFeedback(msg, tipo) {
         const fb = document.getElementById("feedbackMsg");
+        if (!fb) return;
         fb.textContent = msg;
         fb.className = `feedback ${tipo}`;
-        setTimeout(() => fb.textContent = "", 4000);
+        setTimeout(() => { fb.textContent = ""; fb.className = "feedback"; }, 4000);
     }
 
     function bindEvents() {
-        const sentidoRadios = document.querySelectorAll('input[name="sentido"]');
-        sentidoRadios.forEach(r => r.addEventListener('change', () => {
+        document.querySelectorAll('input[name="sentido"]').forEach(r => r.addEventListener('change', () => {
             renderLocalFields();
             scheduleUpdate();
         }));
 
-        const regiaoRadios = document.querySelectorAll('input[name="regiao"]');
-        regiaoRadios.forEach(r => r.addEventListener('change', () => {
-            trocarRegiao();
-        }));
+        document.querySelectorAll('input[name="regiao"]').forEach(r => r.addEventListener('change', () => trocarRegiao()));
 
-        ['nome', 'reserva', 'telefone', 'adultos', 'criancas', 'bag23kg', 'bag10kg', 'bagMao', 'obs', 'dataViagem', 'horaEmbarque', 'endereco', 'voo', 'ciaAerea', 'horasParada'].forEach(id => {
+        ['nome', 'reserva', 'telefone', 'obs', 'endereco', 'voo', 'ciaAerea'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', () => scheduleUpdate());
         });
+        document.getElementById('ddi')?.addEventListener('change', () => scheduleUpdate());
+        document.getElementById('nome')?.addEventListener('input', () => marcarErro('nome', false));
+        document.getElementById('telefone')?.addEventListener('input', () => marcarErro('telefone', false));
 
         const madrugadaCheck = document.getElementById("madrugada");
         if (madrugadaCheck) madrugadaCheck.addEventListener('change', () => scheduleUpdate());
 
         const paradaCheck = document.getElementById("parada");
-        if (paradaCheck) {
-            paradaCheck.addEventListener('change', () => {
-                toggleHorasParada();
-                scheduleUpdate();
-            });
-        }
+        if (paradaCheck) paradaCheck.addEventListener('change', () => { toggleHorasParada(); scheduleUpdate(); });
 
-        const enviarBtn = document.getElementById("enviarBtn");
-        if (enviarBtn) enviarBtn.addEventListener('click', enviarWhatsApp);
-
-        const copiarBtn = document.getElementById("copiarBtn");
-        if (copiarBtn) copiarBtn.addEventListener('click', copiarMensagem);
+        document.getElementById("enviarBtn")?.addEventListener('click', enviarWhatsApp);
+        document.getElementById("copiarBtn")?.addEventListener('click', copiarMensagem);
     }
 
     function translatePage() {
@@ -973,24 +1231,17 @@
         document.getElementById('infoText').innerHTML = t.infoText;
 
         const stepTitles = document.querySelectorAll('.step-title');
-        if (stepTitles.length >= 7) {
-            stepTitles[0].innerHTML = t.step1;
-            stepTitles[1].innerHTML = t.step2;
-            stepTitles[2].innerHTML = t.step3;
-            stepTitles[3].innerHTML = t.step4;
-            stepTitles[4].innerHTML = t.step5;
-            stepTitles[5].innerHTML = t.step6;
-            stepTitles[6].innerHTML = t.step7;
-        }
+        const steps = [t.step1, t.step2, t.step3, t.step4, t.step5, t.step6, t.step7];
+        stepTitles.forEach((el, i) => { if (steps[i]) el.innerHTML = steps[i]; });
 
         const radios = document.querySelectorAll('.radio-group');
         if (radios[0]) {
-            radios[0].querySelectorAll('label')[0].childNodes[1].textContent = t.inOption;
-            radios[0].querySelectorAll('label')[1].childNodes[1].textContent = t.outOption;
+            radios[0].querySelectorAll('label')[0].childNodes[1].textContent = " " + t.inOption;
+            radios[0].querySelectorAll('label')[1].childNodes[1].textContent = " " + t.outOption;
         }
         if (radios[1]) {
-            radios[1].querySelectorAll('label')[0].childNodes[1].textContent = t.regiaoCentro;
-            radios[1].querySelectorAll('label')[1].childNodes[1].textContent = t.regiaoOeste;
+            radios[1].querySelectorAll('label')[0].childNodes[1].textContent = " " + t.regiaoCentro;
+            radios[1].querySelectorAll('label')[1].childNodes[1].textContent = " " + t.regiaoOeste;
         }
 
         // Rótulos dos dados do hóspede (step 2)
@@ -1001,13 +1252,11 @@
         if (labels[3]) labels[3].innerHTML = t.adultos;
         if (labels[4]) labels[4].innerHTML = t.criancas;
 
-        // Rótulos de observações e pagamento (step 7) - via id, à prova de ordem
         const obsLabel = document.getElementById("obsLabel");
         if (obsLabel) obsLabel.innerHTML = t.obs;
         const pagamentoLabel = document.getElementById("pagamentoLabel");
         if (pagamentoLabel) pagamentoLabel.innerHTML = t.pagamento;
 
-        // Opções do select de pagamento
         const pagamentoSelect = document.getElementById("pagamento");
         if (pagamentoSelect && pagamentoSelect.options.length >= 3) {
             pagamentoSelect.options[0].text = t.cartao;
@@ -1022,7 +1271,6 @@
 
         const madLabel = document.querySelector('#madrugada');
         if (madLabel && madLabel.nextSibling) madLabel.nextSibling.textContent = " " + t.madrugada;
-
         const paradaLabel = document.querySelector('#parada');
         if (paradaLabel && paradaLabel.nextSibling) paradaLabel.nextSibling.textContent = " " + t.parada;
 
@@ -1031,12 +1279,16 @@
 
         const enviarBtn = document.getElementById("enviarBtn");
         if (enviarBtn) enviarBtn.innerHTML = t.enviar;
-
         const copiarBtn = document.getElementById("copiarBtn");
         if (copiarBtn) copiarBtn.innerHTML = t.copiar;
+        const enviarBtnBar = document.getElementById("enviarBtnBar");
+        if (enviarBtnBar) enviarBtnBar.innerHTML = t.enviar;
 
         const footerText = document.getElementById("footerText");
-        if (footerText) footerText.innerHTML = t.footer;
+        if (footerText) footerText.innerText = t.footer;
+
+        const ddi = document.getElementById("ddi");
+        if (ddi) ddi.title = t.pais;
 
         const categoriasTitulos = document.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
@@ -1046,13 +1298,13 @@
         }
 
         const localFields = document.getElementById("localFields");
-        if (localFields && localFields.children.length > 0) {
-            renderLocalFields();
-        }
+        if (localFields && localFields.children.length > 0) renderLocalFields();
 
+        aplicarFitVeiculos();
         scheduleUpdate();
     }
 
+    // ==================== INICIALIZAÇÃO ====================
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
@@ -1061,6 +1313,23 @@
             translatePage();
         });
     });
+
+    document.getElementById('enviarBtnBar').addEventListener('click', enviarWhatsApp);
+    document.getElementById('novaSolicitacaoBtn').addEventListener('click', () => {
+        document.getElementById('sucessoOverlay').classList.remove('show');
+        renderForm();
+        translatePage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // Detecta o idioma do navegador (pt/en/es).
+    (function detectarIdioma() {
+        let lang = (navigator.language || 'pt').slice(0, 2).toLowerCase();
+        if (['pt', 'en', 'es'].includes(lang)) currentLang = lang;
+        document.querySelectorAll('.lang-btn').forEach(b => {
+            b.classList.toggle('active', b.getAttribute('data-lang') === currentLang);
+        });
+    })();
 
     renderForm();
     translatePage();
