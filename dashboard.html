@@ -139,6 +139,24 @@
             flex-wrap: wrap;
             gap: 16px;
         }
+        /* Próximos traslados (Hoje / Amanhã) */
+        .proximos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+        .proximos-col h4 { color: #2c5f2d; font-size: 0.95rem; margin-bottom: 8px; }
+        .proximo-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #ebe5db; }
+        .proximo-hora { font-weight: 700; color: #2c5f2d; }
+        .proximo-sub { font-size: 0.72rem; color: #7a8b6e; }
+        .proximo-vazio { color: #8b9a7a; font-size: 0.85rem; padding: 8px 0; }
+        /* Filtros da lista */
+        .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .filtros-bar input, .filtros-bar select {
+            padding: 9px 12px;
+            border: 1px solid #d4cbb8;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            background: #fff;
+            color: #2c3e2f;
+        }
+        .filtros-bar input.busca { flex: 1; min-width: 180px; }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
             .confirm-btn, .complete-btn, .cancel-btn { padding: 4px 6px; font-size: 0.65rem; }
@@ -154,13 +172,24 @@
     </div>
 
     <div class="header-actions">
-        <div class="last-update" id="lastUpdate">Clique em "Atualizar" para carregar os dados</div>
-        <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
+        <div class="last-update" id="lastUpdate">Carregando dados...</div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:0.8rem; color:#5a6e4a; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="autoRefresh" checked> Atualizar automaticamente
+            </label>
+            <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
+        </div>
     </div>
 
     <div id="errorDisplay" class="error-message"></div>
 
     <div id="tab-dashboard" class="tab-content active">
+        <div class="table-container">
+            <h3>Próximos traslados</h3>
+            <div id="proximosConteudo" class="proximos-grid" style="margin-top:12px;">
+                <div class="proximo-vazio">Carregando...</div>
+            </div>
+        </div>
         <div class="dashboard-grid">
             <div class="metric-card"><div class="metric-value" id="totalTransfers">-</div><div class="metric-label">Total de Traslados</div></div>
             <div class="metric-card"><div class="metric-value" id="totalValue">R$ -</div><div class="metric-label">Valor Total</div></div>
@@ -183,11 +212,33 @@
                 <button class="periodo-btn" data-periodo="trimestre">3 meses</button>
             </div>
         </div>
-        <div class="table-container"><h3>Detalhamento por período</h3><div id="comissaoDetalhe"></div></div>
+        <div class="table-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <h3>Detalhamento por período</h3>
+                <button class="refresh-btn" id="exportarPdfBtn">📄 Exportar PDF</button>
+            </div>
+            <div id="comissaoDetalhe"></div>
+        </div>
     </div>
 
     <div id="tab-lista" class="tab-content">
         <div class="table-container">
+            <div class="filtros-bar">
+                <input type="text" id="filtroBusca" class="busca" placeholder="Buscar por nome ou telefone...">
+                <input type="date" id="filtroData" title="Filtrar por data da viagem">
+                <select id="filtroStatus" title="Filtrar por status">
+                    <option value="todos">Todos os status</option>
+                    <option value="ativos">Apenas ativos</option>
+                    <option value="finalizados">Finalizados</option>
+                    <option value="cancelados">Cancelados</option>
+                </select>
+                <select id="filtroSentido" title="Filtrar por sentido">
+                    <option value="todos">Ambos os sentidos</option>
+                    <option value="IN">Rio → Búzios</option>
+                    <option value="OUT">Búzios → Rio</option>
+                </select>
+                <button class="refresh-btn" id="limparFiltros" style="background:#8b7a5c;">Limpar</button>
+            </div>
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
                     <thead>
@@ -205,12 +256,14 @@
 <script>
     // ==================== CONFIGURAÇÃO ====================
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwhC3m8vPSYYEoPe8cJdNYP12pj8Iu3V8zpSR-7XrRIyRp4hzo4gCkPgqGaMl1kze77/exec";
+    const AUTO_REFRESH_MIN = 5; // intervalo de auto-atualização (minutos)
 
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
+    let autoRefreshTimer = null;
 
-    // ==================== FUNÇÃO SIMPLES PARA PEGAR HORÁRIO ====================
+    // ==================== HELPERS DE DATA/HORA ====================
     function getHorario(transfer) {
         // Tenta diferentes nomes que o campo pode ter
         let horario = transfer["Horario"] || transfer["Horário"] || transfer["horario"] || "";
@@ -236,6 +289,33 @@
         return horario;
     }
 
+    function dateKeyFromDate(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function dataKey(t) {
+        if (!t || !t["Data Viagem"]) return null;
+        let d = new Date(t["Data Viagem"]);
+        if (isNaN(d.getTime())) return null;
+        return dateKeyFromDate(d);
+    }
+
+    function formatarData(valor) {
+        if (!valor) return "-";
+        let d = new Date(valor);
+        if (isNaN(d.getTime())) return "-";
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
+    // Normaliza o telefone para o WhatsApp (adiciona DDI 55 quando faltar).
+    function formatWhatsAppPhone(tel) {
+        let d = (tel || "").toString().replace(/\D/g, "");
+        if (!d) return "";
+        if (d.startsWith("55") && d.length >= 12) return d;   // já tem DDI Brasil
+        if (d.length === 10 || d.length === 11) return "55" + d; // BR sem DDI
+        return d; // outros (ex.: número internacional já com DDI)
+    }
+
     // ==================== STATUS ====================
     function getStatus(t) {
         const status = JSON.parse(localStorage.getItem('transferStatus') || '{}');
@@ -257,6 +337,7 @@
             transfers = Array.isArray(dados) ? dados : [];
             document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
             updateDashboard();
+            renderProximos();
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
         } catch(e) {
@@ -264,6 +345,39 @@
             document.getElementById('errorDisplay').style.display = 'block';
             document.getElementById('errorDisplay').innerHTML = 'Erro ao carregar dados: ' + e.message;
         }
+    }
+
+    // ==================== PRÓXIMOS TRASLADOS (HOJE / AMANHÃ) ====================
+    function renderProximos() {
+        let cont = document.getElementById('proximosConteudo');
+        if (!cont) return;
+
+        let hojeKey = dateKeyFromDate(new Date());
+        let amanhaDate = new Date(); amanhaDate.setDate(amanhaDate.getDate() + 1);
+        let amanhaKey = dateKeyFromDate(amanhaDate);
+
+        let ativos = transfers.filter(t => !isCancelled(t));
+        let doDia = (key) => ativos.filter(t => dataKey(t) === key)
+            .sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
+
+        let itemHtml = (t) => {
+            let sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+            let transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+            return `<div class="proximo-item">
+                <div>
+                    <span class="proximo-hora">${getHorario(t)}</span> · ${t["Nome"] || '-'}<br>
+                    <span class="proximo-sub">${sentido} · ${t["Veículo"] || '-'}</span>
+                </div>
+                <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})'>WhatsApp</button>
+            </div>`;
+        };
+
+        let coluna = (titulo, lista) => {
+            let corpo = lista.length ? lista.map(itemHtml).join('') : '<div class="proximo-vazio">Nenhum traslado.</div>';
+            return `<div class="proximos-col"><h4>${titulo} (${lista.length})</h4>${corpo}</div>`;
+        };
+
+        cont.innerHTML = coluna('Hoje', doDia(hojeKey)) + coluna('Amanhã', doDia(amanhaKey));
     }
 
     // ==================== DASHBOARD ====================
@@ -322,19 +436,11 @@
 
     // ==================== CONFIRMAÇÃO WHATSAPP ====================
     function enviarConfirmacao(t) {
-        let tel = t["Telefone"] || "";
-        if (!tel) { alert("Cliente sem telefone!"); return; }
-        let telLimpo = tel.toString().replace(/\D/g, "");
-        if (telLimpo.length < 10) { alert("Telefone inválido!"); return; }
+        let telLimpo = formatWhatsAppPhone(t["Telefone"]);
+        if (!telLimpo) { alert("Cliente sem telefone!"); return; }
+        if (telLimpo.length < 12) { alert("Telefone inválido!"); return; }
 
-        let data = "-";
-        if (t["Data Viagem"]) {
-            let d = new Date(t["Data Viagem"]);
-            if (!isNaN(d.getTime())) {
-                data = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-            }
-        }
-
+        let data = formatarData(t["Data Viagem"]);
         let horario = getHorario(t);
 
         let msg = `TRASLADO CONFIRMADO - CASAS BRANCAS\n\n` +
@@ -359,6 +465,7 @@
         setStatus(t, 'completed');
         updateHistoryTable();
         updateDashboard();
+        renderProximos();
         updateComissaoTab(currentPeriodo);
     }
 
@@ -367,19 +474,48 @@
         setStatus(t, 'cancelled');
         updateHistoryTable();
         updateDashboard();
+        renderProximos();
         updateComissaoTab(currentPeriodo);
     }
 
-    // ==================== LISTA DE TRANSFERS ====================
+    // ==================== LISTA DE TRANSFERS (com filtros) ====================
+    function getFiltros() {
+        return {
+            busca: (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim(),
+            data: document.getElementById('filtroData')?.value || '',
+            status: document.getElementById('filtroStatus')?.value || 'todos',
+            sentido: document.getElementById('filtroSentido')?.value || 'todos'
+        };
+    }
+
     function updateHistoryTable() {
         let tbody = document.getElementById('historyBody');
         if (!transfers.length) {
-            tbody.innerHTML = '<tr><td colspan="8">Nenhum traslado encontrado<\/td><\/tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum traslado encontrado<\/td><\/tr>';
+            return;
+        }
+
+        let f = getFiltros();
+        let lista = transfers.filter(t => {
+            if (f.busca) {
+                let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '')).toLowerCase();
+                if (!alvo.includes(f.busca)) return false;
+            }
+            if (f.data && dataKey(t) !== f.data) return false;
+            if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
+            if (f.status === 'ativos' && (isCompleted(t) || isCancelled(t))) return false;
+            if (f.status === 'finalizados' && !isCompleted(t)) return false;
+            if (f.status === 'cancelados' && !isCancelled(t)) return false;
+            return true;
+        });
+
+        if (!lista.length) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;">Nenhum traslado com esses filtros<\/td><\/tr>';
             return;
         }
 
         // Ordenar por data da viagem (mais antigo primeiro)
-        let sorted = [...transfers].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let sorted = [...lista].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
 
         // Agrupar por mês
         let grouped = {};
@@ -400,16 +536,7 @@
             html += `<tr class="month-group"><td colspan="8"><strong>${my}</strong> (${ativos.length} ativos de ${items.length}) | Total: R$ ${totalMes.toLocaleString('pt-BR')} | Comissão: R$ ${(totalMes*0.15).toLocaleString('pt-BR')}<\/td><\/tr>`;
 
             items.forEach(t => {
-                // Formatar data
-                let data = "-";
-                if (t["Data Viagem"]) {
-                    let d = new Date(t["Data Viagem"]);
-                    if (!isNaN(d.getTime())) {
-                        data = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-                    }
-                }
-
-                // Horário
+                let data = formatarData(t["Data Viagem"]);
                 let horario = getHorario(t);
 
                 let completed = isCompleted(t);
@@ -438,25 +565,30 @@
     }
 
     // ==================== COMISSÕES ====================
-    function updateComissaoTab(periodo = 'todos') {
-        currentPeriodo = periodo;
+    // Filtra os traslados ativos conforme o período selecionado.
+    function transfersDoPeriodo(periodo) {
         let now = new Date(), mesAtual = now.getMonth(), anoAtual = now.getFullYear();
         let mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1, anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
         let tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         let ativos = transfers.filter(t => !isCancelled(t));
-        let filtered = ativos;
+        if (periodo === 'mesAtual') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
+        if (periodo === 'trimestre') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
+        return ativos;
+    }
 
-        if (periodo === 'mesAtual') filtered = ativos.filter(t => { if (!t["Data Viagem"]) return false; let d = new Date(t["Data Viagem"]); return d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
-        else if (periodo === 'mesAnterior') filtered = ativos.filter(t => { if (!t["Data Viagem"]) return false; let d = new Date(t["Data Viagem"]); return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
-        else if (periodo === 'trimestre') filtered = ativos.filter(t => { if (!t["Data Viagem"]) return false; return new Date(t["Data Viagem"]) >= tresMesesAtras; });
+    function updateComissaoTab(periodo = 'todos') {
+        currentPeriodo = periodo;
+        let ativos = transfers.filter(t => !isCancelled(t));
+        let filtered = transfersDoPeriodo(periodo);
 
         let total = filtered.reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
         document.getElementById('comissaoTotal').innerHTML = `R$ ${(total*0.15).toLocaleString('pt-BR')}`;
 
         let totalGeral = ativos.reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
-        let totalMA = ativos.filter(t => { if (!t["Data Viagem"]) return false; let d = new Date(t["Data Viagem"]); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
-        let totalMP = ativos.filter(t => { if (!t["Data Viagem"]) return false; let d = new Date(t["Data Viagem"]); return d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; }).reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
-        let total3M = ativos.filter(t => { if (!t["Data Viagem"]) return false; return new Date(t["Data Viagem"]) >= tresMesesAtras; }).reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
+        let totalMA = transfersDoPeriodo('mesAtual').reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
+        let totalMP = transfersDoPeriodo('mesAnterior').reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
+        let total3M = transfersDoPeriodo('trimestre').reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
 
         document.getElementById('comissaoDetalhe').innerHTML = `
             <table style="width:100%"><thead><tr><th>Período</th><th>Total em Traslados</th><th>Comissão (15%)</th></tr></thead><tbody>
@@ -470,6 +602,71 @@
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
     }
 
+    // ==================== EXPORTAR COMISSÕES EM PDF ====================
+    function exportarComissaoPDF() {
+        let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
+        let lista = [...transfersDoPeriodo(currentPeriodo)].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let totalTraslados = lista.reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
+        let totalComissao = totalTraslados * 0.15;
+
+        let linhas = lista.map(t => {
+            let v = parseFloat(t["Valor Total"]) || 0;
+            return `<tr>
+                <td>${formatarData(t["Data Viagem"])}</td>
+                <td>${getHorario(t)}</td>
+                <td>${t["Nome"] || '-'}</td>
+                <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
+                <td>${t["Veículo"] || '-'}</td>
+                <td style="text-align:right;">R$ ${v.toLocaleString('pt-BR')}</td>
+                <td style="text-align:right;">R$ ${(v*0.15).toLocaleString('pt-BR')}</td>
+            </tr>`;
+        }).join('');
+
+        let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+            <title>Relatório de Comissões - Casas Brancas</title>
+            <style>
+                body { font-family: Arial, Helvetica, sans-serif; color: #2c3e2f; padding: 30px; }
+                h1 { font-size: 1.3rem; color: #2c5f2d; margin-bottom: 4px; }
+                .sub { color: #7a8b6e; font-size: 0.85rem; margin-bottom: 18px; }
+                .tot { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+                .tot div { background: #f0f5ee; border: 1px solid #d9e6d4; border-radius: 8px; padding: 12px 18px; font-size: 0.9rem; }
+                .tot strong { font-size: 1.2rem; color: #2c5f2d; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
+                th, td { border-bottom: 1px solid #ddd; padding: 7px 8px; text-align: left; }
+                th { background: #f0ede5; color: #2c5f2d; }
+                tfoot td { font-weight: bold; border-top: 2px solid #2c5f2d; }
+                @media print { .noprint { display: none; } }
+            </style></head><body>
+            <h1>Relatório de Comissões — Casas Brancas</h1>
+            <div class="sub">Período: ${labels[currentPeriodo] || 'Todos'} · Gerado em ${new Date().toLocaleString('pt-BR')} · ${lista.length} traslados</div>
+            <div class="tot">
+                <div>Total em traslados<br><strong>R$ ${totalTraslados.toLocaleString('pt-BR')}</strong></div>
+                <div>Comissão (15%)<br><strong>R$ ${totalComissao.toLocaleString('pt-BR')}</strong></div>
+            </div>
+            <button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#2c5f2d;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>
+            <table>
+                <thead><tr><th>Data</th><th>Horário</th><th>Hóspede</th><th>Sentido</th><th>Veículo</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Comissão</th></tr></thead>
+                <tbody>${linhas || '<tr><td colspan="7">Nenhum traslado no período.</td></tr>'}</tbody>
+                <tfoot><tr><td colspan="5">Total</td><td style="text-align:right;">R$ ${totalTraslados.toLocaleString('pt-BR')}</td><td style="text-align:right;">R$ ${totalComissao.toLocaleString('pt-BR')}</td></tr></tfoot>
+            </table>
+            </body></html>`;
+
+        let win = window.open('', '_blank');
+        if (!win) { alert('Permita pop-ups neste site para exportar o PDF.'); return; }
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { try { win.print(); } catch(e) {} }, 600);
+    }
+
+    // ==================== AUTO-ATUALIZAÇÃO ====================
+    function setupAutoRefresh() {
+        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+        if (document.getElementById('autoRefresh')?.checked) {
+            autoRefreshTimer = setInterval(carregarDados, AUTO_REFRESH_MIN * 60 * 1000);
+        }
+    }
+
     // ==================== EVENTOS ====================
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
         let id = btn.getAttribute('data-tab');
@@ -481,7 +678,25 @@
 
     document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
     document.getElementById('refreshBtn').addEventListener('click', carregarDados);
+    document.getElementById('exportarPdfBtn').addEventListener('click', exportarComissaoPDF);
+    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
 
+    ['filtroBusca', 'filtroData', 'filtroStatus', 'filtroSentido'].forEach(id => {
+        let el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updateHistoryTable);
+            el.addEventListener('change', updateHistoryTable);
+        }
+    });
+    document.getElementById('limparFiltros').addEventListener('click', () => {
+        document.getElementById('filtroBusca').value = '';
+        document.getElementById('filtroData').value = '';
+        document.getElementById('filtroStatus').value = 'todos';
+        document.getElementById('filtroSentido').value = 'todos';
+        updateHistoryTable();
+    });
+
+    setupAutoRefresh();
     carregarDados();
 </script>
 </body>
