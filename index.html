@@ -27,13 +27,13 @@
             padding: 24px 28px;
             border-bottom: 1px solid #e8e0d8;
         }
-        .card-header h1 { 
-            font-size: 1.6rem; 
+        .card-header h1 {
+            font-size: 1.6rem;
             font-weight: 400;
             font-family: 'Georgia', serif;
         }
-        .card-header .sub { 
-            font-size: 0.8rem; 
+        .card-header .sub {
+            font-size: 0.8rem;
             color: #7a8b6e;
             margin-top: 6px;
         }
@@ -74,10 +74,10 @@
             padding-left: 14px;
         }
         .form-row { margin-bottom: 18px; }
-        label { 
-            font-size: 0.8rem; 
-            display: block; 
-            margin-bottom: 6px; 
+        label {
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 6px;
             color: #5a6e4a;
         }
         input, select, textarea {
@@ -109,7 +109,7 @@
         }
         .bagagem-item label { margin: 0; font-size: 0.75rem; color: #7a8b6e; }
         .bagagem-item input { width: 70px; padding: 8px; text-align: center; }
-        
+
         .categoria-grid {
             margin-bottom: 36px;
         }
@@ -136,8 +136,8 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        .veiculo-card:hover { 
-            transform: translateY(-3px); 
+        .veiculo-card:hover {
+            transform: translateY(-3px);
             box-shadow: 0 6px 16px rgba(0,0,0,0.05);
         }
         .veiculo-card.selected {
@@ -147,7 +147,7 @@
         .veiculo-nome { font-weight: 500; font-size: 0.85rem; color: #3a4c30; margin-bottom: 6px; }
         .veiculo-capacidade { font-size: 0.7rem; color: #8b9a7a; margin: 4px 0; }
         .veiculo-preco { font-size: 0.85rem; font-weight: 500; color: #8b7a5c; margin-top: 8px; }
-        
+
         .resumo-area {
             background: #fafaf7;
             border-radius: 16px;
@@ -167,14 +167,14 @@
             cursor: pointer;
             border: none;
         }
-        .btn-submit { 
-            background: #2c5f2d; 
-            color: white; 
+        .btn-submit {
+            background: #2c5f2d;
+            color: white;
         }
         .btn-submit:hover { background: #1e4520; }
-        .btn-copy { 
-            background: transparent; 
-            color: #5a6e4a; 
+        .btn-copy {
+            background: transparent;
+            color: #5a6e4a;
             border: 1px solid #d4cbb8;
         }
         .btn-copy:hover { background: #f0ede5; }
@@ -214,7 +214,7 @@
             </div>
 
             <div class="info-box">
-                <strong id="infoTitle">Informações importantes:</strong> 
+                <strong id="infoTitle">Informações importantes:</strong>
                 <span id="infoText">Valores por trecho. Tempo estimado: 3h00 a 3h30. Pagamento direto ao motorista (cartão ou dinheiro). Madrugada (00h-06h): + R$ 100. Parada: + R$ 100/hora.</span>
             </div>
 
@@ -560,7 +560,7 @@
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
         const bagagemTexto = getBagagemTexto();
-        
+
         const resumoDiv = document.getElementById("resumoPreview");
         if (resumoDiv) {
             resumoDiv.innerHTML = `
@@ -584,24 +584,24 @@
         const regiao = document.querySelector('input[name="regiao"]:checked').value;
         const container = document.getElementById("veiculosContainer");
         const t = translations[currentLang];
-        
+
         if (!veiculosCache[regiao]) {
             renderVeiculos();
             return;
         }
-        
+
         const veiculoSelecionadoAtual = document.getElementById("veiculoSelecionado").value;
         const novoContainer = veiculosCache[regiao].cloneNode(true);
-        
+
         const categoriasTitulos = novoContainer.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
             categoriasTitulos[0].innerText = "Transporte Privativo";
             categoriasTitulos[1].innerText = "Carro Executivo";
             categoriasTitulos[2].innerText = "Carro Executivo Especial";
         }
-        
+
         container.innerHTML = novoContainer.innerHTML;
-        
+
         let veiculoEncontrado = false;
         document.querySelectorAll(".veiculo-card").forEach(card => {
             const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
@@ -614,13 +614,13 @@
                 document.getElementById("precoBase").value = preco;
                 scheduleUpdate();
             });
-            
+
             if (nomeVeiculo === veiculoSelecionadoAtual) {
                 card.classList.add("selected");
                 veiculoEncontrado = true;
             }
         });
-        
+
         if (!veiculoEncontrado && veiculoSelecionadoAtual) {
             document.getElementById("veiculoSelecionado").value = "";
             document.getElementById("precoBase").value = "";
@@ -628,7 +628,7 @@
             document.getElementById("veiculoSelecionado").value = "";
             document.getElementById("precoBase").value = "";
         }
-        
+
         scheduleUpdate();
     }
 
@@ -637,14 +637,14 @@
         const catalogo = precosVeiculos[regiao];
         const container = document.getElementById("veiculosContainer");
         const tempContainer = document.createElement('div');
-        
+
         for (const [categoria, veiculos] of Object.entries(catalogo)) {
             const categoriaDiv = document.createElement("div");
             categoriaDiv.className = "categoria-grid";
             categoriaDiv.innerHTML = `<div class="categoria-nome">${categoria}</div><div class="veiculos-grid" id="grid-${categoria.replace(/\s/g, '')}"></div>`;
             tempContainer.appendChild(categoriaDiv);
             const grid = categoriaDiv.querySelector(`.veiculos-grid`);
-            
+
             veiculos.forEach((veic) => {
                 const card = document.createElement("div");
                 card.className = "veiculo-card";
@@ -660,10 +660,10 @@
                 grid.appendChild(card);
             });
         }
-        
+
         veiculosCache[regiao] = tempContainer;
         container.innerHTML = tempContainer.innerHTML;
-        
+
         document.querySelectorAll(".veiculo-card").forEach(card => {
             const nomeVeiculo = card.querySelector('.veiculo-nome')?.innerText || "";
             card.addEventListener("click", () => {
@@ -720,8 +720,8 @@
                     <label>${t.horasParada}</label>
                     <input type="number" id="horasParada" value="1" min="1" max="4" style="width:100px">
                 </div>
-                <div class="form-row"><label>${t.obs}</label><textarea id="obs" rows="2"></textarea></div>
-                <div class="form-row"><label>${t.pagamento}</label>
+                <div class="form-row"><label id="obsLabel">${t.obs}</label><textarea id="obs" rows="2"></textarea></div>
+                <div class="form-row"><label id="pagamentoLabel">${t.pagamento}</label>
                     <select id="pagamento"><option>${t.cartao}</option><option>${t.dinheiro}</option><option>${t.pix}</option></select>
                 </div>
             </div>
@@ -742,7 +742,7 @@
         const sentido = document.querySelector('input[name="sentido"]:checked').value;
         const container = document.getElementById("localFields");
         const t = translations[currentLang];
-        
+
         if (sentido === "IN") {
             container.innerHTML = `
                 <div class="form-row">
@@ -823,7 +823,7 @@
         const madrugada = document.getElementById("madrugada")?.checked ? t.madrugadaYes : t.madrugadaNo;
         const obs = document.getElementById("obs")?.value || "-";
         const pagamento = document.getElementById("pagamento")?.options[document.getElementById("pagamento")?.selectedIndex]?.text || "-";
-        
+
         let mensagem = `${t.newRequest}\n\n`;
         mensagem += `Direção: ${sentido}\n`;
         mensagem += `Hóspede: ${nome}\n`;
@@ -842,7 +842,7 @@
         mensagem += `Pagamento: ${pagamento}\n`;
         mensagem += `Observações: ${obs}\n\n`;
         mensagem += `---\n${t.policies}`;
-        
+
         return mensagem;
     }
 
@@ -872,7 +872,7 @@
             mostrarFeedback("Informe o nome do hóspede.", "error");
             return;
         }
-        
+
         const dadosPlanilha = {
             id: Date.now(),
             nome: nome,
@@ -897,16 +897,16 @@
             ciaAerea: document.getElementById("ciaAerea")?.value || "",
             idioma: currentLang
         };
-        
+
         mostrarFeedback("Enviando...", "success");
         await enviarParaGoogleSheets(dadosPlanilha);
-        
+
         const mensagem = montarMensagem();
         const msgCodificada = encodeURIComponent(mensagem);
         window.open(`https://wa.me/${HOTEL_PHONE}?text=${msgCodificada}`, '_blank');
-        
+
         mostrarFeedback("Dados salvos e WhatsApp aberto!", "success");
-        
+
         document.getElementById("veiculoSelecionado").value = "";
         document.querySelectorAll(".veiculo-card").forEach(c => c.classList.remove("selected"));
         scheduleUpdate();
@@ -936,20 +936,20 @@
             renderLocalFields();
             scheduleUpdate();
         }));
-        
+
         const regiaoRadios = document.querySelectorAll('input[name="regiao"]');
         regiaoRadios.forEach(r => r.addEventListener('change', () => {
             trocarRegiao();
         }));
-        
+
         ['nome', 'reserva', 'telefone', 'adultos', 'criancas', 'bag23kg', 'bag10kg', 'bagMao', 'obs', 'dataViagem', 'horaEmbarque', 'endereco', 'voo', 'ciaAerea', 'horasParada'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', () => scheduleUpdate());
         });
-        
+
         const madrugadaCheck = document.getElementById("madrugada");
         if (madrugadaCheck) madrugadaCheck.addEventListener('change', () => scheduleUpdate());
-        
+
         const paradaCheck = document.getElementById("parada");
         if (paradaCheck) {
             paradaCheck.addEventListener('change', () => {
@@ -957,10 +957,10 @@
                 scheduleUpdate();
             });
         }
-        
+
         const enviarBtn = document.getElementById("enviarBtn");
         if (enviarBtn) enviarBtn.addEventListener('click', enviarWhatsApp);
-        
+
         const copiarBtn = document.getElementById("copiarBtn");
         if (copiarBtn) copiarBtn.addEventListener('click', copiarMensagem);
     }
@@ -971,7 +971,7 @@
         document.getElementById('subTitle').innerText = t.subTitle;
         document.getElementById('infoTitle').innerHTML = t.infoTitle;
         document.getElementById('infoText').innerHTML = t.infoText;
-        
+
         const stepTitles = document.querySelectorAll('.step-title');
         if (stepTitles.length >= 7) {
             stepTitles[0].innerHTML = t.step1;
@@ -982,7 +982,7 @@
             stepTitles[5].innerHTML = t.step6;
             stepTitles[6].innerHTML = t.step7;
         }
-        
+
         const radios = document.querySelectorAll('.radio-group');
         if (radios[0]) {
             radios[0].querySelectorAll('label')[0].childNodes[1].textContent = t.inOption;
@@ -992,51 +992,64 @@
             radios[1].querySelectorAll('label')[0].childNodes[1].textContent = t.regiaoCentro;
             radios[1].querySelectorAll('label')[1].childNodes[1].textContent = t.regiaoOeste;
         }
-        
-        const labels = document.querySelectorAll('.form-row label');
+
+        // Rótulos dos dados do hóspede (step 2)
+        const labels = document.querySelectorAll('.step-section')[1]?.querySelectorAll('.form-row label') || [];
         if (labels[0]) labels[0].innerHTML = t.nome;
         if (labels[1]) labels[1].innerHTML = t.reserva;
         if (labels[2]) labels[2].innerHTML = t.telefone;
         if (labels[3]) labels[3].innerHTML = t.adultos;
         if (labels[4]) labels[4].innerHTML = t.criancas;
-        if (labels[5]) labels[5].innerHTML = t.obs;
-        if (labels[6]) labels[6].innerHTML = t.pagamento;
-        
+
+        // Rótulos de observações e pagamento (step 7) - via id, à prova de ordem
+        const obsLabel = document.getElementById("obsLabel");
+        if (obsLabel) obsLabel.innerHTML = t.obs;
+        const pagamentoLabel = document.getElementById("pagamentoLabel");
+        if (pagamentoLabel) pagamentoLabel.innerHTML = t.pagamento;
+
+        // Opções do select de pagamento
+        const pagamentoSelect = document.getElementById("pagamento");
+        if (pagamentoSelect && pagamentoSelect.options.length >= 3) {
+            pagamentoSelect.options[0].text = t.cartao;
+            pagamentoSelect.options[1].text = t.dinheiro;
+            pagamentoSelect.options[2].text = t.pix;
+        }
+
         const bagLabels = document.querySelectorAll('.bagagem-item label');
         if (bagLabels[0]) bagLabels[0].innerHTML = t.bag23kg;
         if (bagLabels[1]) bagLabels[1].innerHTML = t.bag10kg;
         if (bagLabels[2]) bagLabels[2].innerHTML = t.bagMao;
-        
+
         const madLabel = document.querySelector('#madrugada');
-        if (madLabel && madLabel.nextSibling) madLabel.nextSibling.textContent = t.madrugada;
-        
+        if (madLabel && madLabel.nextSibling) madLabel.nextSibling.textContent = " " + t.madrugada;
+
         const paradaLabel = document.querySelector('#parada');
-        if (paradaLabel && paradaLabel.nextSibling) paradaLabel.nextSibling.textContent = t.parada;
-        
+        if (paradaLabel && paradaLabel.nextSibling) paradaLabel.nextSibling.textContent = " " + t.parada;
+
         const horasParadaLabel = document.querySelector('#horasParadaDiv label');
         if (horasParadaLabel) horasParadaLabel.innerHTML = t.horasParada;
-        
+
         const enviarBtn = document.getElementById("enviarBtn");
         if (enviarBtn) enviarBtn.innerHTML = t.enviar;
-        
+
         const copiarBtn = document.getElementById("copiarBtn");
         if (copiarBtn) copiarBtn.innerHTML = t.copiar;
-        
+
         const footerText = document.getElementById("footerText");
         if (footerText) footerText.innerHTML = t.footer;
-        
+
         const categoriasTitulos = document.querySelectorAll('.categoria-nome');
         if (categoriasTitulos.length >= 3) {
             categoriasTitulos[0].innerText = "Transporte Privativo";
             categoriasTitulos[1].innerText = "Carro Executivo";
             categoriasTitulos[2].innerText = "Carro Executivo Especial";
         }
-        
+
         const localFields = document.getElementById("localFields");
         if (localFields && localFields.children.length > 0) {
             renderLocalFields();
         }
-        
+
         scheduleUpdate();
     }
 
