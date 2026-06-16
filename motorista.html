@@ -44,6 +44,13 @@
         .month-group td { background: #e8f0e5; font-weight: 600; color: #2c5f2d; }
         tr.cancelled td { opacity: 0.5; text-decoration: line-through; }
         tr.completed td { background: #eef6ea; color: #6c7a5e; }
+        .voo-status { display: inline-block; font-size: 0.7rem; color: #7a8b6e; margin-left: 5px; }
+        .vb { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 40px; margin-left: 5px; white-space: nowrap; }
+        .vb-green { background: #e8f0e5; color: #2c5f2d; }
+        .vb-amber { background: #fff3cd; color: #8a6d1b; }
+        .vb-blue { background: #e6f1fb; color: #0c447c; }
+        .vb-red { background: #faecec; color: #b85c5a; }
+        .vb-gray { background: #f0ede5; color: #7a8b6e; }
         .motorista-input {
             width: 130px; padding: 7px 9px; border: 1px solid #d4cbb8;
             border-radius: 8px; font-size: 0.8rem; background: #fffdf7;
@@ -101,7 +108,7 @@
 </div>
 
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwIybUHVfGKc0HhfIMIu02i8Bl55hsgfc-YWTVxCxpgs1lgHnH3QmLLXTFSRhdaiZFO/exec";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
     let transfers = [];
     let quick = 'todos';
 
@@ -235,6 +242,8 @@
                 const wa = waLink(t["Telefone"]);
                 const endereco = t["Endereço"] || t["Endereco"] || '-';
                 const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
+                const vooNum = (t["Voo"] || '').toString().replace(/\s+/g, '').toUpperCase();
+                const ehHoje = dataKey(t) === dateKeyFromDate(new Date());
                 const mot = getMotorista(t).replace(/"/g, '&quot;');
                 const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : (st === 'em_andamento' ? 'Em andamento' : 'Ativo'));
                 const stStyle = st === 'completed' ? 'color:#2c5f2d;background:#e8f0e5' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#7a8b6e;background:#f0ede5'));
@@ -245,7 +254,7 @@
                     <td>${tel}${wa ? ` <br><a class="wa-link" href="${wa}" target="_blank">WhatsApp</a>` : ''}</td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
                     <td>${endereco}</td>
-                    <td>${voo}</td>
+                    <td>${voo}${ehHoje && vooNum ? ` <span class="voo-status" data-voo="${vooNum}">…</span>` : ''}</td>
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
                     <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#2c5f2d;">Abrir</a></td>
@@ -261,6 +270,42 @@
                 inp.classList.toggle('preenchido', !!inp.value.trim());
             });
         });
+        atualizarStatusVoos();
+    }
+
+    // ===== STATUS DE VOO =====
+    const vooCache = {};
+    async function consultarVoo(voo) {
+        const agora = Date.now();
+        if (vooCache[voo] && (agora - vooCache[voo].ts < 5 * 60 * 1000)) return vooCache[voo].d;
+        try {
+            const d = await (await fetch(WEBAPP_URL + '?action=flightstatus&voo=' + encodeURIComponent(voo))).json();
+            vooCache[voo] = { d, ts: agora };
+            return d;
+        } catch (e) { return { erro: e.message }; }
+    }
+    function vooBadgeInfo(d) {
+        if (!d || d.erro) return { t: '', c: '' };
+        const atraso = Math.max(parseInt(d.atrasoChegada) || 0, parseInt(d.atrasoPartida) || 0);
+        switch ((d.status || '').toLowerCase()) {
+            case 'cancelled': return { t: 'Cancelado', c: 'vb-red' };
+            case 'landed': return { t: 'Pousou', c: 'vb-blue' };
+            case 'active': return atraso > 0 ? { t: 'Em voo · +' + atraso + 'min', c: 'vb-amber' } : { t: 'Em voo', c: 'vb-blue' };
+            case 'scheduled': return atraso > 0 ? { t: 'Atrasado +' + atraso + 'min', c: 'vb-amber' } : { t: 'No horário', c: 'vb-green' };
+            case 'diverted': return { t: 'Desviado', c: 'vb-amber' };
+            case 'incident': return { t: 'Incidente', c: 'vb-red' };
+            case 'sem_dados': return { t: 'sem dados', c: 'vb-gray' };
+            default: return { t: (d.status || ''), c: 'vb-gray' };
+        }
+    }
+    async function atualizarStatusVoos() {
+        const els = document.querySelectorAll('.voo-status[data-voo]:not([data-done])');
+        for (const el of els) {
+            el.setAttribute('data-done', '1');
+            const info = vooBadgeInfo(await consultarVoo(el.getAttribute('data-voo')));
+            if (info.t) { el.className = 'vb ' + info.c; el.innerText = info.t; }
+            else { el.innerText = ''; }
+        }
     }
 
     // ===== EVENTOS =====
