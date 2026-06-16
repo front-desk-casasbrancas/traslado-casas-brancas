@@ -122,6 +122,23 @@
             font-size: 0.7rem;
         }
         .cancel-btn.cancelled { background: #6c757d; cursor: default; opacity: 0.7; }
+        .andamento-row td { background: #fff8e6; }
+        .tag-andamento { display: inline-block; font-size: 0.62rem; font-weight: 700; color: #8a6d1b; background: #fff3cd; padding: 1px 7px; border-radius: 40px; }
+        .abrir-link { display: inline-block; font-size: 0.7rem; color: #2c5f2d; text-decoration: none; border: 1px solid #d4cbb8; padding: 6px 9px; border-radius: 40px; margin-right: 5px; }
+        .editar-btn { background: #c8b88a; color: #2c5f2d; border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; font-weight: 600; }
+        .editar-btn[disabled] { opacity: 0.5; cursor: default; }
+        .edit-overlay { position: fixed; inset: 0; background: rgba(30,45,30,0.55); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
+        .edit-overlay.show { display: flex; }
+        .edit-card { background: #fff; border-radius: 18px; padding: 24px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .edit-card h3 { color: #2c5f2d; margin-bottom: 14px; }
+        .edit-card label { display: block; font-size: 0.78rem; color: #5a6e4a; margin: 12px 0 5px; }
+        .edit-card input, .edit-card select { width: 100%; padding: 11px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font-size: 0.9rem; }
+        .edit-total { margin-top: 14px; font-size: 1.1rem; font-weight: 700; color: #2c5f2d; }
+        .edit-acoes { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+        .edit-acoes button { flex: 1; padding: 12px; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+        .btn-ajustar { background: #2c5f2d; color: #fff; }
+        .btn-cancelar-edit { background: transparent; color: #5a6e4a; border: 1px solid #d4cbb8 !important; }
+        .btn-nova-conf { background: #25D366; color: #fff; }
         .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
         .error-message {
             background: #faecec;
@@ -253,15 +270,107 @@
     </div>
 </div>
 
+<div class="edit-overlay" id="editOverlay">
+    <div class="edit-card">
+        <h3>Ajustar transfer</h3>
+        <div id="editResumo" style="font-size:0.82rem;color:#7a8b6e;margin-bottom:6px;"></div>
+        <label>Data</label>
+        <input type="date" id="editData">
+        <label>Horário</label>
+        <input type="time" id="editHora">
+        <label>Destino / Endereço</label>
+        <input type="text" id="editDestino" placeholder="Ex.: Aeroporto GIG">
+        <label>Veículo</label>
+        <select id="editVeiculo"></select>
+        <div class="edit-total" id="editTotal">Total: R$ -</div>
+        <div class="edit-acoes">
+            <button class="btn-cancelar-edit" id="btnCancelarEdit">Cancelar</button>
+            <button class="btn-ajustar" id="btnAjustar">Ajustar</button>
+        </div>
+        <div class="edit-acoes" id="editPosAjuste" style="display:none;">
+            <button class="btn-nova-conf" id="btnNovaConf">Enviar nova confirmação (WhatsApp)</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ==================== CONFIGURAÇÃO ====================
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwVb1QVifXpwwy6bS1xJOkXmL4GVpD7sHcQ1vewuHF0t-WnSZP5XeICEbpiZ8gJmXCo/exec";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwas9HNzpDo4hhtcq8vRk_6Qoeux99EA06Mfg4CjmxnqEt8STNzjlh7BIOsl8fIKaHI/exec";
     const AUTO_REFRESH_MIN = 5; // intervalo de auto-atualização (minutos)
 
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
     let autoRefreshTimer = null;
+    let editando = null;
+
+    // Catálogo de preços (mesma tabela do formulário) — usado na edição de veículo
+    const precosVeiculos = {
+        "centro-sul": {
+            "Transporte Privativo": [
+                { nome: "Nissan Versa ou similar", preco: 880 },
+                { nome: "Chevrolet Spin ou similar", preco: 990 },
+                { nome: "Citroën Jumpy Minivan", preco: 1700 },
+                { nome: "Van grande", preco: 2100 }
+            ],
+            "Carro Executivo": [
+                { nome: "Toyota Corolla Cross Hybrid", preco: 1400 },
+                { nome: "Honda HR-V", preco: 1400 },
+                { nome: "Nissan New Kicks", preco: 1400 },
+                { nome: "Toyota Corolla Sedan", preco: 1550 },
+                { nome: "BYD King", preco: 1550 },
+                { nome: "BYD Song Pro", preco: 1650 },
+                { nome: "Tiggo 8 PRO", preco: 1650 },
+                { nome: "Kia Carnival (sem blindagem)", preco: 2200 },
+                { nome: "Grand Cherokee blindado", preco: 2450 },
+                { nome: "Kia Carnival blindada", preco: 2700 }
+            ],
+            "Carro Executivo Especial": [
+                { nome: "Toyota Corolla Cross Hybrid (multilíngue)", preco: 1600 },
+                { nome: "Honda HR-V (multilíngue)", preco: 1600 },
+                { nome: "Toyota Corolla Sedan (multilíngue)", preco: 1750 },
+                { nome: "BYD King (multilíngue)", preco: 1750 },
+                { nome: "Fiat Scudo Minivan (multilíngue)", preco: 2200 },
+                { nome: "Citroën Jumpy Minivan (multilíngue)", preco: 2200 },
+                { nome: "Kia Carnival sem blindagem (multilíngue)", preco: 2500 },
+                { nome: "Grand Cherokee (multilíngue)", preco: 2700 },
+                { nome: "Van grande (multilíngue)", preco: 2700 },
+                { nome: "Kia Carnival blindada (multilíngue)", preco: 3000 }
+            ]
+        },
+        "zona-oeste": {
+            "Transporte Privativo": [
+                { nome: "Nissan Versa ou similar", preco: 980 },
+                { nome: "Chevrolet Spin ou similar", preco: 1090 },
+                { nome: "Citroën Jumpy Minivan", preco: 1800 },
+                { nome: "Van grande", preco: 2200 }
+            ],
+            "Carro Executivo": [
+                { nome: "Toyota Corolla Cross Hybrid", preco: 1400 },
+                { nome: "Honda HR-V", preco: 1400 },
+                { nome: "Nissan New Kicks", preco: 1400 },
+                { nome: "Toyota Corolla Sedan", preco: 1550 },
+                { nome: "BYD King", preco: 1550 },
+                { nome: "BYD Song Pro", preco: 1650 },
+                { nome: "Tiggo 8 PRO", preco: 1650 },
+                { nome: "Kia Carnival (sem blindagem)", preco: 2200 },
+                { nome: "Grand Cherokee blindado", preco: 2450 },
+                { nome: "Kia Carnival blindada", preco: 2700 }
+            ],
+            "Carro Executivo Especial": [
+                { nome: "Toyota Corolla Cross Hybrid (multilíngue)", preco: 1600 },
+                { nome: "Honda HR-V (multilíngue)", preco: 1600 },
+                { nome: "Toyota Corolla Sedan (multilíngue)", preco: 1750 },
+                { nome: "BYD King (multilíngue)", preco: 1750 },
+                { nome: "Fiat Scudo Minivan (multilíngue)", preco: 2200 },
+                { nome: "Citroën Jumpy Minivan (multilíngue)", preco: 2200 },
+                { nome: "Kia Carnival sem blindagem (multilíngue)", preco: 2500 },
+                { nome: "Grand Cherokee (multilíngue)", preco: 2700 },
+                { nome: "Van grande (multilíngue)", preco: 2700 },
+                { nome: "Kia Carnival blindada (multilíngue)", preco: 3000 }
+            ]
+        }
+    };
 
     // ==================== HELPERS DE DATA/HORA ====================
     function getHorario(transfer) {
@@ -444,15 +553,20 @@
 
         let data = formatarData(t["Data Viagem"]);
         let horario = getHorario(t);
+        let endereco = t["Endereço"] || t["Endereco"] || "-";
+        let voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || "-";
+        let atualizado = !!t["Modificacao"];
 
-        let msg = `TRASLADO CONFIRMADO - CASAS BRANCAS\n\n` +
-                  `Sua solicitação foi confirmada!\n\n` +
+        let msg = (atualizado ? `TRASLADO ATUALIZADO - CASAS BRANCAS\n\n` : `TRASLADO CONFIRMADO - CASAS BRANCAS\n\n`) +
+                  (atualizado ? `Sua reserva foi ATUALIZADA. Confira os novos detalhes:\n\n` : `Sua solicitação foi confirmada!\n\n`) +
                   `Detalhes da viagem:\n` +
                   `Hóspede: ${t["Nome"] || "-"}\n` +
                   `Reserva: ${t["Reserva"] || "-"}\n` +
                   `Data: ${data}\n` +
                   `Horário: ${horario}\n` +
                   `Sentido: ${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}\n` +
+                  `Local: ${endereco}\n` +
+                  `Voo: ${voo}\n` +
                   `Veículo: ${t["Veículo"] || "-"}\n` +
                   `Valor total: R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}\n\n` +
                   `Políticas: Motorista aguarda com placa. Pagamento direto. Cancelamento 24h.\n\n` +
@@ -549,12 +663,14 @@
 
                 let completed = isCompleted(t);
                 let cancelled = isCancelled(t);
-                let rowClass = cancelled ? 'cancelled-row' : (completed ? 'completed-row' : '');
+                let andamento = getStatus(t) === 'em_andamento';
+                let rowClass = cancelled ? 'cancelled-row' : (completed ? 'completed-row' : (andamento ? 'andamento-row' : ''));
                 let disabled = cancelled || completed;
                 let transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+                let idEnc = encodeURIComponent(t["ID"]);
 
                 html += `<tr class="${rowClass}">
-                    <td>${data}<\/td>
+                    <td>${data}${andamento ? '<br><span class="tag-andamento">Em andamento<\/span>' : ''}<\/td>
                     <td>${horario}<\/td>
                     <td>${t["Nome"] || '-'}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
@@ -564,6 +680,8 @@
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
                     <td>
+                        <a class="abrir-link" href="transfer.html?id=${idEnc}" target="_blank">Abrir<\/a>
+                        <button class="editar-btn" onclick='abrirEdicao(${transferJson})' ${cancelled ? 'disabled' : ''}>Editar<\/button>
                         <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${disabled ? 'disabled' : ''}>Confirmar<\/button>
                         <button class="complete-btn ${completed ? 'completed' : ''}" onclick='marcarFinalizado(${transferJson})' ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}<\/button>
                         <button class="cancel-btn ${cancelled ? 'cancelled' : ''}" onclick='marcarCancelado(${transferJson})' ${cancelled ? 'disabled' : ''}>${cancelled ? '❌ Cancelado' : 'Cancelar'}<\/button>
@@ -677,6 +795,76 @@
         }
     }
 
+    // ==================== EDIÇÃO DE TRANSFER ====================
+    function regiaoKey(t) {
+        let r = (t["Região"] || t["Regiao"] || "").toString().toLowerCase();
+        return r.includes("oeste") ? "zona-oeste" : "centro-sul";
+    }
+    function toISODate(v) {
+        if (!v) return "";
+        let s = v.toString();
+        let m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+        let m2 = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (m2) return `${m2[3]}-${m2[2]}-${m2[1]}`;
+        let d = new Date(v);
+        if (!isNaN(d.getTime())) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return "";
+    }
+    function montarOpcoesVeiculo(rk) {
+        let cat = precosVeiculos[rk] || {};
+        let html = '';
+        for (let [categoria, lista] of Object.entries(cat)) {
+            html += `<optgroup label="${categoria}">`;
+            lista.forEach(v => { html += `<option value="${v.nome}::${v.preco}">${v.nome} — R$ ${v.preco.toLocaleString('pt-BR')}</option>`; });
+            html += `</optgroup>`;
+        }
+        return html;
+    }
+    function extrasDoTransfer(t) {
+        return (t["Madrugada"] === "Sim" || t["Madrugada"] === true) ? 100 : 0;
+    }
+    function recalcularTotalEdit() {
+        let val = document.getElementById('editVeiculo').value || "";
+        let preco = parseFloat(val.split("::")[1]) || 0;
+        let total = preco + (editando ? extrasDoTransfer(editando) : 0);
+        document.getElementById('editTotal').innerText = 'Total: R$ ' + total.toLocaleString('pt-BR');
+        return total;
+    }
+    function abrirEdicao(t) {
+        editando = transferPorId(t["ID"]) || t;
+        document.getElementById('editResumo').innerText = (editando["Nome"] || '-') + ' · ' + (editando["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio");
+        document.getElementById('editData').value = toISODate(editando["Data Viagem"]);
+        let h = getHorario(editando);
+        document.getElementById('editHora').value = (h && h !== '-') ? h : '';
+        document.getElementById('editDestino').value = editando["Endereço"] || editando["Endereco"] || '';
+        let sel = document.getElementById('editVeiculo');
+        sel.innerHTML = montarOpcoesVeiculo(regiaoKey(editando));
+        for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"]) { o.selected = true; break; } }
+        recalcularTotalEdit();
+        document.getElementById('editPosAjuste').style.display = 'none';
+        document.getElementById('editOverlay').classList.add('show');
+    }
+    function fecharEdicao() { document.getElementById('editOverlay').classList.remove('show'); }
+    function aplicarEdicao() {
+        if (!editando) return;
+        let id = editando["ID"];
+        let novaData = document.getElementById('editData').value;
+        let novaHora = document.getElementById('editHora').value;
+        let novoDestino = document.getElementById('editDestino').value;
+        let novoVeiculo = (document.getElementById('editVeiculo').value || "").split("::")[0];
+        let total = recalcularTotalEdit();
+        editando["Data Viagem"] = novaData;
+        editando["Horario"] = novaHora;
+        editando["Endereço"] = novoDestino;
+        editando["Veículo"] = novoVeiculo;
+        editando["Valor Total"] = total;
+        editando["Modificacao"] = "Modificado em " + new Date().toLocaleString('pt-BR');
+        postUpdate(id, { dataViagem: novaData, horario: novaHora, endereco: novoDestino, veiculo: novoVeiculo, valorTotal: total });
+        updateHistoryTable(); updateDashboard(); renderProximos(); updateComissaoTab(currentPeriodo);
+        document.getElementById('editPosAjuste').style.display = 'flex';
+    }
+
     // ==================== EVENTOS ====================
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
         let id = btn.getAttribute('data-tab');
@@ -705,6 +893,11 @@
         document.getElementById('filtroSentido').value = 'todos';
         updateHistoryTable();
     });
+
+    document.getElementById('editVeiculo').addEventListener('change', recalcularTotalEdit);
+    document.getElementById('btnAjustar').addEventListener('click', aplicarEdicao);
+    document.getElementById('btnCancelarEdit').addEventListener('click', fecharEdicao);
+    document.getElementById('btnNovaConf').addEventListener('click', () => { if (editando) enviarConfirmacao(editando); fecharEdicao(); });
 
     setupAutoRefresh();
     carregarDados();

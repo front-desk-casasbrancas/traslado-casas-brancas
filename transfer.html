@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas - Transfer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; padding: 16px; }
+        .card { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; border: 1px solid #e8e0d8; box-shadow: 0 8px 30px rgba(0,0,0,0.06); overflow: hidden; }
+        .head { background: linear-gradient(135deg, #fafaf5, #eef2e8); padding: 20px 22px; border-bottom: 1px solid #e8e0d8; }
+        .brand { font-family: 'Georgia', serif; color: #2c5f2d; letter-spacing: 1px; font-size: .85rem; }
+        .head h1 { font-size: 1.25rem; font-weight: 400; font-family: 'Georgia', serif; color: #2c5f2d; margin-top: 4px; }
+        .body { padding: 22px; }
+        .badge { display: inline-block; padding: 5px 14px; border-radius: 40px; font-size: .8rem; font-weight: 600; margin-bottom: 16px; }
+        .b-active { background: #f0ede5; color: #7a8b6e; }
+        .b-andamento { background: #fff3cd; color: #8a6d1b; }
+        .b-completed { background: #e8f0e5; color: #2c5f2d; }
+        .b-cancelled { background: #faecec; color: #b85c5a; }
+        .linha { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ebe5db; font-size: .92rem; }
+        .linha .rot { color: #7a8b6e; }
+        .linha .val { font-weight: 500; text-align: right; }
+        .destaque { font-size: 1.6rem; font-weight: 700; color: #2c5f2d; }
+        .wa { color: #25D366; text-decoration: none; font-weight: 600; }
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 40px; font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 22px; }
+        .btn-iniciar { background: #2c5f2d; color: #fff; }
+        .btn-iniciar:active { background: #1e4520; }
+        .btn[disabled] { opacity: .55; cursor: default; }
+        .aviso { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; text-align: center; }
+        .obs-mod { background: #fff8e6; border-left: 3px solid #e0c060; padding: 10px 14px; border-radius: 8px; font-size: .8rem; color: #8a6d1b; margin-top: 14px; }
+        .loading { text-align: center; color: #7a8b6e; padding: 40px 0; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="head">
+        <div class="brand">CASAS BRANCAS · MF TRANSPORTE</div>
+        <h1>Transfer</h1>
+    </div>
+    <div class="body" id="conteudo">
+        <div class="loading">Carregando...</div>
+    </div>
+</div>
+
+<script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwas9HNzpDo4hhtcq8vRk_6Qoeux99EA06Mfg4CjmxnqEt8STNzjlh7BIOsl8fIKaHI/exec";
+    const params = new URLSearchParams(location.search);
+    const ID = params.get('id') || '';
+    let atual = null;
+
+    function getHorario(t) {
+        let h = t["Horario"] || t["Horário"] || t["horario"] || "";
+        if (h === null || h === undefined || h === "") return "-";
+        h = h.toString().trim();
+        let m = h.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if (m) { let s = (+m[1])*3600 + (+m[2])*60 + (+m[3]) - (6*60+28); s = ((s%86400)+86400)%86400; return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}`; }
+        m = h.match(/T(\d{2}):(\d{2})/); if (m) return `${m[1]}:${m[2]}`;
+        m = h.match(/^(\d{1,2}):(\d{2})/); if (m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+        return h;
+    }
+    function formatarData(v) {
+        if (!v) return "-";
+        let d = new Date(v);
+        if (isNaN(d.getTime())) return "-";
+        return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    }
+    function waLink(tel) {
+        let d = (tel||"").toString().replace(/\D/g,"");
+        if (!d) return "";
+        if (!(d.startsWith("55") && d.length>=12) && (d.length===10||d.length===11)) d = "55"+d;
+        return `https://wa.me/${d}`;
+    }
+    function getStatus(t) { return (t["Status"]||"active").toString().toLowerCase() || "active"; }
+
+    async function carregar() {
+        const cont = document.getElementById('conteudo');
+        if (!ID) { cont.innerHTML = '<div class="aviso">Link inválido (sem ID do transfer).</div>'; return; }
+        try {
+            const dados = await (await fetch(WEBAPP_URL)).json();
+            atual = dados.find(x => (x["ID"]||"").toString() === ID.toString());
+            if (!atual) { cont.innerHTML = '<div class="aviso">Transfer não encontrado.</div>'; return; }
+            render();
+        } catch (e) {
+            cont.innerHTML = '<div class="aviso">Erro ao carregar: ' + e.message + '</div>';
+        }
+    }
+
+    function render() {
+        const t = atual;
+        const st = getStatus(t);
+        const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const wa = waLink(t["Telefone"]);
+        const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
+
+        const badges = {
+            active: '<span class="badge b-active">Aguardando início</span>',
+            em_andamento: '<span class="badge b-andamento">Em andamento</span>',
+            completed: '<span class="badge b-completed">Finalizado</span>',
+            cancelled: '<span class="badge b-cancelled">Cancelado</span>'
+        };
+
+        let botao = '';
+        if (st === 'active') botao = `<button class="btn btn-iniciar" id="btnIniciar">▶ Iniciar transfer</button>`;
+        else if (st === 'em_andamento') botao = `<button class="btn btn-iniciar" disabled>Em andamento</button>`;
+        else if (st === 'completed') botao = `<button class="btn btn-iniciar" disabled>Finalizado pela recepção</button>`;
+        else if (st === 'cancelled') botao = `<div class="aviso">Este transfer foi cancelado.</div>`;
+
+        const linha = (rot, val) => `<div class="linha"><span class="rot">${rot}</span><span class="val">${val}</span></div>`;
+
+        const cont = document.getElementById('conteudo');
+        cont.innerHTML =
+            (badges[st] || '') +
+            `<div class="linha"><span class="rot">Data e horário</span><span class="val destaque">${formatarData(t["Data Viagem"])} ${getHorario(t)}</span></div>` +
+            linha('Hóspede', t["Nome"] || '-') +
+            linha('Telefone', (t["Telefone"] || '-') + (wa ? ` &nbsp;<a class="wa" href="${wa}" target="_blank">WhatsApp</a>` : '')) +
+            linha('Sentido', sentido) +
+            linha('Endereço / Local', t["Endereço"] || t["Endereco"] || '-') +
+            linha('Voo', voo) +
+            linha('Veículo', t["Veículo"] || '-') +
+            linha('Valor', 'R$ ' + (parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')) +
+            linha('Motorista', t["Motorista"] || '(a definir)') +
+            linha('Observações', t["Observações"] || t["Observacoes"] || '-') +
+            (t["Modificacao"] ? `<div class="obs-mod">⚠️ ${t["Modificacao"]}</div>` : '') +
+            botao;
+
+        const bi = document.getElementById('btnIniciar');
+        if (bi) bi.addEventListener('click', iniciar);
+    }
+
+    async function iniciar() {
+        const bi = document.getElementById('btnIniciar');
+        if (bi) { bi.disabled = true; bi.innerText = 'Iniciando...'; }
+        try {
+            await fetch(WEBAPP_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ action:'update', id: ID, status:'em_andamento' }) });
+        } catch (e) {}
+        atual["Status"] = 'em_andamento';
+        render();
+    }
+
+    carregar();
+</script>
+</body>
+</html>

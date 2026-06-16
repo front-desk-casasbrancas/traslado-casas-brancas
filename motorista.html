@@ -101,7 +101,7 @@
 </div>
 
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwVb1QVifXpwwy6bS1xJOkXmL4GVpD7sHcQ1vewuHF0t-WnSZP5XeICEbpiZ8gJmXCo/exec";
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwas9HNzpDo4hhtcq8vRk_6Qoeux99EA06Mfg4CjmxnqEt8STNzjlh7BIOsl8fIKaHI/exec";
     let transfers = [];
     let quick = 'todos';
 
@@ -236,8 +236,8 @@
                 const endereco = t["Endereço"] || t["Endereco"] || '-';
                 const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
                 const mot = getMotorista(t).replace(/"/g, '&quot;');
-                const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : 'Ativo');
-                const stStyle = st === 'completed' ? 'color:#2c5f2d;background:#e8f0e5' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : 'color:#7a8b6e;background:#f0ede5');
+                const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : (st === 'em_andamento' ? 'Em andamento' : 'Ativo'));
+                const stStyle = st === 'completed' ? 'color:#2c5f2d;background:#e8f0e5' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#7a8b6e;background:#f0ede5'));
                 html += `<tr class="${rowClass}">
                     <td>${formatarData(t["Data Viagem"])}</td>
                     <td><strong>${getHorario(t)}</strong></td>
@@ -248,7 +248,7 @@
                     <td>${voo}</td>
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
-                    <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span></td>
+                    <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#2c5f2d;">Abrir</a></td>
                     <td><input class="motorista-input ${mot ? 'preenchido' : ''}" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
                 </tr>`;
             });
