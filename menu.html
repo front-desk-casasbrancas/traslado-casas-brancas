@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas Transfers</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c5f2d">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; min-height: 100vh; padding: 28px 20px; }
+        .wrap { max-width: 480px; margin: 0 auto; }
+        .topo { text-align: center; margin-bottom: 28px; }
+        .mark { width: 64px; height: 64px; border-radius: 18px; background: #2c5f2d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+        h1 { font-family: 'Georgia', serif; font-weight: 400; font-size: 1.5rem; color: #2c5f2d; }
+        .sub { font-size: 0.8rem; color: #7a8b6e; margin-top: 4px; }
+        .menu { display: flex; flex-direction: column; gap: 14px; }
+        .item { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid #e8e0d8; border-radius: 18px; padding: 20px; text-decoration: none; color: #2c3e2f; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+        .item:active { background: #f6f4ef; }
+        .ic { width: 50px; height: 50px; border-radius: 14px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+        .ic-form { background: #e8f0e5; }
+        .ic-dash { background: #fef6e0; }
+        .ic-mot { background: #e6f1fb; }
+        .txt b { display: block; font-size: 1.05rem; font-weight: 600; color: #2c5f2d; }
+        .txt span { font-size: 0.8rem; color: #7a8b6e; }
+        .rodape { text-align: center; font-size: 0.72rem; color: #8b9a7a; margin-top: 28px; }
+        .rodape img { width: 26px; height: 26px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="topo">
+        <div class="mark">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/>
+            </svg>
+        </div>
+        <h1>Casas Brancas</h1>
+        <div class="sub">Sistema de Traslados · Rio ↔ Búzios</div>
+    </div>
+
+    <div class="menu">
+        <a class="item" href="index.html">
+            <div class="ic ic-form">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+            </div>
+            <div class="txt"><b>Solicitar traslado</b><span>Formulário de reserva do hóspede</span></div>
+        </a>
+
+        <a class="item" href="dashboard.html">
+            <div class="ic ic-dash">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="13" y="7" width="3" height="11"/></svg>
+            </div>
+            <div class="txt"><b>Dashboard</b><span>Comissões, métricas e edição</span></div>
+        </a>
+
+        <a class="item" href="motorista.html">
+            <div class="ic ic-mot">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 0 4 0M15 17a2 2 0 0 0 4 0"/><path d="M3 12h18l-2-5H6l-2 5z"/><path d="M3 12v5"/></svg>
+            </div>
+            <div class="txt"><b>Escala de motoristas</b><span>Lista de traslados e motorista</span></div>
+        </a>
+    </div>
+
+    <div class="rodape">
+        <img src="mflogo.jpg" alt="MF"> Operação: MF Transporte Executivo
+    </div>
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+</script>
+</body>
+</html>
