@@ -1,4 +1,4 @@
-const CACHE = 'cb-transfers-v1';
+const CACHE = 'cb-transfers-v2';
 const ASSETS = [
   'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'transfer.html',
   'icon-192.png', 'icon-512.png', 'manifest.json'
