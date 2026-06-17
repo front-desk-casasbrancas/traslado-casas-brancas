@@ -5,86 +5,98 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Escala de Motoristas</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c5f2d">
+    <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f0;
             padding: 20px;
-            color: #2c3e2f;
+            color: #34322c;
+            min-height: 100vh; position: relative;
         }
+        body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
+        body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.92), rgba(246,242,235,0.96)); }
         .container { max-width: 1500px; margin: 0 auto; }
+        .topo {
+            position: relative; overflow: hidden; border-radius: 20px; color: #fff;
+            padding: 24px 26px; margin-bottom: 18px;
+            background-image: linear-gradient(100deg, rgba(30,28,23,0.82) 0%, rgba(30,28,23,0.45) 70%, rgba(30,28,23,0.15) 100%), url('fundo-hotel.jpg');
+            background-size: cover; background-position: center 38%;
+            box-shadow: 0 12px 32px rgba(40,36,28,0.18);
+        }
         .header-bar {
             display: flex; justify-content: space-between; align-items: center;
-            flex-wrap: wrap; gap: 14px; margin-bottom: 18px;
+            flex-wrap: wrap; gap: 14px;
         }
-        h1 { font-size: 1.3rem; font-weight: 500; color: #2c5f2d; }
-        .sub { font-size: 0.8rem; color: #7a8b6e; margin-top: 2px; }
+        .brandline { font-size: 0.68rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; margin-bottom: 6px; }
+        h1 { font-size: 1.7rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+        .sub { font-size: 0.8rem; color: rgba(255,255,255,0.82); margin-top: 4px; }
         .refresh-btn {
-            background: #2c5f2d; color: white; border: none;
+            background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,0.3);
             padding: 10px 20px; border-radius: 40px; cursor: pointer;
         }
         .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
         .filtros-bar input, .filtros-bar select {
-            padding: 9px 12px; border: 1px solid #d4cbb8; border-radius: 10px;
-            font-size: 0.85rem; background: #fff; color: #2c3e2f;
+            padding: 9px 12px; border: 1px solid #d8cbb0; border-radius: 10px;
+            font-size: 0.85rem; background: rgba(255,255,255,0.92); color: #34322c;
         }
         .filtros-bar input.busca { flex: 1; min-width: 180px; }
         .chip {
-            background: #fff; border: 1px solid #d4cbb8; padding: 9px 16px;
-            border-radius: 40px; font-size: 0.82rem; cursor: pointer; color: #5a6e4a;
+            background: rgba(255,255,255,0.92); border: 1px solid #d8cbb0; padding: 9px 16px;
+            border-radius: 40px; font-size: 0.82rem; cursor: pointer; color: #8a7a55;
         }
-        .chip.active { background: #2c5f2d; border-color: #2c5f2d; color: #fff; }
+        .chip.active { background: var(--gold); border-color: var(--gold); color: #fff; }
         .table-container {
-            background: white; border-radius: 16px; padding: 16px;
-            overflow-x: auto; border: 1px solid #e8e0d8;
+            background: rgba(255,255,255,0.95); border-radius: 16px; padding: 16px;
+            overflow-x: auto; border: 1px solid rgba(184,153,90,0.25);
+            box-shadow: 0 6px 20px rgba(40,36,28,0.06);
         }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid #ebe5db; font-size: 0.82rem; vertical-align: top; }
-        th { background: #fafaf7; font-weight: 600; color: #2c5f2d; position: sticky; top: 0; }
-        .month-group td { background: #e8f0e5; font-weight: 600; color: #2c5f2d; }
+        th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid #efe9dd; font-size: 0.82rem; vertical-align: top; }
+        th { background: #faf6ee; font-weight: 600; color: var(--gold-d); position: sticky; top: 0; }
+        .month-group td { background: #f3ecdd; font-weight: 600; color: var(--gold-d); }
         tr.cancelled td { opacity: 0.5; text-decoration: line-through; }
-        tr.completed td { background: #eef6ea; color: #6c7a5e; }
-        .voo-status { display: inline-block; font-size: 0.7rem; color: #7a8b6e; margin-left: 5px; }
+        tr.completed td { background: #f5f1e8; color: #8a8270; }
+        .voo-status { display: inline-block; font-size: 0.7rem; color: #8a8270; margin-left: 5px; }
         .vb { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 1px 8px; border-radius: 40px; margin-left: 5px; white-space: nowrap; }
-        .vb-green { background: #e8f0e5; color: #2c5f2d; }
+        .vb-green { background: #e6f0f2; color: var(--sea); }
         .vb-amber { background: #fff3cd; color: #8a6d1b; }
         .vb-blue { background: #e6f1fb; color: #0c447c; }
         .vb-red { background: #faecec; color: #b85c5a; }
-        .vb-gray { background: #f0ede5; color: #7a8b6e; }
+        .vb-gray { background: #f0ede5; color: #8a8270; }
         .motorista-input {
-            width: 130px; padding: 7px 9px; border: 1px solid #d4cbb8;
+            width: 130px; padding: 7px 9px; border: 1px solid #d8cbb0;
             border-radius: 8px; font-size: 0.8rem; background: #fffdf7;
         }
-        .motorista-input.preenchido { background: #e8f0e5; border-color: #9cbf8f; }
+        .motorista-input.preenchido { background: #f3ecdd; border-color: var(--gold); }
         .wa-link { color: #25D366; text-decoration: none; font-size: 0.75rem; white-space: nowrap; }
-        .last-update { font-size: 0.78rem; color: #7a8b6e; }
+        .last-update { font-size: 0.78rem; color: rgba(255,255,255,0.82); }
         .error-message { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; margin-bottom: 16px; display: none; }
         @media (max-width: 768px) { .motorista-input { width: 110px; } }
     </style>
 </head>
 <body>
-<div id="authGate" style="position:fixed; inset:0; background:#2c5f2d; display:flex; align-items:center; justify-content:center; z-index:9999;">
-    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center;">
-        <div style="font-family:'Georgia',serif; color:#2c5f2d; font-size:1.35rem;">Casas Brancas</div>
-        <div style="font-size:0.8rem; color:#7a8b6e; margin:4px 0 18px;">Escala de motoristas · área restrita</div>
-        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d4cbb8; border-radius:10px; font-size:1rem; margin-bottom:12px;">
-        <button id="authBtn" style="width:100%; padding:12px; background:#2c5f2d; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
+<div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
+    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,0.35);">
+        <div style="font-family:'Georgia',serif; font-style:italic; color:#9c7d3f; font-size:1.5rem;">Casas Brancas</div>
+        <div style="font-size:0.8rem; color:#8a8270; margin:4px 0 18px;">Escala de motoristas · área restrita</div>
+        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:12px;">
+        <button id="authBtn" style="width:100%; padding:12px; background:linear-gradient(135deg,#b8995a,#9c7d3f); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
         <div id="authErro" style="color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none;">Senha incorreta</div>
     </div>
 </div>
 <script>
 (function () {
     var SENHA = "Casas1974";
+    // Pede senha SEMPRE que a página é aberta (não guarda sessão).
     function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
-    if (sessionStorage.getItem('cb_auth') === '1') { liberar(); }
     var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
     function tentar() {
-        if (i.value === SENHA) { sessionStorage.setItem('cb_auth', '1'); liberar(); }
-        else { document.getElementById('authErro').style.display = 'block'; }
+        if (i.value === SENHA) { liberar(); }
+        else { document.getElementById('authErro').style.display = 'block'; i.value=''; }
     }
     b.addEventListener('click', tentar);
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
@@ -98,14 +110,17 @@
         <option value="Emerson"></option>
         <option value="Erisson"></option>
     </datalist>
-    <div class="header-bar">
-        <div>
-            <h1>Escala de Motoristas</h1>
-            <div class="sub">Casas Brancas · MF Transporte Executivo — preencha o motorista de cada traslado</div>
-        </div>
-        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-            <span class="last-update" id="lastUpdate">Carregando...</span>
-            <button class="refresh-btn" id="refreshBtn">Atualizar</button>
+    <div class="topo">
+        <div class="header-bar">
+            <div>
+                <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
+                <h1>Escala de Motoristas</h1>
+                <div class="sub">Preencha o motorista de cada traslado</div>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <span class="last-update" id="lastUpdate">Carregando...</span>
+                <button class="refresh-btn" id="refreshBtn">Atualizar</button>
+            </div>
         </div>
     </div>
 
@@ -280,7 +295,7 @@
                 const ehHoje = dataKey(t) === dateKeyFromDate(new Date());
                 const mot = getMotorista(t).replace(/"/g, '&quot;');
                 const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : (st === 'em_andamento' ? 'Em andamento' : 'Ativo'));
-                const stStyle = st === 'completed' ? 'color:#2c5f2d;background:#e8f0e5' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#7a8b6e;background:#f0ede5'));
+                const stStyle = st === 'completed' ? 'color:#2f7d8c;background:#e6f0f2' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#9c7d3f;background:#f3ecdd'));
                 html += `<tr class="${rowClass}">
                     <td>${formatarData(t["Data Viagem"])}</td>
                     <td><strong>${getHorario(t)}</strong></td>
@@ -291,7 +306,7 @@
                     <td>${voo}${ehHoje && vooNum ? ` <span class="voo-status" data-voo="${vooNum}">…</span>` : ''}</td>
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
-                    <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#2c5f2d;">Abrir</a></td>
+                    <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#9c7d3f;">Abrir</a></td>
                     <td><input class="motorista-input ${mot ? 'preenchido' : ''}" list="motoristasLista" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
                 </tr>`;
             });

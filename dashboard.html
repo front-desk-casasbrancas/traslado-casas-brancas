@@ -5,19 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c5f2d">
+    <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
         body {
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f0;
             padding: 20px;
-            color: #2c3e2f;
+            color: #34322c;
+            min-height: 100vh; position: relative;
         }
+        body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
+        body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.93), rgba(246,242,235,0.96)); }
         .container { max-width: 1400px; margin: 0 auto; }
+        .topo {
+            position: relative; overflow: hidden; border-radius: 20px; color: #fff;
+            padding: 24px 26px; margin-bottom: 20px;
+            background-image: linear-gradient(100deg, rgba(30,28,23,0.82) 0%, rgba(30,28,23,0.45) 70%, rgba(30,28,23,0.15) 100%), url('fundo-hotel.jpg');
+            background-size: cover; background-position: center 38%;
+            box-shadow: 0 12px 32px rgba(40,36,28,0.18);
+        }
+        .topo .brandline { font-size: 0.68rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; margin-bottom: 6px; }
+        .topo h1 { font-size: 1.8rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
         .tabs {
             display: flex;
             gap: 8px;
@@ -25,17 +37,17 @@
             flex-wrap: wrap;
         }
         .tab-btn {
-            background: white;
-            border: 1px solid #d4cbb8;
+            background: rgba(255,255,255,0.92);
+            border: 1px solid #d8cbb0;
             padding: 10px 20px;
             border-radius: 40px;
             font-weight: 500;
             cursor: pointer;
-            color: #5a6e4a;
+            color: #8a7a55;
         }
         .tab-btn.active {
-            background: #2c5f2d;
-            border-color: #2c5f2d;
+            background: var(--gold);
+            border-color: var(--gold);
             color: white;
         }
         .tab-content { display: none; }
@@ -47,36 +59,40 @@
             margin-bottom: 30px;
         }
         .metric-card {
-            background: white;
+            background: rgba(255,255,255,0.94);
             border-radius: 16px;
             padding: 20px;
             text-align: center;
-            border: 1px solid #e8e0d8;
+            border: 1px solid rgba(184,153,90,0.25);
+            box-shadow: 0 6px 20px rgba(40,36,28,0.06);
         }
-        .metric-value { font-size: 2rem; font-weight: 600; color: #2c5f2d; }
-        .metric-label { font-size: 0.8rem; color: #7a8b6e; margin-top: 6px; }
+        .metric-value { font-size: 2rem; font-weight: 700; color: var(--ink); }
+        .metric-label { font-size: 0.8rem; color: #8a8270; margin-top: 6px; }
         .table-container {
-            background: white;
+            background: rgba(255,255,255,0.95);
             border-radius: 16px;
             padding: 20px;
             overflow-x: auto;
             margin-bottom: 20px;
-            border: 1px solid #e8e0d8;
+            border: 1px solid rgba(184,153,90,0.25);
+            box-shadow: 0 6px 20px rgba(40,36,28,0.06);
         }
+        .table-container h3 { color: var(--gold-d); font-size: 0.95rem; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #ebe5db; font-size: 0.85rem; }
-        th { background: #fafaf7; font-weight: 600; color: #2c5f2d; }
-        .month-group td { background: #e8f0e5; padding: 12px; font-weight: 600; color: #2c5f2d; }
-        .completed-row td { background: #d4edda; text-decoration: line-through; color: #6c7a5e; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #efe9dd; font-size: 0.85rem; }
+        th { background: #faf6ee; font-weight: 600; color: var(--gold-d); }
+        .month-group td { background: #f3ecdd; padding: 12px; font-weight: 600; color: var(--gold-d); }
+        .completed-row td { background: #f5f1e8; text-decoration: line-through; color: #8a8270; }
         .cancelled-row td { background: #f8d7da; text-decoration: line-through; color: #721c24; }
         .comissao-card {
-            background: linear-gradient(135deg, #2c5f2d, #1e4520);
+            background: linear-gradient(135deg, #b8995a, #9c7d3f);
             color: white;
             border-radius: 16px;
             padding: 24px;
             margin-bottom: 20px;
+            box-shadow: 0 10px 28px rgba(156,125,63,0.28);
         }
-        .comissao-valor { font-size: 2.5rem; font-weight: 600; }
+        .comissao-valor { font-size: 2.5rem; font-weight: 700; }
         .comissao-periodo { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
         .periodo-btn {
             background: rgba(255,255,255,0.2);
@@ -86,9 +102,9 @@
             color: white;
             cursor: pointer;
         }
-        .periodo-btn.active { background: #c8b88a; color: #2c5f2d; font-weight: 600; }
+        .periodo-btn.active { background: #fff; color: var(--gold-d); font-weight: 600; }
         .refresh-btn {
-            background: #2c5f2d;
+            background: linear-gradient(135deg, var(--gold), var(--gold-d));
             color: white;
             border: none;
             padding: 10px 20px;
@@ -115,7 +131,7 @@
             font-size: 0.7rem;
             margin-right: 5px;
         }
-        .complete-btn.completed { background: #28a745; cursor: default; opacity: 0.7; }
+        .complete-btn.completed { background: var(--sea); cursor: default; opacity: 0.8; }
         .cancel-btn {
             background: #dc3545;
             color: white;
@@ -128,29 +144,29 @@
         .cancel-btn.cancelled { background: #6c757d; cursor: default; opacity: 0.7; }
         .andamento-row td { background: #fff8e6; }
         .tag-andamento { display: inline-block; font-size: 0.62rem; font-weight: 700; color: #8a6d1b; background: #fff3cd; padding: 1px 7px; border-radius: 40px; }
-        .voo-status { display: inline-block; font-size: 0.66rem; color: #7a8b6e; margin-left: 5px; }
+        .voo-status { display: inline-block; font-size: 0.66rem; color: #8a8270; margin-left: 5px; }
         .vb { display: inline-block; font-size: 0.66rem; font-weight: 700; padding: 1px 8px; border-radius: 40px; margin-left: 5px; }
-        .vb-green { background: #e8f0e5; color: #2c5f2d; }
+        .vb-green { background: #e6f0f2; color: var(--sea); }
         .vb-amber { background: #fff3cd; color: #8a6d1b; }
         .vb-blue { background: #e6f1fb; color: #0c447c; }
         .vb-red { background: #faecec; color: #b85c5a; }
-        .vb-gray { background: #f0ede5; color: #7a8b6e; }
-        .abrir-link { display: inline-block; font-size: 0.7rem; color: #2c5f2d; text-decoration: none; border: 1px solid #d4cbb8; padding: 6px 9px; border-radius: 40px; margin-right: 5px; }
-        .editar-btn { background: #c8b88a; color: #2c5f2d; border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; font-weight: 600; }
+        .vb-gray { background: #f0ede5; color: #8a8270; }
+        .abrir-link { display: inline-block; font-size: 0.7rem; color: var(--gold-d); text-decoration: none; border: 1px solid #d8cbb0; padding: 6px 9px; border-radius: 40px; margin-right: 5px; }
+        .editar-btn { background: var(--gold-l); color: var(--ink); border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; font-weight: 600; }
         .editar-btn[disabled] { opacity: 0.5; cursor: default; }
-        .edit-overlay { position: fixed; inset: 0; background: rgba(30,45,30,0.55); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
+        .edit-overlay { position: fixed; inset: 0; background: rgba(30,28,23,0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
         .edit-overlay.show { display: flex; }
         .edit-card { background: #fff; border-radius: 18px; padding: 24px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
-        .edit-card h3 { color: #2c5f2d; margin-bottom: 14px; }
-        .edit-card label { display: block; font-size: 0.78rem; color: #5a6e4a; margin: 12px 0 5px; }
+        .edit-card h3 { color: var(--gold-d); margin-bottom: 14px; }
+        .edit-card label { display: block; font-size: 0.78rem; color: #8a7a55; margin: 12px 0 5px; }
         .edit-card input, .edit-card select { width: 100%; padding: 11px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font-size: 0.9rem; }
-        .edit-total { margin-top: 14px; font-size: 1.1rem; font-weight: 700; color: #2c5f2d; }
+        .edit-total { margin-top: 14px; font-size: 1.1rem; font-weight: 700; color: var(--gold-d); }
         .edit-acoes { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
         .edit-acoes button { flex: 1; padding: 12px; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
-        .btn-ajustar { background: #2c5f2d; color: #fff; }
-        .btn-cancelar-edit { background: transparent; color: #5a6e4a; border: 1px solid #d4cbb8 !important; }
+        .btn-ajustar { background: linear-gradient(135deg, var(--gold), var(--gold-d)); color: #fff; }
+        .btn-cancelar-edit { background: transparent; color: #8a7a55; border: 1px solid #d8cbb0 !important; }
         .btn-nova-conf { background: #25D366; color: #fff; }
-        .last-update { font-size: 0.8rem; color: #7a8b6e; margin-bottom: 16px; }
+        .last-update { font-size: 0.8rem; color: #8a8270; margin-bottom: 16px; }
         .error-message {
             background: #faecec;
             color: #b85c5a;
@@ -169,20 +185,20 @@
         }
         /* Próximos traslados (Hoje / Amanhã) */
         .proximos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-        .proximos-col h4 { color: #2c5f2d; font-size: 0.95rem; margin-bottom: 8px; }
-        .proximo-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #ebe5db; }
-        .proximo-hora { font-weight: 700; color: #2c5f2d; }
-        .proximo-sub { font-size: 0.72rem; color: #7a8b6e; }
-        .proximo-vazio { color: #8b9a7a; font-size: 0.85rem; padding: 8px 0; }
+        .proximos-col h4 { color: var(--gold-d); font-size: 0.95rem; margin-bottom: 8px; }
+        .proximo-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #efe9dd; }
+        .proximo-hora { font-weight: 700; color: var(--gold-d); }
+        .proximo-sub { font-size: 0.72rem; color: #8a8270; }
+        .proximo-vazio { color: #9a917c; font-size: 0.85rem; padding: 8px 0; }
         /* Filtros da lista */
         .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
         .filtros-bar input, .filtros-bar select {
             padding: 9px 12px;
-            border: 1px solid #d4cbb8;
+            border: 1px solid #d8cbb0;
             border-radius: 10px;
             font-size: 0.85rem;
             background: #fff;
-            color: #2c3e2f;
+            color: #34322c;
         }
         .filtros-bar input.busca { flex: 1; min-width: 180px; }
         @media (max-width: 768px) {
@@ -192,24 +208,24 @@
     </style>
 </head>
 <body>
-<div id="authGate" style="position:fixed; inset:0; background:#2c5f2d; display:flex; align-items:center; justify-content:center; z-index:9999;">
-    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center;">
-        <div style="font-family:'Georgia',serif; color:#2c5f2d; font-size:1.35rem;">Casas Brancas</div>
-        <div style="font-size:0.8rem; color:#7a8b6e; margin:4px 0 18px;">Dashboard · área restrita</div>
-        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d4cbb8; border-radius:10px; font-size:1rem; margin-bottom:12px;">
-        <button id="authBtn" style="width:100%; padding:12px; background:#2c5f2d; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
+<div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
+    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,0.35);">
+        <div style="font-family:'Georgia',serif; font-style:italic; color:#9c7d3f; font-size:1.5rem;">Casas Brancas</div>
+        <div style="font-size:0.8rem; color:#8a8270; margin:4px 0 18px;">Dashboard · área restrita</div>
+        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:12px;">
+        <button id="authBtn" style="width:100%; padding:12px; background:linear-gradient(135deg,#b8995a,#9c7d3f); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
         <div id="authErro" style="color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none;">Senha incorreta</div>
     </div>
 </div>
 <script>
 (function () {
     var SENHA = "Casas1974";
+    // Pede senha SEMPRE que a página é aberta (não guarda sessão).
     function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
-    if (sessionStorage.getItem('cb_auth') === '1') { liberar(); }
     var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
     function tentar() {
-        if (i.value === SENHA) { sessionStorage.setItem('cb_auth', '1'); liberar(); }
-        else { document.getElementById('authErro').style.display = 'block'; }
+        if (i.value === SENHA) { liberar(); }
+        else { document.getElementById('authErro').style.display = 'block'; i.value=''; }
     }
     b.addEventListener('click', tentar);
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
@@ -217,6 +233,10 @@
 })();
 </script>
 <div class="container">
+    <div class="topo">
+        <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
+        <h1>Dashboard</h1>
+    </div>
     <div class="tabs">
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
         <button class="tab-btn" data-tab="comissao">Comissões (15%)</button>
@@ -564,7 +584,7 @@
         if (monthlyChart) monthlyChart.destroy();
         monthlyChart = new Chart(ctx, {
             type: 'bar',
-            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#2c5f2d' }] },
+            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#b8995a' }] },
             options: { responsive: true }
         });
     }
@@ -575,7 +595,7 @@
         if (vehicleChart) vehicleChart.destroy();
         vehicleChart = new Chart(ctx, {
             type: 'pie',
-            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#2c5f2d','#4ade80','#86efac','#c8b88a','#a3e635'] }] },
+            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#b8995a','#cbb27a','#8a6f3c','#7fa8b0','#dccba0','#a89b7d'] }] },
             options: { responsive: true }
         });
     }
@@ -792,15 +812,15 @@
             <title>Relatório de Comissões - Casas Brancas</title>
             <style>
                 body { font-family: Arial, Helvetica, sans-serif; color: #2c3e2f; padding: 30px; }
-                h1 { font-size: 1.3rem; color: #2c5f2d; margin-bottom: 4px; }
+                h1 { font-size: 1.3rem; color: #9c7d3f; margin-bottom: 4px; }
                 .sub { color: #7a8b6e; font-size: 0.85rem; margin-bottom: 18px; }
                 .tot { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
                 .tot div { background: #f0f5ee; border: 1px solid #d9e6d4; border-radius: 8px; padding: 12px 18px; font-size: 0.9rem; }
-                .tot strong { font-size: 1.2rem; color: #2c5f2d; }
+                .tot strong { font-size: 1.2rem; color: #9c7d3f; }
                 table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.82rem; }
                 th, td { border-bottom: 1px solid #ddd; padding: 7px 8px; text-align: left; }
-                th { background: #f0ede5; color: #2c5f2d; }
-                tfoot td { font-weight: bold; border-top: 2px solid #2c5f2d; }
+                th { background: #f0ede5; color: #9c7d3f; }
+                tfoot td { font-weight: bold; border-top: 2px solid #9c7d3f; }
                 @media print { .noprint { display: none; } }
             </style></head><body>
             <h1>Relatório de Comissões — Casas Brancas</h1>
@@ -809,7 +829,7 @@
                 <div>Total em traslados<br><strong>R$ ${totalTraslados.toLocaleString('pt-BR')}</strong></div>
                 <div>Comissão (15%)<br><strong>R$ ${totalComissao.toLocaleString('pt-BR')}</strong></div>
             </div>
-            <button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#2c5f2d;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>
+            <button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>
             <table>
                 <thead><tr><th>Data</th><th>Horário</th><th>Hóspede</th><th>Sentido</th><th>Veículo</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Comissão</th></tr></thead>
                 <tbody>${linhas || '<tr><td colspan="7">Nenhum traslado no período.</td></tr>'}</tbody>

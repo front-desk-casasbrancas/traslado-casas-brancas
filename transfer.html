@@ -5,34 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Transfer</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c5f2d">
+    <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; padding: 16px; }
-        .card { max-width: 560px; margin: 0 auto; background: #fff; border-radius: 16px; border: 1px solid #e8e0d8; box-shadow: 0 8px 30px rgba(0,0,0,0.06); overflow: hidden; }
-        .head { background: linear-gradient(135deg, #fafaf5, #eef2e8); padding: 20px 22px; border-bottom: 1px solid #e8e0d8; }
-        .brand { font-family: 'Georgia', serif; color: #2c5f2d; letter-spacing: 1px; font-size: .85rem; }
-        .head h1 { font-size: 1.25rem; font-weight: 400; font-family: 'Georgia', serif; color: #2c5f2d; margin-top: 4px; }
+        :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; color: #34322c; padding: 16px; min-height: 100vh; position: relative; }
+        body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
+        body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.90), rgba(246,242,235,0.95)); }
+        .card { max-width: 560px; margin: 0 auto; background: rgba(255,255,255,0.95); border-radius: 18px; border: 1px solid rgba(184,153,90,0.28); box-shadow: 0 14px 40px rgba(40,36,28,0.16); overflow: hidden; }
+        .head { position: relative; overflow: hidden; padding: 26px 24px; color: #fff; background-image: linear-gradient(100deg, rgba(30,28,23,0.82) 0%, rgba(30,28,23,0.45) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 38%; }
+        .brand { font-size: .72rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; }
+        .head h1 { font-size: 1.7rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; color: #fff; margin-top: 4px; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
         .body { padding: 22px; }
         .badge { display: inline-block; padding: 5px 14px; border-radius: 40px; font-size: .8rem; font-weight: 600; margin-bottom: 16px; }
-        .b-active { background: #f0ede5; color: #7a8b6e; }
+        .b-active { background: #f3ecdd; color: var(--gold-d); }
         .b-andamento { background: #fff3cd; color: #8a6d1b; }
-        .b-completed { background: #e8f0e5; color: #2c5f2d; }
+        .b-completed { background: #e6f0f2; color: var(--sea); }
         .b-cancelled { background: #faecec; color: #b85c5a; }
-        .linha { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ebe5db; font-size: .92rem; }
-        .linha .rot { color: #7a8b6e; }
+        .linha { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #efe9dd; font-size: .92rem; }
+        .linha .rot { color: #8a8270; }
         .linha .val { font-weight: 500; text-align: right; }
-        .destaque { font-size: 1.6rem; font-weight: 700; color: #2c5f2d; }
+        .destaque { font-size: 1.6rem; font-weight: 700; color: var(--gold-d); }
         .wa { color: #25D366; text-decoration: none; font-weight: 600; }
         .btn { width: 100%; padding: 16px; border: none; border-radius: 40px; font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 22px; }
-        .btn-iniciar { background: #2c5f2d; color: #fff; }
-        .btn-iniciar:active { background: #1e4520; }
+        .btn-iniciar { background: linear-gradient(135deg, var(--gold), var(--gold-d)); color: #fff; }
+        .btn-iniciar:active { background: var(--gold-d); }
         .btn[disabled] { opacity: .55; cursor: default; }
         .aviso { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; text-align: center; }
         .obs-mod { background: #fff8e6; border-left: 3px solid #e0c060; padding: 10px 14px; border-radius: 8px; font-size: .8rem; color: #8a6d1b; margin-top: 14px; }
-        .loading { text-align: center; color: #7a8b6e; padding: 40px 0; }
+        .loading { text-align: center; color: #8a8270; padding: 40px 0; }
     </style>
 </head>
 <body>
@@ -96,7 +99,7 @@
         const wa = waLink(t["Telefone"]);
         const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
         const endereco = t["Endereço"] || t["Endereco"] || '';
-        const mapsBtn = endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank" style="display:block;text-align:center;margin-top:14px;padding:14px;border-radius:40px;background:#185fa5;color:#fff;text-decoration:none;font-weight:600;">📍 Abrir no Maps</a>` : '';
+        const mapsBtn = endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank" style="display:block;text-align:center;margin-top:14px;padding:14px;border-radius:40px;background:#2f7d8c;color:#fff;text-decoration:none;font-weight:600;">📍 Abrir no Maps</a>` : '';
 
         const badges = {
             active: '<span class="badge b-active">Aguardando início</span>',
