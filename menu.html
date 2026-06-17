@@ -7,70 +7,183 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2c5f2d">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; min-height: 100vh; padding: 28px 20px; }
-        .wrap { max-width: 480px; margin: 0 auto; }
-        .topo { text-align: center; margin-bottom: 28px; }
-        .mark { width: 64px; height: 64px; border-radius: 18px; background: #2c5f2d; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; }
-        h1 { font-family: 'Georgia', serif; font-weight: 400; font-size: 1.5rem; color: #2c5f2d; }
-        .sub { font-size: 0.8rem; color: #7a8b6e; margin-top: 4px; }
-        .menu { display: flex; flex-direction: column; gap: 14px; }
-        .item { display: flex; align-items: center; gap: 16px; background: #fff; border: 1px solid #e8e0d8; border-radius: 18px; padding: 20px; text-decoration: none; color: #2c3e2f; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
-        .item:active { background: #f6f4ef; }
-        .ic { width: 50px; height: 50px; border-radius: 14px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
-        .ic-form { background: #e8f0e5; }
-        .ic-dash { background: #fef6e0; }
-        .ic-mot { background: #e6f1fb; }
-        .txt b { display: block; font-size: 1.05rem; font-weight: 600; color: #2c5f2d; }
-        .txt span { font-size: 0.8rem; color: #7a8b6e; }
-        .rodape { text-align: center; font-size: 0.72rem; color: #8b9a7a; margin-top: 28px; }
-        .rodape img { width: 26px; height: 26px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; min-height: 100vh; padding: 18px 16px 32px; }
+        .wrap { max-width: 460px; margin: 0 auto; }
+        .hero { background: linear-gradient(135deg, #2c5f2d, #1e4520); color: #fff; border-radius: 22px; padding: 22px 22px 24px; position: relative; overflow: hidden; }
+        .hero .casa { position: absolute; right: -10px; top: -10px; opacity: 0.12; }
+        .hero .brand { font-family: 'Georgia', serif; font-size: 1.5rem; }
+        .hero .saud { font-size: 0.85rem; opacity: 0.9; margin-top: 2px; }
+        .hero .data { font-size: 0.78rem; opacity: 0.8; margin-top: 10px; }
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: -18px; }
+        .stat { background: #fff; border-radius: 16px; padding: 16px; border: 1px solid #e8e0d8; box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
+        .stat .ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+        .stat .num { font-size: 1.5rem; font-weight: 700; color: #2c5f2d; line-height: 1.1; }
+        .stat .lab { font-size: 0.72rem; color: #7a8b6e; margin-top: 3px; }
+        .card-chart { background: #fff; border: 1px solid #e8e0d8; border-radius: 16px; padding: 16px; margin-top: 12px; }
+        .chart-tit { font-size: 0.8rem; color: #8b7a5c; font-weight: 600; margin-bottom: 10px; }
+        .secao-tit { font-size: 0.78rem; color: #8b7a5c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 4px 10px; }
+        .hoje { background: #fff; border-radius: 16px; border: 1px solid #e8e0d8; overflow: hidden; }
+        .hoje-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #f0ede5; }
+        .hoje-item:last-child { border-bottom: none; }
+        .hoje-hora { font-weight: 700; color: #2c5f2d; font-size: 0.95rem; min-width: 46px; }
+        .hoje-info b { display: block; font-size: 0.9rem; }
+        .hoje-info span { font-size: 0.74rem; color: #7a8b6e; }
+        .vazio { padding: 18px 16px; color: #8b9a7a; font-size: 0.85rem; text-align: center; }
+        .nav { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+        .tile { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid #e8e0d8; border-radius: 16px; padding: 16px; text-decoration: none; color: #2c3e2f; }
+        .tile:active { background: #f6f4ef; }
+        .tile .ic { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+        .tile .tx b { display: block; font-size: 1rem; font-weight: 600; color: #2c5f2d; }
+        .tile .tx span { font-size: 0.76rem; color: #7a8b6e; }
+        .tile .seta { margin-left: auto; color: #c8b88a; }
+        .rodape { text-align: center; font-size: 0.72rem; color: #8b9a7a; margin-top: 26px; }
+        .rodape img { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
     </style>
 </head>
 <body>
 <div class="wrap">
-    <div class="topo">
-        <div class="mark">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/>
-            </svg>
+    <div class="hero">
+        <svg class="casa" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        <div class="brand">Casas Brancas</div>
+        <div class="saud" id="saud">Olá!</div>
+        <div class="data" id="dataHoje">—</div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="ic" style="background:#e8f0e5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.8"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/></svg></div>
+            <div class="num" id="stHoje">–</div><div class="lab">Traslados hoje</div>
         </div>
-        <h1>Casas Brancas</h1>
-        <div class="sub">Sistema de Traslados · Rio ↔ Búzios</div>
+        <div class="stat">
+            <div class="ic" style="background:#e6f1fb;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div class="num" id="stMes">–</div><div class="lab">Traslados no mês</div>
+        </div>
+        <div class="stat">
+            <div class="ic" style="background:#fef6e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div class="num" id="stComissao">–</div><div class="lab">Comissão do mês (15%)</div>
+        </div>
+        <div class="stat">
+            <div class="ic" style="background:#f1ecf7;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7d5ba6" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg></div>
+            <div class="num" id="stMedia">–</div><div class="lab">Média por traslado</div>
+        </div>
     </div>
 
-    <div class="menu">
-        <a class="item" href="index.html">
-            <div class="ic ic-form">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
-            </div>
-            <div class="txt"><b>Solicitar traslado</b><span>Formulário de reserva do hóspede</span></div>
-        </a>
+    <div class="card-chart"><div class="chart-tit">Traslados por dia (últimos 14 dias)</div><canvas id="chartLinha" height="150"></canvas></div>
+    <div class="card-chart"><div class="chart-tit">Veículos mais usados (mês)</div><canvas id="chartDonut" height="170"></canvas></div>
 
-        <a class="item" href="dashboard.html">
-            <div class="ic ic-dash">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="13" y="7" width="3" height="11"/></svg>
-            </div>
-            <div class="txt"><b>Dashboard</b><span>Comissões, métricas e edição</span></div>
-        </a>
+    <div class="secao-tit">Traslados de hoje</div>
+    <div class="hoje" id="hojeLista"><div class="vazio">Carregando...</div></div>
 
-        <a class="item" href="motorista.html">
-            <div class="ic ic-mot">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 0 4 0M15 17a2 2 0 0 0 4 0"/><path d="M3 12h18l-2-5H6l-2 5z"/><path d="M3 12v5"/></svg>
-            </div>
-            <div class="txt"><b>Escala de motoristas</b><span>Lista de traslados e motorista</span></div>
+    <div class="secao-tit">Acessos</div>
+    <div class="nav">
+        <a class="tile" href="index.html">
+            <div class="ic" style="background:#e8f0e5;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
+            <div class="tx"><b>Solicitar traslado</b><span>Formulário de reserva</span></div>
+            <span class="seta">›</span>
+        </a>
+        <a class="tile" href="dashboard.html">
+            <div class="ic" style="background:#fef6e0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="13" y="7" width="3" height="11"/></svg></div>
+            <div class="tx"><b>Dashboard</b><span>Comissões, métricas e edição</span></div>
+            <span class="seta">›</span>
+        </a>
+        <a class="tile" href="motorista.html">
+            <div class="ic" style="background:#e6f1fb;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/><path d="M3 12v5"/></svg></div>
+            <div class="tx"><b>Escala de motoristas</b><span>Lista e atribuição</span></div>
+            <span class="seta">›</span>
         </a>
     </div>
 
-    <div class="rodape">
-        <img src="mflogo.jpg" alt="MF"> Operação: MF Transporte Executivo
-    </div>
+    <div class="rodape"><img src="mflogo.jpg" alt="MF"> Operação: MF Transporte Executivo</div>
 </div>
 
 <script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    let chLinha, chDonut;
+
+    const agora = new Date();
+    const h = agora.getHours();
+    document.getElementById('saud').innerText = h < 12 ? 'Bom dia!' : (h < 18 ? 'Boa tarde!' : 'Boa noite!');
+    document.getElementById('dataHoje').innerText = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+    function getHorario(t) {
+        let v = t["Horario"] || t["Horário"] || "";
+        if (!v) return '-';
+        v = v.toString().trim();
+        let m = v.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if (m) { let s = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) - (6 * 60 + 28); s = ((s % 86400) + 86400) % 86400; return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor((s % 3600) / 60)).padStart(2, '0'); }
+        m = v.match(/T(\d{2}):(\d{2})/); if (m) return m[1] + ':' + m[2];
+        m = v.match(/^(\d{1,2}):(\d{2})/); if (m) return m[1].padStart(2, '0') + ':' + m[2];
+        return v;
+    }
+    function dKey(v) { let d = new Date(v); return isNaN(d) ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function brl(n) { return 'R$ ' + (Math.round(n) || 0).toLocaleString('pt-BR'); }
+
+    async function carregar() {
+        try {
+            const dados = await (await fetch(WEBAPP_URL)).json();
+            const ativos = (Array.isArray(dados) ? dados : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
+
+            const hojeKey = dKey(agora);
+            const mesAtual = agora.getMonth(), anoAtual = agora.getFullYear();
+
+            const hoje = ativos.filter(t => dKey(t["Data Viagem"]) === hojeKey)
+                .sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
+            const doMes = ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+            const valorMes = doMes.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+            const media = doMes.length ? valorMes / doMes.length : 0;
+
+            document.getElementById('stHoje').innerText = hoje.length;
+            document.getElementById('stMes').innerText = doMes.length;
+            document.getElementById('stComissao').innerText = brl(valorMes * 0.15);
+            document.getElementById('stMedia').innerText = brl(media);
+
+            if (window.Chart) {
+                const dias = [];
+                for (let i = 13; i >= 0; i--) { let d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i); dias.push(d); }
+                const labelsL = dias.map(d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'));
+                const dataL = dias.map(d => { let k = dKey(d); return ativos.filter(t => dKey(t["Data Viagem"]) === k).length; });
+                if (chLinha) chLinha.destroy();
+                chLinha = new Chart(document.getElementById('chartLinha'), {
+                    type: 'line',
+                    data: { labels: labelsL, datasets: [{ data: dataL, borderColor: '#2c5f2d', backgroundColor: 'rgba(44,95,45,0.12)', fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: '#2c5f2d' }] },
+                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                });
+
+                const vc = {};
+                doMes.forEach(t => { let v = t["Veículo"] || '—'; vc[v] = (vc[v] || 0) + 1; });
+                const ent = Object.entries(vc).sort((a, b) => b[1] - a[1]);
+                const top = ent.slice(0, 5), resto = ent.slice(5).reduce((s, e) => s + e[1], 0);
+                const labelsD = top.map(e => e[0]).concat(resto ? ['Outros'] : []);
+                const dataD = top.map(e => e[1]).concat(resto ? [resto] : []);
+                if (chDonut) chDonut.destroy();
+                chDonut = new Chart(document.getElementById('chartDonut'), {
+                    type: 'doughnut',
+                    data: { labels: labelsD.length ? labelsD : ['Sem dados'], datasets: [{ data: dataD.length ? dataD : [1], backgroundColor: ['#2c5f2d', '#4ade80', '#86efac', '#c8b88a', '#a3e635', '#d4cbb8'] }] },
+                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                });
+            }
+
+            const cont = document.getElementById('hojeLista');
+            if (!hoje.length) { cont.innerHTML = '<div class="vazio">Nenhum traslado para hoje.</div>'; return; }
+            cont.innerHTML = hoje.map(t => {
+                const sent = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+                const st = (t["Status"] || 'active').toString().toLowerCase();
+                const tag = st === 'completed' ? ' · Finalizado' : (st === 'em_andamento' ? ' · Em andamento' : '');
+                return `<div class="hoje-item"><div class="hoje-hora">${getHorario(t)}</div><div class="hoje-info"><b>${t["Nome"] || '-'}</b><span>${sent} · ${t["Veículo"] || '-'}${tag}</span></div></div>`;
+            }).join('');
+        } catch (e) {
+            document.getElementById('hojeLista').innerHTML = '<div class="vazio">Erro ao carregar dados.</div>';
+        }
+    }
+
+    carregar();
+    setInterval(carregar, 5 * 60 * 1000);
+
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(function () {});
+        window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
     }
 </script>
 </body>
