@@ -67,7 +67,37 @@
     </style>
 </head>
 <body>
+<div id="authGate" style="position:fixed; inset:0; background:#2c5f2d; display:flex; align-items:center; justify-content:center; z-index:9999;">
+    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center;">
+        <div style="font-family:'Georgia',serif; color:#2c5f2d; font-size:1.35rem;">Casas Brancas</div>
+        <div style="font-size:0.8rem; color:#7a8b6e; margin:4px 0 18px;">Escala de motoristas · área restrita</div>
+        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d4cbb8; border-radius:10px; font-size:1rem; margin-bottom:12px;">
+        <button id="authBtn" style="width:100%; padding:12px; background:#2c5f2d; color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
+        <div id="authErro" style="color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none;">Senha incorreta</div>
+    </div>
+</div>
+<script>
+(function () {
+    var SENHA = "Casas1974";
+    function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
+    if (sessionStorage.getItem('cb_auth') === '1') { liberar(); }
+    var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
+    function tentar() {
+        if (i.value === SENHA) { sessionStorage.setItem('cb_auth', '1'); liberar(); }
+        else { document.getElementById('authErro').style.display = 'block'; }
+    }
+    b.addEventListener('click', tentar);
+    i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
+    i.focus();
+})();
+</script>
 <div class="container">
+    <datalist id="motoristasLista">
+        <option value="Marcelo"></option>
+        <option value="Igor"></option>
+        <option value="Emerson"></option>
+        <option value="Erisson"></option>
+    </datalist>
     <div class="header-bar">
         <div>
             <h1>Escala de Motoristas</h1>
@@ -262,7 +292,7 @@
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
                     <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#2c5f2d;">Abrir</a></td>
-                    <td><input class="motorista-input ${mot ? 'preenchido' : ''}" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
+                    <td><input class="motorista-input ${mot ? 'preenchido' : ''}" list="motoristasLista" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
                 </tr>`;
             });
         }

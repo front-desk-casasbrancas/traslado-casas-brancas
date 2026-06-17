@@ -95,6 +95,8 @@
         const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
         const wa = waLink(t["Telefone"]);
         const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
+        const endereco = t["Endereço"] || t["Endereco"] || '';
+        const mapsBtn = endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank" style="display:block;text-align:center;margin-top:14px;padding:14px;border-radius:40px;background:#185fa5;color:#fff;text-decoration:none;font-weight:600;">📍 Abrir no Maps</a>` : '';
 
         const badges = {
             active: '<span class="badge b-active">Aguardando início</span>',
@@ -125,6 +127,7 @@
             linha('Motorista', t["Motorista"] || '(a definir)') +
             linha('Observações', t["Observações"] || t["Observacoes"] || '-') +
             (t["Modificacao"] ? `<div class="obs-mod">⚠️ ${t["Modificacao"]}</div>` : '') +
+            mapsBtn +
             botao;
 
         const bi = document.getElementById('btnIniciar');
