@@ -10,90 +10,133 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f5f5f0; color: #2c3e2f; min-height: 100vh; padding: 18px 16px 32px; }
-        .wrap { max-width: 460px; margin: 0 auto; }
-        .hero { background: linear-gradient(135deg, #2c5f2d, #1e4520); color: #fff; border-radius: 22px; padding: 22px 22px 24px; position: relative; overflow: hidden; }
-        .hero .casa { position: absolute; right: -10px; top: -10px; opacity: 0.12; }
-        .hero .brand { font-family: 'Georgia', serif; font-size: 1.5rem; }
-        .hero .saud { font-size: 0.85rem; opacity: 0.9; margin-top: 2px; }
-        .hero .data { font-size: 0.78rem; opacity: 0.8; margin-top: 10px; }
-        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: -18px; }
-        .stat { background: #fff; border-radius: 16px; padding: 16px; border: 1px solid #e8e0d8; box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
-        .stat .ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-        .stat .num { font-size: 1.5rem; font-weight: 700; color: #2c5f2d; line-height: 1.1; }
-        .stat .lab { font-size: 0.72rem; color: #7a8b6e; margin-top: 3px; }
-        .card-chart { background: #fff; border: 1px solid #e8e0d8; border-radius: 16px; padding: 16px; margin-top: 12px; }
-        .chart-tit { font-size: 0.8rem; color: #8b7a5c; font-weight: 600; margin-bottom: 10px; }
-        .secao-tit { font-size: 0.78rem; color: #8b7a5c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 4px 10px; }
-        .hoje { background: #fff; border-radius: 16px; border: 1px solid #e8e0d8; overflow: hidden; }
-        .hoje-item { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid #f0ede5; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; background: #f3f2ec; color: #2c3e2f; min-height: 100vh; }
+        .container { max-width: 1180px; margin: 0 auto; padding: 24px 24px 40px; }
+        /* HERO */
+        .hero { background: linear-gradient(120deg, #2c5f2d 0%, #1e4520 70%); color: #fff; border-radius: 24px; padding: 30px 34px; display: flex; justify-content: space-between; align-items: center; gap: 28px; flex-wrap: wrap; position: relative; overflow: hidden; box-shadow: 0 12px 30px rgba(28,60,28,0.18); }
+        .hero .casa { position: absolute; right: 280px; top: -30px; opacity: 0.10; }
+        .hero-left { position: relative; z-index: 1; }
+        .brand-row { display: flex; align-items: center; gap: 12px; }
+        .brand-row .logo { width: 46px; height: 46px; border-radius: 13px; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center; }
+        .brand-row .nome { font-family: 'Georgia', serif; font-size: 1.9rem; line-height: 1; }
+        .saud { font-size: 1rem; opacity: 0.92; margin-top: 14px; }
+        .data { font-size: 0.82rem; opacity: 0.8; margin-top: 4px; text-transform: capitalize; }
+        /* tempo no hero */
+        .hero-tempo { position: relative; z-index: 1; background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.18); border-radius: 18px; padding: 16px 20px; min-width: 270px; }
+        .ht-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+        .ht-local { font-size: 1.05rem; font-weight: 600; }
+        .ht-cond { font-size: 0.82rem; opacity: 0.92; margin-top: 2px; }
+        .ht-temp { font-size: 2.6rem; font-weight: 700; line-height: 1; }
+        .ht-dias { display: flex; gap: 8px; margin-top: 14px; }
+        .ht-dia { flex: 1; text-align: center; background: rgba(255,255,255,0.12); border-radius: 12px; padding: 8px 4px; font-size: 0.72rem; }
+        .ht-dia .e { font-size: 1.15rem; margin: 3px 0; }
+        .ht-dia .mx { font-weight: 700; }
+        .ht-dia .mn { opacity: 0.78; }
+        /* STATS */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 20px; }
+        .stat { background: #fff; border-radius: 18px; padding: 18px 20px; border: 1px solid #e8e0d8; box-shadow: 0 4px 16px rgba(0,0,0,0.03); display: flex; align-items: center; gap: 14px; }
+        .stat .ic { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+        .stat .num { font-size: 1.7rem; font-weight: 700; color: #2c5f2d; line-height: 1; }
+        .stat .lab { font-size: 0.74rem; color: #7a8b6e; margin-top: 4px; }
+        /* GRID */
+        .grid2 { display: grid; grid-template-columns: 1.55fr 1fr; gap: 18px; margin-top: 20px; align-items: start; }
+        .col { display: flex; flex-direction: column; gap: 18px; }
+        .card { background: #fff; border: 1px solid #e8e0d8; border-radius: 18px; padding: 18px 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
+        .card h3 { font-size: 0.82rem; color: #8b7a5c; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+        .chart-box { position: relative; height: 230px; }
+        .chart-box.donut { height: 250px; }
+        /* NAV */
+        .tile { display: flex; align-items: center; gap: 14px; border: 1px solid #ebe5db; border-radius: 14px; padding: 14px; text-decoration: none; color: #2c3e2f; margin-bottom: 10px; transition: background .15s; }
+        .tile:last-child { margin-bottom: 0; }
+        .tile:hover { background: #f6f4ef; }
+        .tile .ic { width: 44px; height: 44px; border-radius: 12px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
+        .tile .tx b { display: block; font-size: 0.98rem; font-weight: 600; color: #2c5f2d; }
+        .tile .tx span { font-size: 0.75rem; color: #7a8b6e; }
+        .tile .seta { margin-left: auto; color: #c8b88a; font-size: 1.3rem; }
+        /* HOJE */
+        .hoje-item { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #f0ede5; }
         .hoje-item:last-child { border-bottom: none; }
         .hoje-hora { font-weight: 700; color: #2c5f2d; font-size: 0.95rem; min-width: 46px; }
         .hoje-info b { display: block; font-size: 0.9rem; }
         .hoje-info span { font-size: 0.74rem; color: #7a8b6e; }
-        .vazio { padding: 18px 16px; color: #8b9a7a; font-size: 0.85rem; text-align: center; }
-        .nav { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
-        .tile { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid #e8e0d8; border-radius: 16px; padding: 16px; text-decoration: none; color: #2c3e2f; }
-        .tile:active { background: #f6f4ef; }
-        .tile .ic { width: 46px; height: 46px; border-radius: 13px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; }
-        .tile .tx b { display: block; font-size: 1rem; font-weight: 600; color: #2c5f2d; }
-        .tile .tx span { font-size: 0.76rem; color: #7a8b6e; }
-        .tile .seta { margin-left: auto; color: #c8b88a; }
-        .rodape { text-align: center; font-size: 0.72rem; color: #8b9a7a; margin-top: 26px; }
+        .vazio { padding: 14px 0; color: #8b9a7a; font-size: 0.85rem; }
+        .rodape { text-align: center; font-size: 0.74rem; color: #8b9a7a; margin-top: 28px; }
         .rodape img { width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 6px; }
+        @media (max-width: 860px) {
+            .grid2 { grid-template-columns: 1fr; }
+            .hero { padding: 24px; }
+            .hero .casa { display: none; }
+            .hero-tempo { min-width: 0; width: 100%; }
+            .brand-row .nome { font-size: 1.6rem; }
+        }
     </style>
 </head>
 <body>
-<div class="wrap">
-    <div class="hero">
-        <svg class="casa" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
-        <div class="brand">Casas Brancas</div>
-        <div class="saud" id="saud">Olá!</div>
-        <div class="data" id="dataHoje">—</div>
-    </div>
+<div class="container">
+    <header class="hero">
+        <svg class="casa" width="200" height="200" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.2"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        <div class="hero-left">
+            <div class="brand-row">
+                <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg></div>
+                <div class="nome">Casas Brancas</div>
+            </div>
+            <div class="saud" id="saud">Olá!</div>
+            <div class="data" id="dataHoje">—</div>
+        </div>
+        <div class="hero-tempo" id="tempo">
+            <div class="ht-top">
+                <div><div class="ht-local">Búzios</div><div class="ht-cond" id="tpCond">Carregando previsão...</div></div>
+                <div class="ht-temp" id="tpTemp">–</div>
+            </div>
+            <div class="ht-dias" id="tpDias"></div>
+        </div>
+    </header>
 
-    <div class="stats">
+    <section class="stats">
         <div class="stat">
-            <div class="ic" style="background:#e8f0e5;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.8"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/></svg></div>
-            <div class="num" id="stHoje">–</div><div class="lab">Traslados hoje</div>
+            <div class="ic" style="background:#e8f0e5;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.8"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/></svg></div>
+            <div><div class="num" id="stHoje">–</div><div class="lab">Traslados hoje</div></div>
         </div>
         <div class="stat">
-            <div class="ic" style="background:#e6f1fb;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-            <div class="num" id="stMes">–</div><div class="lab">Traslados no mês</div>
+            <div class="ic" style="background:#e6f1fb;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+            <div><div class="num" id="stMes">–</div><div class="lab">Traslados no mês</div></div>
         </div>
         <div class="stat">
-            <div class="ic" style="background:#fef6e0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-            <div class="num" id="stComissao">–</div><div class="lab">Comissão do mês (15%)</div>
+            <div class="ic" style="background:#fef6e0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.8"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+            <div><div class="num" id="stComissao">–</div><div class="lab">Comissão do mês (15%)</div></div>
         </div>
         <div class="stat">
-            <div class="ic" style="background:#f1ecf7;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7d5ba6" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg></div>
-            <div class="num" id="stMedia">–</div><div class="lab">Média por traslado</div>
+            <div class="ic" style="background:#f1ecf7;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7d5ba6" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M19 9l-5 5-4-4-3 3"/></svg></div>
+            <div><div class="num" id="stMedia">–</div><div class="lab">Média por traslado</div></div>
         </div>
-    </div>
+    </section>
 
-    <div class="card-chart"><div class="chart-tit">Traslados por dia (últimos 14 dias)</div><canvas id="chartLinha" height="150"></canvas></div>
-    <div class="card-chart"><div class="chart-tit">Veículos mais usados (mês)</div><canvas id="chartDonut" height="170"></canvas></div>
-
-    <div class="secao-tit">Traslados de hoje</div>
-    <div class="hoje" id="hojeLista"><div class="vazio">Carregando...</div></div>
-
-    <div class="secao-tit">Acessos</div>
-    <div class="nav">
-        <a class="tile" href="index.html">
-            <div class="ic" style="background:#e8f0e5;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
-            <div class="tx"><b>Solicitar traslado</b><span>Formulário de reserva</span></div>
-            <span class="seta">›</span>
-        </a>
-        <a class="tile" href="dashboard.html">
-            <div class="ic" style="background:#fef6e0;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="13" y="7" width="3" height="11"/></svg></div>
-            <div class="tx"><b>Dashboard</b><span>Comissões, métricas e edição</span></div>
-            <span class="seta">›</span>
-        </a>
-        <a class="tile" href="motorista.html">
-            <div class="ic" style="background:#e6f1fb;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/><path d="M3 12v5"/></svg></div>
-            <div class="tx"><b>Escala de motoristas</b><span>Lista e atribuição</span></div>
-            <span class="seta">›</span>
-        </a>
+    <div class="grid2">
+        <div class="col">
+            <div class="card"><h3>Traslados por dia (últimos 14 dias)</h3><div class="chart-box"><canvas id="chartLinha"></canvas></div></div>
+            <div class="card"><h3>Veículos mais usados (mês)</h3><div class="chart-box donut"><canvas id="chartDonut"></canvas></div></div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <h3>Acessos</h3>
+                <a class="tile" href="index.html">
+                    <div class="ic" style="background:#e8f0e5;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2c5f2d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
+                    <div class="tx"><b>Solicitar traslado</b><span>Formulário de reserva</span></div><span class="seta">›</span>
+                </a>
+                <a class="tile" href="dashboard.html">
+                    <div class="ic" style="background:#fef6e0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ba7517" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="7"/><rect x="13" y="7" width="3" height="11"/></svg></div>
+                    <div class="tx"><b>Dashboard</b><span>Comissões, métricas e edição</span></div><span class="seta">›</span>
+                </a>
+                <a class="tile" href="motorista.html">
+                    <div class="ic" style="background:#e6f1fb;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 004 0M15 17a2 2 0 004 0M3 12h18l-2-5H6l-2 5z"/><path d="M3 12v5"/></svg></div>
+                    <div class="tx"><b>Escala de motoristas</b><span>Lista e atribuição</span></div><span class="seta">›</span>
+                </a>
+            </div>
+            <div class="card">
+                <h3>Traslados de hoje</h3>
+                <div id="hojeLista"><div class="vazio">Carregando...</div></div>
+            </div>
+        </div>
     </div>
 
     <div class="rodape"><img src="mflogo.jpg" alt="MF"> Operação: MF Transporte Executivo</div>
@@ -106,7 +149,7 @@
     const agora = new Date();
     const h = agora.getHours();
     document.getElementById('saud').innerText = h < 12 ? 'Bom dia!' : (h < 18 ? 'Boa tarde!' : 'Boa noite!');
-    document.getElementById('dataHoje').innerText = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+    document.getElementById('dataHoje').innerText = agora.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
     function getHorario(t) {
         let v = t["Horario"] || t["Horário"] || "";
@@ -125,12 +168,9 @@
         try {
             const dados = await (await fetch(WEBAPP_URL)).json();
             const ativos = (Array.isArray(dados) ? dados : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
-
             const hojeKey = dKey(agora);
             const mesAtual = agora.getMonth(), anoAtual = agora.getFullYear();
-
-            const hoje = ativos.filter(t => dKey(t["Data Viagem"]) === hojeKey)
-                .sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
+            const hoje = ativos.filter(t => dKey(t["Data Viagem"]) === hojeKey).sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
             const doMes = ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
             const valorMes = doMes.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
             const media = doMes.length ? valorMes / doMes.length : 0;
@@ -149,9 +189,8 @@
                 chLinha = new Chart(document.getElementById('chartLinha'), {
                     type: 'line',
                     data: { labels: labelsL, datasets: [{ data: dataL, borderColor: '#2c5f2d', backgroundColor: 'rgba(44,95,45,0.12)', fill: true, tension: 0.35, pointRadius: 3, pointBackgroundColor: '#2c5f2d' }] },
-                    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
                 });
-
                 const vc = {};
                 doMes.forEach(t => { let v = t["Veículo"] || '—'; vc[v] = (vc[v] || 0) + 1; });
                 const ent = Object.entries(vc).sort((a, b) => b[1] - a[1]);
@@ -162,7 +201,7 @@
                 chDonut = new Chart(document.getElementById('chartDonut'), {
                     type: 'doughnut',
                     data: { labels: labelsD.length ? labelsD : ['Sem dados'], datasets: [{ data: dataD.length ? dataD : [1], backgroundColor: ['#2c5f2d', '#4ade80', '#86efac', '#c8b88a', '#a3e635', '#d4cbb8'] }] },
-                    options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
                 });
             }
 
@@ -172,15 +211,51 @@
                 const sent = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
                 const st = (t["Status"] || 'active').toString().toLowerCase();
                 const tag = st === 'completed' ? ' · Finalizado' : (st === 'em_andamento' ? ' · Em andamento' : '');
-                return `<div class="hoje-item"><div class="hoje-hora">${getHorario(t)}</div><div class="hoje-info"><b>${t["Nome"] || '-'}</b><span>${sent} · ${t["Veículo"] || '-'}${tag}</span></div></div>`;
+                return '<div class="hoje-item"><div class="hoje-hora">' + getHorario(t) + '</div><div class="hoje-info"><b>' + (t["Nome"] || '-') + '</b><span>' + sent + ' · ' + (t["Veículo"] || '-') + tag + '</span></div></div>';
             }).join('');
         } catch (e) {
             document.getElementById('hojeLista').innerHTML = '<div class="vazio">Erro ao carregar dados.</div>';
         }
     }
 
+    function tempoIcone(code) {
+        if (code === 0) return { e: '☀️', t: 'Céu limpo' };
+        if (code === 1) return { e: '🌤️', t: 'Predom. limpo' };
+        if (code === 2) return { e: '⛅', t: 'Parc. nublado' };
+        if (code === 3) return { e: '☁️', t: 'Nublado' };
+        if (code === 45 || code === 48) return { e: '🌫️', t: 'Névoa' };
+        if (code >= 51 && code <= 57) return { e: '🌦️', t: 'Garoa' };
+        if (code >= 61 && code <= 67) return { e: '🌧️', t: 'Chuva' };
+        if (code >= 71 && code <= 77) return { e: '❄️', t: 'Neve' };
+        if (code >= 80 && code <= 82) return { e: '🌦️', t: 'Pancadas' };
+        if (code >= 95) return { e: '⛈️', t: 'Trovoadas' };
+        return { e: '🌡️', t: '—' };
+    }
+    async function carregarTempo() {
+        try {
+            const u = "https://api.open-meteo.com/v1/forecast?latitude=-22.75&longitude=-41.88&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America%2FSao_Paulo&forecast_days=3";
+            const w = await (await fetch(u)).json();
+            const at = tempoIcone(w.current.weather_code);
+            document.getElementById('tpTemp').innerText = Math.round(w.current.temperature_2m) + '°';
+            document.getElementById('tpCond').innerText = at.e + ' ' + at.t;
+            const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            let html = '';
+            for (let i = 0; i < w.daily.time.length; i++) {
+                const d = new Date(w.daily.time[i] + 'T12:00:00');
+                const ic = tempoIcone(w.daily.weather_code[i]);
+                const dia = i === 0 ? 'Hoje' : nomes[d.getDay()];
+                html += '<div class="ht-dia"><div class="d">' + dia + '</div><div class="e">' + ic.e + '</div><span class="mx">' + Math.round(w.daily.temperature_2m_max[i]) + '°</span> <span class="mn">' + Math.round(w.daily.temperature_2m_min[i]) + '°</span></div>';
+            }
+            document.getElementById('tpDias').innerHTML = html;
+        } catch (e) {
+            document.getElementById('tpCond').innerText = 'Previsão indisponível';
+        }
+    }
+
     carregar();
+    carregarTempo();
     setInterval(carregar, 5 * 60 * 1000);
+    setInterval(carregarTempo, 30 * 60 * 1000);
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
