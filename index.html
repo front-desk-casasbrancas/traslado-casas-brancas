@@ -20,6 +20,9 @@
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.92), rgba(246,242,235,0.96)); }
         .container { max-width: 800px; margin: 0 auto; }
+        .appnav { display: flex; gap: 10px; margin-bottom: 14px; }
+        .appnav a, .appnav button { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid rgba(184,153,90,0.35); color: #9c7d3f; padding: 8px 16px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .appnav a:hover, .appnav button:hover { background: #faf6ee; }
         .card {
             background: rgba(255,255,255,0.96);
             border-radius: 16px;
@@ -301,6 +304,9 @@
 </head>
 <body>
 <div class="container">
+    <div class="appnav" id="appnav" style="display:none;">
+        <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+    </div>
     <div class="card">
         <div class="card-header">
             <div class="brand-mark">
@@ -353,6 +359,7 @@
     // ==================== CONFIGURAÇÃO ====================
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
     const HOTEL_PHONE = "5522997909544";
+    const HOTEL_EMAIL = "front@casasbrancas.com.br";
 
     // Países comuns (DDI). Brasil como padrão.
     const PAISES = [
@@ -393,6 +400,12 @@
             reserva: "Número da reserva",
             telefone: "Telefone celular (WhatsApp)",
             pais: "País",
+            contatoMetodo: "Como prefere receber a confirmação?",
+            viaWhats: "WhatsApp",
+            viaEmail: "E-mail",
+            emailLabel: "E-mail",
+            erroEmail: "Informe um e-mail válido.",
+            enviarEmail: "Enviar por e-mail",
             adultos: "Adultos",
             criancas: "Crianças",
             bag23kg: "23kg",
@@ -477,6 +490,12 @@
             reserva: "Reservation number",
             telefone: "Mobile phone (WhatsApp)",
             pais: "Country",
+            contatoMetodo: "How would you like to receive the confirmation?",
+            viaWhats: "WhatsApp",
+            viaEmail: "Email",
+            emailLabel: "Email",
+            erroEmail: "Please enter a valid email.",
+            enviarEmail: "Send by email",
             adultos: "Adults",
             criancas: "Children",
             bag23kg: "23kg",
@@ -561,6 +580,12 @@
             reserva: "Número de reserva",
             telefone: "Teléfono celular (WhatsApp)",
             pais: "País",
+            contatoMetodo: "¿Cómo prefiere recibir la confirmación?",
+            viaWhats: "WhatsApp",
+            viaEmail: "Correo",
+            emailLabel: "Correo electrónico",
+            erroEmail: "Ingrese un correo válido.",
+            enviarEmail: "Enviar por correo",
             adultos: "Adultos",
             criancas: "Niños",
             bag23kg: "23kg",
@@ -743,8 +768,26 @@
         let ddi = document.getElementById("ddi")?.value || "55";
         let raw = (document.getElementById("telefone")?.value || "").trim();
         let num = raw.replace(/\D/g, "");
-        if (!num) return { display: "", whats: "", numLen: 0 };
-        return { display: `+${ddi} ${raw}`, whats: ddi + num, numLen: num.length };
+        if (!num) return { display: "", whats: "", numLen: 0, sheet: "" };
+        // sheet: sem o "+" inicial (o Sheets interpreta "+..." como fórmula e dá erro)
+        return { display: `+${ddi} ${raw}`, whats: ddi + num, numLen: num.length, sheet: `${ddi} ${raw}` };
+    }
+    function metodoContato() { return document.querySelector('input[name="contato"]:checked')?.value || 'WhatsApp'; }
+    function getEmail() { return (document.getElementById('email')?.value || '').trim(); }
+    function emailValido(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+    function toggleContato() {
+        const m = metodoContato();
+        const bw = document.getElementById('blocoWhats');
+        const be = document.getElementById('blocoEmail');
+        if (bw) bw.style.display = (m === 'WhatsApp') ? '' : 'none';
+        if (be) be.style.display = (m === 'Email') ? '' : 'none';
+        atualizarBotaoEnviar();
+    }
+    function atualizarBotaoEnviar() {
+        const t = translations[currentLang];
+        const txt = metodoContato() === 'Email' ? t.enviarEmail : t.enviar;
+        const b1 = document.getElementById('enviarBtn'); if (b1) b1.innerHTML = txt;
+        const b2 = document.getElementById('enviarBtnBar'); if (b2) b2.innerHTML = txt;
     }
 
     function totalPassageiros() {
@@ -990,17 +1033,26 @@
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step2}</div>
-                <div class="form-row"><label>${t.nome}</label><input type="text" id="nome" required></div>
-                <div class="form-row"><label>${t.reserva}</label><input type="text" id="reserva"></div>
-                <div class="form-row"><label>${t.telefone}</label>
+                <div class="form-row"><label id="lblNome">${t.nome}</label><input type="text" id="nome" required></div>
+                <div class="form-row"><label id="lblReserva">${t.reserva}</label><input type="text" id="reserva"></div>
+                <div class="form-row"><label id="lblContato">${t.contatoMetodo}</label>
+                    <div class="radio-group" id="contatoGroup">
+                        <label><input type="radio" name="contato" value="WhatsApp" checked> <span id="lblViaWhats">${t.viaWhats}</span></label>
+                        <label><input type="radio" name="contato" value="Email"> <span id="lblViaEmail">${t.viaEmail}</span></label>
+                    </div>
+                </div>
+                <div class="form-row" id="blocoWhats"><label id="lblTelefone">${t.telefone}</label>
                     <div class="tel-row">
                         <select id="ddi" title="${t.pais}">${paisOptions}</select>
                         <input type="tel" id="telefone" inputmode="tel" placeholder="(21) 99999-9999">
                     </div>
                 </div>
+                <div class="form-row" id="blocoEmail" style="display:none;"><label id="lblEmail">${t.emailLabel}</label>
+                    <input type="email" id="email" inputmode="email" placeholder="nome@email.com">
+                </div>
                 <div class="form-row" style="display:flex; gap:24px; flex-wrap:wrap;">
-                    <div><label>${t.adultos}</label>${stepperHtml('adultos', 2, 1)}</div>
-                    <div><label>${t.criancas}</label>${stepperHtml('criancas', 0, 0)}</div>
+                    <div><label id="lblAdultos">${t.adultos}</label>${stepperHtml('adultos', 2, 1)}</div>
+                    <div><label id="lblCriancas">${t.criancas}</label>${stepperHtml('criancas', 0, 0)}</div>
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step3}</div>
@@ -1052,6 +1104,7 @@
         renderVeiculos();
         bindEvents();
         bindSteppers();
+        toggleContato();
         scheduleUpdate();
     }
 
@@ -1099,7 +1152,8 @@
         const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
-        const telefone = getTelefone().display || "-";
+        const metodo = metodoContato();
+        const contatoLinha = metodo === 'Email' ? `E-mail: ${getEmail() || "-"}` : `WhatsApp: ${getTelefone().display || "-"}`;
         const adultos = document.getElementById("adultos")?.value || "0";
         const criancas = document.getElementById("criancas")?.value || "0";
         const bagagemTexto = getBagagemTexto();
@@ -1119,7 +1173,7 @@
         mensagem += `Direção: ${sentido}\n`;
         mensagem += `Hóspede: ${nome}\n`;
         mensagem += `Reserva: ${reserva}\n`;
-        mensagem += `Telefone: ${telefone}\n`;
+        mensagem += `${contatoLinha}\n`;
         mensagem += `Passageiros: ${adultos} adultos, ${criancas} crianças\n`;
         mensagem += `Bagagens: ${bagagemTexto}\n\n`;
         mensagem += `Região no Rio: ${regiao}\n`;
@@ -1173,18 +1227,24 @@
         const veiculo = document.getElementById("veiculoSelecionado")?.value;
         const nome = (document.getElementById("nome")?.value || "").trim();
         const tel = getTelefone();
+        const metodo = metodoContato();
+        const email = getEmail();
+        const contatoOk = metodo === 'Email' ? emailValido(email) : (tel.numLen >= 8);
 
         const aceite = document.getElementById("aceitePoliticas")?.checked;
         let ok = true;
         marcarErro('nome', !nome); if (!nome) ok = false;
-        marcarErro('telefone', tel.numLen < 8); if (tel.numLen < 8) ok = false;
+        if (metodo === 'Email') marcarErro('email', !contatoOk); else marcarErro('telefone', !contatoOk);
+        if (!contatoOk) ok = false;
         if (!veiculo) ok = false;
         if (!aceite) ok = false;
 
         if (!ok) {
-            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : (tel.numLen < 8 ? t.erroTelefone : t.erroAceite));
+            let msgContato = metodo === 'Email' ? t.erroEmail : t.erroTelefone;
+            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : (!contatoOk ? msgContato : t.erroAceite));
             mostrarFeedback(msg, "error");
-            let alvo = !nome ? 'nome' : (tel.numLen < 8 ? 'telefone' : (!veiculo ? 'veiculosContainer' : 'aceitePoliticas'));
+            let alvoContato = metodo === 'Email' ? 'email' : 'telefone';
+            let alvo = !nome ? 'nome' : (!contatoOk ? alvoContato : (!veiculo ? 'veiculosContainer' : 'aceitePoliticas'));
             document.getElementById(alvo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
@@ -1193,7 +1253,9 @@
             id: Date.now(),
             nome: nome,
             reserva: document.getElementById("reserva")?.value || "",
-            telefone: tel.display,
+            telefone: metodo === 'WhatsApp' ? tel.sheet : "",
+            email: metodo === 'Email' ? email : "",
+            contato: metodo,
             sentido: document.querySelector('input[name="sentido"]:checked').value,
             dataViagem: document.getElementById("dataViagem")?.value,
             horario: document.getElementById("horaEmbarque")?.value,
@@ -1219,7 +1281,12 @@
         await enviarParaGoogleSheets(dadosPlanilha);
 
         const mensagem = montarMensagem();
-        window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
+        if (metodo === 'Email') {
+            const assunto = encodeURIComponent("Solicitação de traslado - " + nome);
+            window.location.href = `mailto:${HOTEL_EMAIL}?subject=${assunto}&body=${encodeURIComponent(mensagem)}`;
+        } else {
+            window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
+        }
         mostrarSucesso();
     }
 
@@ -1246,6 +1313,9 @@
         }));
 
         document.querySelectorAll('input[name="regiao"]').forEach(r => r.addEventListener('change', () => trocarRegiao()));
+
+        document.querySelectorAll('input[name="contato"]').forEach(r => r.addEventListener('change', () => { toggleContato(); scheduleUpdate(); }));
+        document.getElementById('email')?.addEventListener('input', () => { marcarErro('email', false); scheduleUpdate(); });
 
         ['nome', 'reserva', 'telefone', 'obs', 'endereco', 'voo', 'ciaAerea'].forEach(id => {
             const el = document.getElementById(id);
@@ -1292,13 +1362,17 @@
             radios[1].querySelectorAll('label')[1].childNodes[1].textContent = " " + t.regiaoOeste;
         }
 
-        // Rótulos dos dados do hóspede (step 2)
-        const labels = document.querySelectorAll('.step-section')[1]?.querySelectorAll('.form-row label') || [];
-        if (labels[0]) labels[0].innerHTML = t.nome;
-        if (labels[1]) labels[1].innerHTML = t.reserva;
-        if (labels[2]) labels[2].innerHTML = t.telefone;
-        if (labels[3]) labels[3].innerHTML = t.adultos;
-        if (labels[4]) labels[4].innerHTML = t.criancas;
+        // Rótulos dos dados do hóspede (step 2) — por ID
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
+        setTxt('lblNome', t.nome);
+        setTxt('lblReserva', t.reserva);
+        setTxt('lblContato', t.contatoMetodo);
+        setTxt('lblViaWhats', t.viaWhats);
+        setTxt('lblViaEmail', t.viaEmail);
+        setTxt('lblTelefone', t.telefone);
+        setTxt('lblEmail', t.emailLabel);
+        setTxt('lblAdultos', t.adultos);
+        setTxt('lblCriancas', t.criancas);
 
         const obsLabel = document.getElementById("obsLabel");
         if (obsLabel) obsLabel.innerHTML = t.obs;
@@ -1348,6 +1422,7 @@
         const localFields = document.getElementById("localFields");
         if (localFields && localFields.children.length > 0) renderLocalFields();
 
+        atualizarBotaoEnviar();
         aplicarFitVeiculos();
         scheduleUpdate();
     }
@@ -1381,6 +1456,9 @@
 
     renderForm();
     translatePage();
+
+    // Mostra "Voltar" só quando há histórico (ex.: veio do menu do app)
+    if (history.length > 1) { var _an = document.getElementById('appnav'); if (_an) _an.style.display = 'flex'; }
 </script>
 </body>
 </html>

@@ -20,6 +20,9 @@
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.92), rgba(246,242,235,0.96)); }
         .container { max-width: 1500px; margin: 0 auto; }
+        .appnav { display: flex; gap: 10px; margin-bottom: 14px; }
+        .appnav a, .appnav button { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid rgba(184,153,90,0.35); color: #9c7d3f; padding: 8px 16px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .appnav a:hover, .appnav button:hover { background: #faf6ee; }
         .topo {
             position: relative; overflow: hidden; border-radius: 20px; color: #fff;
             padding: 34px 28px; margin-bottom: 18px; min-height: 140px;
@@ -112,6 +115,10 @@
         <option value="Emerson"></option>
         <option value="Erisson"></option>
     </datalist>
+    <div class="appnav">
+        <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+        <a href="menu.html">⌂ Início</a>
+    </div>
     <div class="topo">
         <div class="header-bar">
             <div>

@@ -21,6 +21,9 @@
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.93), rgba(246,242,235,0.96)); }
         .container { max-width: 1400px; margin: 0 auto; }
+        .appnav { display: flex; gap: 10px; margin-bottom: 14px; }
+        .appnav a, .appnav button { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid rgba(184,153,90,0.35); color: #9c7d3f; padding: 8px 16px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .appnav a:hover, .appnav button:hover { background: #faf6ee; }
         .topo {
             position: relative; overflow: hidden; border-radius: 20px; color: #fff;
             padding: 38px 30px; margin-bottom: 20px; min-height: 150px;
@@ -234,6 +237,10 @@
 })();
 </script>
 <div class="container">
+    <div class="appnav">
+        <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+        <a href="menu.html">⌂ Início</a>
+    </div>
     <div class="topo">
         <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
         <h1>Dashboard</h1>
@@ -338,6 +345,8 @@
         <input type="text" id="editDestino" placeholder="Ex.: Aeroporto GIG">
         <label>Veículo</label>
         <select id="editVeiculo"></select>
+        <label>Valor (R$) — editável</label>
+        <input type="number" id="editValor" min="0" step="10" inputmode="numeric">
         <div class="edit-total" id="editTotal">Total: R$ -</div>
         <div class="edit-acoes">
             <button class="btn-cancelar-edit" id="btnCancelarEdit">Cancelar</button>
@@ -603,10 +612,6 @@
 
     // ==================== CONFIRMAÇÃO WHATSAPP ====================
     function enviarConfirmacao(t) {
-        let telLimpo = formatWhatsAppPhone(t["Telefone"]);
-        if (!telLimpo) { alert("Cliente sem telefone!"); return; }
-        if (telLimpo.length < 12) { alert("Telefone inválido!"); return; }
-
         let data = formatarData(t["Data Viagem"]);
         let horario = getHorario(t);
         let endereco = t["Endereço"] || t["Endereco"] || "-";
@@ -628,6 +633,21 @@
                   `Políticas: Motorista aguarda com placa. Pagamento direto. Cancelamento 24h.\n\n` +
                   `Agradecemos a preferência!\nCasas Brancas Boutique Hotel`;
 
+        // Canal escolhido pelo hóspede no formulário
+        let metodo = (t["Contato"] || "").toString().trim().toLowerCase();
+        let email = (t["Email"] || "").toString().trim();
+        let usarEmail = (metodo === 'email') || (!t["Telefone"] && email);
+
+        if (usarEmail) {
+            if (!email) { alert("Hóspede optou por e-mail, mas não há e-mail cadastrado."); return; }
+            let assunto = encodeURIComponent((atualizado ? "Traslado atualizado" : "Confirmação do seu traslado") + " - Casas Brancas");
+            window.location.href = `mailto:${email}?subject=${assunto}&body=${encodeURIComponent(msg)}`;
+            return;
+        }
+
+        let telLimpo = formatWhatsAppPhone(t["Telefone"]);
+        if (!telLimpo) { alert("Cliente sem telefone!"); return; }
+        if (telLimpo.length < 12) { alert("Telefone inválido!"); return; }
         window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
@@ -887,8 +907,15 @@
         let val = document.getElementById('editVeiculo').value || "";
         let preco = parseFloat(val.split("::")[1]) || 0;
         let total = preco + (editando ? extrasDoTransfer(editando) : 0);
+        const ev = document.getElementById('editValor'); if (ev) ev.value = total;
         document.getElementById('editTotal').innerText = 'Total: R$ ' + total.toLocaleString('pt-BR');
         return total;
+    }
+    // Atualiza o "Total" exibido a partir do valor digitado manualmente
+    function atualizarTotalManual() {
+        const ev = document.getElementById('editValor');
+        const v = parseFloat(ev && ev.value) || 0;
+        document.getElementById('editTotal').innerText = 'Total: R$ ' + v.toLocaleString('pt-BR');
     }
     function abrirEdicao(t) {
         editando = transferPorId(t["ID"]) || t;
@@ -901,6 +928,9 @@
         sel.innerHTML = montarOpcoesVeiculo(regiaoKey(editando));
         for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"]) { o.selected = true; break; } }
         recalcularTotalEdit();
+        // Mostra o valor atual do transfer (permitindo edição manual)
+        const evv = document.getElementById('editValor');
+        if (evv) { let atual = parseFloat(editando["Valor Total"]); if (!isNaN(atual)) evv.value = atual; atualizarTotalManual(); }
         document.getElementById('editPosAjuste').style.display = 'none';
         document.getElementById('editOverlay').classList.add('show');
     }
@@ -912,7 +942,8 @@
         let novaHora = document.getElementById('editHora').value;
         let novoDestino = document.getElementById('editDestino').value;
         let novoVeiculo = (document.getElementById('editVeiculo').value || "").split("::")[0];
-        let total = recalcularTotalEdit();
+        let total = parseFloat(document.getElementById('editValor').value);
+        if (isNaN(total)) total = recalcularTotalEdit();
         editando["Data Viagem"] = novaData;
         editando["Horario"] = novaHora;
         editando["Endereço"] = novoDestino;
@@ -989,6 +1020,7 @@
     });
 
     document.getElementById('editVeiculo').addEventListener('change', recalcularTotalEdit);
+    document.getElementById('editValor').addEventListener('input', atualizarTotalManual);
     document.getElementById('btnAjustar').addEventListener('click', aplicarEdicao);
     document.getElementById('btnCancelarEdit').addEventListener('click', fecharEdicao);
     document.getElementById('btnNovaConf').addEventListener('click', () => { if (editando) enviarConfirmacao(editando); fecharEdicao(); });

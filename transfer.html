@@ -15,6 +15,9 @@
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.90), rgba(246,242,235,0.95)); }
         .card { max-width: 560px; margin: 0 auto; background: rgba(255,255,255,0.95); border-radius: 18px; border: 1px solid rgba(184,153,90,0.28); box-shadow: 0 14px 40px rgba(40,36,28,0.16); overflow: hidden; }
+        .appnav { max-width: 560px; margin: 0 auto 14px; display: flex; gap: 10px; }
+        .appnav a, .appnav button { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid rgba(184,153,90,0.35); color: #9c7d3f; padding: 8px 16px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .appnav a:hover, .appnav button:hover { background: #faf6ee; }
         .head { position: relative; overflow: hidden; padding: 30px 24px; min-height: 120px; color: #fff; background-image: linear-gradient(100deg, rgba(30,28,23,0.74) 0%, rgba(30,28,23,0.40) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 52%; }
         .brand { font-size: .72rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; }
         .head h1 { font-size: 1.7rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; color: #fff; margin-top: 4px; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
@@ -39,6 +42,10 @@
     </style>
 </head>
 <body>
+<div class="appnav">
+    <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+    <a href="menu.html">⌂ Início</a>
+</div>
 <div class="card">
     <div class="head">
         <div class="brand">CASAS BRANCAS · MF TRANSPORTE</div>
