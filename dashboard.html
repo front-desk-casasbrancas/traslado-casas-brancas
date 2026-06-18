@@ -264,6 +264,7 @@
     <div id="errorDisplay" class="error-message"></div>
 
     <div id="tab-dashboard" class="tab-content active">
+        <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
         <div class="table-container">
             <h3>Próximos traslados</h3>
             <div id="proximosConteudo" class="proximos-grid" style="margin-top:12px;">
@@ -298,6 +299,26 @@
                 <button class="refresh-btn" id="exportarPdfBtn">📄 Exportar PDF</button>
             </div>
             <div id="comissaoDetalhe"></div>
+        </div>
+
+        <div class="table-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <h3>Por motorista (período selecionado)</h3>
+                <button class="refresh-btn" id="exportarMotoristaBtn" style="background:#8b7a5c;">📄 PDF por motorista</button>
+            </div>
+            <div id="porMotorista"></div>
+        </div>
+
+        <div class="table-container">
+            <h3>Pagamento de comissão (por mês)</h3>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:12px 0;">
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Mês de referência</label><input type="month" id="pgMes" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"></div>
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Forma de pagamento</label><select id="pgForma" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"><option>Pix</option><option>Dinheiro</option></select></div>
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Data do pagamento</label><input type="date" id="pgData" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"></div>
+                <button class="refresh-btn" id="pgRegistrar">✓ Marcar como pago</button>
+                <button class="refresh-btn" id="pgRecibo" style="background:#8b7a5c;">🧾 Gerar recibo (PDF)</button>
+            </div>
+            <div id="pgResumo"></div>
         </div>
     </div>
 
@@ -366,6 +387,7 @@
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
+    let pagamentos = [];
     let autoRefreshTimer = null;
     let editando = null;
 
@@ -514,13 +536,68 @@
             document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
             updateDashboard();
             renderProximos();
+            renderConflitos();
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
+            carregarPagamentos();
         } catch(e) {
             console.error(e);
             document.getElementById('errorDisplay').style.display = 'block';
             document.getElementById('errorDisplay').innerHTML = 'Erro ao carregar dados: ' + e.message;
         }
+    }
+
+    async function carregarPagamentos() {
+        try {
+            const r = await fetch(WEBAPP_URL + '?action=pagamentos');
+            const d = await r.json();
+            pagamentos = Array.isArray(d) ? d : [];
+        } catch (e) { if (!Array.isArray(pagamentos)) pagamentos = []; }
+        renderPagamento();
+    }
+
+    // ==================== CONFLITOS NA AGENDA ====================
+    function inicioDateTime(t) {
+        let d = new Date(t["Data Viagem"]);
+        if (isNaN(d.getTime())) return null;
+        let h = getHorario(t); let m = (h || '').match(/^(\d{1,2}):(\d{2})/);
+        let hh = m ? parseInt(m[1]) : 0, mm = m ? parseInt(m[2]) : 0;
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh, mm, 0);
+    }
+    function renderConflitos() {
+        const box = document.getElementById('conflitosBox');
+        if (!box) return;
+        const agora = new Date();
+        const hoje0 = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+        let lista = transfers.filter(t => !isCancelled(t))
+            .map(t => ({ t: t, ini: inicioDateTime(t) }))
+            .filter(x => x.ini && x.ini >= hoje0)
+            .sort((a, b) => a.ini - b.ini);
+        let conflitos = [];
+        for (let i = 0; i < lista.length; i++) {
+            for (let j = i + 1; j < lista.length; j++) {
+                let a = lista[i], b = lista[j];
+                let diffMin = Math.abs(a.ini - b.ini) / 60000;
+                if (diffMin > 180) break; // lista ordenada: além de 3h não há mais sobreposição
+                let mA = (a.t["Motorista"] || '').toString().trim();
+                let mB = (b.t["Motorista"] || '').toString().trim();
+                let vA = (a.t["Veículo"] || '').toString().trim();
+                let vB = (b.t["Veículo"] || '').toString().trim();
+                let mesmoMot = mA && mA === mB;
+                let mesmoVei = vA && vA === vB;
+                if (mesmoMot || mesmoVei) {
+                    conflitos.push({ a: a.t, b: b.t, motivo: mesmoMot ? ('Motorista: ' + mA) : ('Veículo: ' + vA) });
+                }
+            }
+        }
+        if (!conflitos.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.style.display = 'block';
+        box.innerHTML = '<strong>⚠️ Possíveis conflitos de agenda (' + conflitos.length + ')</strong>' +
+            conflitos.map(c =>
+                `<div style="margin-top:8px;font-size:0.85rem;line-height:1.5;">${c.motivo}<br>` +
+                `• ${formatarData(c.a["Data Viagem"])} <b>${getHorario(c.a)}</b> — ${c.a["Nome"] || '-'} (${c.a["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio"})<br>` +
+                `• ${formatarData(c.b["Data Viagem"])} <b>${getHorario(c.b)}</b> — ${c.b["Nome"] || '-'} (${c.b["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio"})</div>`
+            ).join('');
     }
 
     // ==================== PRÓXIMOS TRASLADOS (HOJE / AMANHÃ) ====================
@@ -806,7 +883,176 @@
             <\/tbody><\/table>
         `;
 
+        // ---- Por motorista (período selecionado) ----
+        let porMot = {};
+        filtered.forEach(t => {
+            let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)';
+            if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 };
+            porMot[m].qtd++;
+            porMot[m].total += parseFloat(t["Valor Total"]) || 0;
+        });
+        let linhasMot = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) =>
+            `<tr><td>${m}<\/td><td>${d.qtd}<\/td><td>R$ ${d.total.toLocaleString('pt-BR')}<\/td><td>R$ ${(d.total * 0.15).toLocaleString('pt-BR')}<\/td><\/tr>`).join('');
+        document.getElementById('porMotorista').innerHTML =
+            `<table style="width:100%"><thead><tr><th>Motorista<\/th><th>Traslados<\/th><th>Total em traslados<\/th><th>Comissão (15%)<\/th><\/tr><\/thead><tbody>${linhasMot || '<tr><td colspan="4">Sem traslados no período.<\/td><\/tr>'}<\/tbody><\/table>`;
+
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
+    }
+
+    // ==================== PAGAMENTO DE COMISSÃO + RECIBO ====================
+    function mesLabel(yyyymm) {
+        if (!yyyymm) return '-';
+        let [y, m] = yyyymm.split('-');
+        let nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        return (nomes[parseInt(m) - 1] || '') + ' de ' + y;
+    }
+    function transfersDoMesRef(yyyymm) {
+        return transfers.filter(t => !isCancelled(t)).filter(t => {
+            let d = new Date(t["Data Viagem"]);
+            if (isNaN(d.getTime())) return false;
+            let ref = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            return ref === yyyymm;
+        });
+    }
+    function pagamentoDoMes(yyyymm) {
+        return pagamentos.find(p => (p["Mes"] || '').toString() === yyyymm) || null;
+    }
+    function totaisMes(yyyymm) {
+        let lista = transfersDoMesRef(yyyymm);
+        let total = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        return { qtd: lista.length, total: total, comissao: total * 0.15 };
+    }
+    function renderPagamento() {
+        let mes = document.getElementById('pgMes').value;
+        let cont = document.getElementById('pgResumo');
+        if (!mes) { cont.innerHTML = '<div style="color:#8a8270;font-size:0.85rem;">Selecione um mês.</div>'; return; }
+        let tt = totaisMes(mes);
+        let pg = pagamentoDoMes(mes);
+        let statusHtml = pg
+            ? `<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#e6f0f2;color:#2f7d8c;">PAGO em ${pg["Data"] || '-'} · ${pg["Forma"] || '-'}</span>`
+            : `<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#fff3cd;color:#8a6d1b;">Em aberto</span>`;
+        cont.innerHTML =
+            `<table style="width:100%"><tbody>
+                <tr><td>Mês de referência<\/td><td><strong>${mesLabel(mes)}<\/strong><\/td><\/tr>
+                <tr><td>Traslados no mês<\/td><td>${tt.qtd}<\/td><\/tr>
+                <tr><td>Total em traslados<\/td><td>R$ ${tt.total.toLocaleString('pt-BR')}<\/td><\/tr>
+                <tr><td>Comissão (15%)<\/td><td><strong>R$ ${tt.comissao.toLocaleString('pt-BR')}<\/strong><\/td><\/tr>
+                <tr><td>Situação<\/td><td>${statusHtml}<\/td><\/tr>
+            <\/tbody><\/table>`;
+    }
+    function registrarPagamento() {
+        let mes = document.getElementById('pgMes').value;
+        if (!mes) { alert('Selecione o mês de referência.'); return; }
+        let tt = totaisMes(mes);
+        if (tt.qtd === 0 && !confirm('Este mês não tem traslados. Marcar como pago mesmo assim?')) return;
+        let forma = document.getElementById('pgForma').value;
+        let dataPg = document.getElementById('pgData').value;
+        let dataBR = dataPg ? dataPg.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
+        if (!confirm(`Confirmar pagamento da comissão de ${mesLabel(mes)} (R$ ${tt.comissao.toLocaleString('pt-BR')}) via ${forma}?`)) return;
+        let registro = { Mes: mes, Total: tt.total, Comissao: tt.comissao, Forma: forma, Data: dataBR, Qtd: tt.qtd };
+        // atualiza local
+        let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
+        if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
+        // envia para a planilha
+        try {
+            fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'pagamentoComissao', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) });
+        } catch (e) { console.error(e); }
+        renderPagamento();
+        alert('Pagamento registrado.');
+    }
+    function gerarReciboPDF() {
+        let mes = document.getElementById('pgMes').value;
+        if (!mes) { alert('Selecione o mês de referência.'); return; }
+        let tt = totaisMes(mes);
+        let pg = pagamentoDoMes(mes);
+        let forma = pg ? (pg["Forma"] || '-') : document.getElementById('pgForma').value;
+        let dataPg = pg ? (pg["Data"] || '-') : (document.getElementById('pgData').value ? document.getElementById('pgData').value.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR'));
+        let pago = !!pg;
+        let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+            <title>Recibo de Comissão - Casas Brancas</title>
+            <style>
+                body { font-family: 'Georgia', serif; color: #2b2a26; padding: 48px 44px; max-width: 720px; margin: 0 auto; }
+                .top { text-align: center; border-bottom: 2px solid #9c7d3f; padding-bottom: 14px; margin-bottom: 26px; }
+                .brand { font-style: italic; font-size: 1.8rem; color: #9c7d3f; }
+                .brand small { display:block; font-family: Arial, sans-serif; font-style: normal; letter-spacing: 2px; font-size: 0.62rem; color: #8a7a55; margin-top: 4px; }
+                h1 { font-size: 1.15rem; margin: 0 0 18px; font-family: Arial, sans-serif; }
+                .corpo { font-family: Arial, sans-serif; font-size: 0.95rem; line-height: 1.8; }
+                .valor { font-size: 1.5rem; font-weight: bold; color: #9c7d3f; }
+                table { width: 100%; border-collapse: collapse; margin: 18px 0; font-family: Arial, sans-serif; font-size: 0.9rem; }
+                td { padding: 7px 6px; border-bottom: 1px solid #eee; }
+                td:last-child { text-align: right; font-weight: 600; }
+                .status { display:inline-block; padding: 4px 14px; border-radius: 40px; font-family: Arial, sans-serif; font-size: 0.8rem; font-weight: 700; }
+                .pago { background:#e6f0f2; color:#2f7d8c; } .aberto { background:#fff3cd; color:#8a6d1b; }
+                .assinaturas { display: flex; gap: 30px; margin-top: 70px; font-family: Arial, sans-serif; }
+                .assinaturas div { flex: 1; text-align: center; border-top: 1px solid #2b2a26; padding-top: 8px; font-size: 0.8rem; }
+                @media print { .noprint { display: none; } }
+            </style></head><body>
+            <div class="top"><div class="brand">Casas Brancas<small>BOUTIQUE-HOTEL & SPA · BÚZIOS</small></div></div>
+            <h1>RECIBO DE COMISSÃO</h1>
+            <div class="corpo">
+                <p>Declaramos, para os devidos fins, ter recebido de <strong>MF Transporte Executivo</strong> a importância de
+                <span class="valor">R$ ${tt.comissao.toLocaleString('pt-BR')}</span>, referente à <strong>comissão de 15%</strong>
+                sobre os traslados realizados no mês de <strong>${mesLabel(mes)}</strong>.</p>
+                <table>
+                    <tr><td>Mês de referência</td><td>${mesLabel(mes)}</td></tr>
+                    <tr><td>Quantidade de traslados</td><td>${tt.qtd}</td></tr>
+                    <tr><td>Total em traslados</td><td>R$ ${tt.total.toLocaleString('pt-BR')}</td></tr>
+                    <tr><td>Comissão (15%)</td><td>R$ ${tt.comissao.toLocaleString('pt-BR')}</td></tr>
+                    <tr><td>Forma de pagamento</td><td>${forma}</td></tr>
+                    <tr><td>Data do pagamento</td><td>${dataPg}</td></tr>
+                    <tr><td>Situação</td><td><span class="status ${pago ? 'pago' : 'aberto'}">${pago ? 'PAGO' : 'EM ABERTO'}</span></td></tr>
+                </table>
+                <p>Búzios, ${new Date().toLocaleDateString('pt-BR')}.</p>
+            </div>
+            <div class="assinaturas">
+                <div>MF Transporte Executivo</div>
+                <div>Financeiro</div>
+                <div>Recepção</div>
+            </div>
+            <button class="noprint" onclick="window.print()" style="margin-top:30px;padding:10px 18px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Arial;">Imprimir / Salvar PDF</button>
+            </body></html>`;
+        let win = window.open('', '_blank');
+        if (!win) { alert('Permita pop-ups neste site para gerar o recibo.'); return; }
+        win.document.write(html); win.document.close(); win.focus();
+    }
+    function exportarMotoristaPDF() {
+        let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
+        let lista = transfersDoPeriodo(currentPeriodo);
+        let porMot = {};
+        lista.forEach(t => {
+            let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)';
+            if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 };
+            porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0;
+        });
+        let linhas = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) =>
+            `<tr><td>${m}</td><td style="text-align:center;">${d.qtd}</td><td style="text-align:right;">R$ ${d.total.toLocaleString('pt-BR')}</td><td style="text-align:right;">R$ ${(d.total * 0.15).toLocaleString('pt-BR')}</td></tr>`).join('');
+        let totGeral = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+            <title>Relatório por Motorista - Casas Brancas</title>
+            <style>
+                body { font-family: Arial, Helvetica, sans-serif; color: #2b2a26; padding: 30px; }
+                h1 { font-size: 1.25rem; color: #9c7d3f; margin-bottom: 4px; }
+                .sub { color: #8a7a55; font-size: 0.85rem; margin-bottom: 18px; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.86rem; }
+                th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background: #f3ecdd; color: #9c7d3f; }
+                tfoot td { font-weight: bold; border-top: 2px solid #9c7d3f; }
+                @media print { .noprint { display: none; } }
+            </style></head><body>
+            <h1>Relatório por Motorista — Casas Brancas</h1>
+            <div class="sub">Período: ${labels[currentPeriodo] || 'Todos'} · Gerado em ${new Date().toLocaleString('pt-BR')}</div>
+            <button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>
+            <table>
+                <thead><tr><th>Motorista</th><th style="text-align:center;">Traslados</th><th style="text-align:right;">Total em traslados</th><th style="text-align:right;">Comissão (15%)</th></tr></thead>
+                <tbody>${linhas || '<tr><td colspan="4">Sem traslados no período.</td></tr>'}</tbody>
+                <tfoot><tr><td>Total</td><td style="text-align:center;">${lista.length}</td><td style="text-align:right;">R$ ${totGeral.toLocaleString('pt-BR')}</td><td style="text-align:right;">R$ ${(totGeral * 0.15).toLocaleString('pt-BR')}</td></tr></tfoot>
+            </table>
+            </body></html>`;
+        let win = window.open('', '_blank');
+        if (!win) { alert('Permita pop-ups neste site para exportar o PDF.'); return; }
+        win.document.write(html); win.document.close(); win.focus();
+        setTimeout(() => { try { win.print(); } catch (e) {} }, 600);
     }
 
     // ==================== EXPORTAR COMISSÕES EM PDF ====================
@@ -1024,6 +1270,18 @@
     document.getElementById('btnAjustar').addEventListener('click', aplicarEdicao);
     document.getElementById('btnCancelarEdit').addEventListener('click', fecharEdicao);
     document.getElementById('btnNovaConf').addEventListener('click', () => { if (editando) enviarConfirmacao(editando); fecharEdicao(); });
+
+    // Pagamento de comissão / recibo / relatório por motorista
+    document.getElementById('exportarMotoristaBtn').addEventListener('click', exportarMotoristaPDF);
+    document.getElementById('pgMes').addEventListener('change', renderPagamento);
+    document.getElementById('pgRegistrar').addEventListener('click', registrarPagamento);
+    document.getElementById('pgRecibo').addEventListener('click', gerarReciboPDF);
+    (function initPagamento() {
+        let now = new Date();
+        let mesStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        let pgM = document.getElementById('pgMes'); if (pgM && !pgM.value) pgM.value = mesStr;
+        let pgD = document.getElementById('pgData'); if (pgD && !pgD.value) pgD.value = now.toISOString().slice(0, 10);
+    })();
 
     setupAutoRefresh();
     carregarDados();
