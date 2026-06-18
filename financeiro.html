@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas - Financeiro</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2b2a26">
+    <link rel="apple-touch-icon" href="icon-192-v3.png">
+    <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; padding: 20px; color: #34322c; min-height: 100vh; position: relative; }
+        body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
+        body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.93), rgba(246,242,235,0.96)); }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .appnav { display: flex; gap: 10px; margin-bottom: 14px; }
+        .appnav a, .appnav button { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.92); border: 1px solid rgba(184,153,90,0.35); color: #9c7d3f; padding: 8px 16px; border-radius: 40px; font-size: 0.82rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+        .appnav a:hover, .appnav button:hover { background: #faf6ee; }
+        .topo { position: relative; overflow: hidden; border-radius: 20px; color: #fff; padding: 38px 30px; margin-bottom: 20px; min-height: 150px; display: flex; flex-direction: column; justify-content: center; background-image: linear-gradient(100deg, rgba(30,28,23,0.78) 0%, rgba(30,28,23,0.40) 55%, rgba(30,28,23,0.12) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 58%; box-shadow: 0 12px 32px rgba(40,36,28,0.18); }
+        .topo .brandline { font-size: 0.68rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; margin-bottom: 6px; }
+        .topo h1 { font-size: 1.8rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab-btn { background: rgba(255,255,255,0.92); border: 1px solid #d8cbb0; padding: 10px 20px; border-radius: 40px; font-weight: 500; cursor: pointer; color: #8a7a55; }
+        .tab-btn.active { background: var(--gold); border-color: var(--gold); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .table-container { background: rgba(255,255,255,0.95); border-radius: 16px; padding: 20px; overflow-x: auto; margin-bottom: 20px; border: 1px solid rgba(184,153,90,0.25); box-shadow: 0 6px 20px rgba(40,36,28,0.06); }
+        .table-container h3 { color: var(--gold-d); font-size: 0.95rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #efe9dd; font-size: 0.85rem; }
+        th { background: #faf6ee; font-weight: 600; color: var(--gold-d); }
+        .month-group td { background: #f3ecdd; padding: 12px; font-weight: 600; color: var(--gold-d); }
+        .completed-row td { background: #f5f1e8; color: #8a8270; }
+        .cancelled-row td { background: #f8d7da; text-decoration: line-through; color: #721c24; }
+        .andamento-row td { background: #fff8e6; }
+        .tag-andamento { display: inline-block; font-size: 0.62rem; font-weight: 700; color: #8a6d1b; background: #fff3cd; padding: 1px 7px; border-radius: 40px; }
+        .comissao-card { background: linear-gradient(135deg, #b8995a, #9c7d3f); color: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 28px rgba(156,125,63,0.28); }
+        .comissao-valor { font-size: 2.5rem; font-weight: 700; }
+        .comissao-periodo { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+        .periodo-btn { background: rgba(255,255,255,0.2); border: none; padding: 8px 16px; border-radius: 40px; color: white; cursor: pointer; }
+        .periodo-btn.active { background: #fff; color: var(--gold-d); font-weight: 600; }
+        .refresh-btn { background: linear-gradient(135deg, var(--gold), var(--gold-d)); color: white; border: none; padding: 10px 20px; border-radius: 40px; cursor: pointer; }
+        .vb { display: inline-block; font-size: 0.66rem; font-weight: 700; padding: 1px 8px; border-radius: 40px; margin-left: 5px; }
+        .vb-green { background: #e6f0f2; color: var(--sea); }
+        .vb-amber { background: #fff3cd; color: #8a6d1b; }
+        .vb-blue { background: #e6f1fb; color: #0c447c; }
+        .vb-red { background: #faecec; color: #b85c5a; }
+        .vb-gray { background: #f0ede5; color: #8a8270; }
+        .voo-status { display: inline-block; font-size: 0.66rem; color: #8a8270; margin-left: 5px; }
+        .last-update { font-size: 0.8rem; color: #8a8270; margin-bottom: 16px; }
+        .error-message { background: #faecec; color: #b85c5a; padding: 16px; border-radius: 16px; margin-bottom: 20px; display: none; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 16px; }
+        .filtros-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+        .filtros-bar input, .filtros-bar select { padding: 9px 12px; border: 1px solid #d8cbb0; border-radius: 10px; font-size: 0.85rem; background: #fff; color: #34322c; }
+        .filtros-bar input.busca { flex: 1; min-width: 180px; }
+        .status-tag { padding: 3px 10px; border-radius: 40px; font-size: 0.72rem; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
+    <div style="background:#fff; padding:32px 28px; border-radius:18px; max-width:320px; width:90%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,0.35);">
+        <div style="font-family:'Georgia',serif; font-style:italic; color:#9c7d3f; font-size:1.5rem;">Casas Brancas</div>
+        <div style="font-size:0.8rem; color:#8a8270; margin:4px 0 18px;">Financeiro · área restrita</div>
+        <input type="password" id="authInput" placeholder="Senha" style="width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:12px;">
+        <button id="authBtn" style="width:100%; padding:12px; background:linear-gradient(135deg,#b8995a,#9c7d3f); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer;">Entrar</button>
+        <div id="authErro" style="color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none;">Senha incorreta</div>
+    </div>
+</div>
+<script>
+(function () {
+    var SENHA = "Casas1458";
+    function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
+    var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
+    function tentar() { if (i.value === SENHA) { liberar(); } else { document.getElementById('authErro').style.display = 'block'; i.value = ''; } }
+    b.addEventListener('click', tentar);
+    i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
+    i.focus();
+})();
+</script>
+
+<div class="container">
+    <div class="appnav">
+        <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+        <a href="menu.html">⌂ Início</a>
+    </div>
+    <div class="topo">
+        <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
+        <h1>Financeiro</h1>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="comissao">Comissões (15%)</button>
+        <button class="tab-btn" data-tab="lista">Lista de Transfers</button>
+    </div>
+
+    <div class="header-actions">
+        <div class="last-update" id="lastUpdate">Carregando dados...</div>
+        <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:0.8rem; color:#8a7a55; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" id="autoRefresh" checked> Atualizar automaticamente
+            </label>
+            <button class="refresh-btn" id="refreshBtn">Atualizar Dados</button>
+        </div>
+    </div>
+
+    <div id="errorDisplay" class="error-message"></div>
+
+    <div id="tab-comissao" class="tab-content active">
+        <div class="comissao-card">
+            <div style="font-size: 0.9rem; opacity: 0.9;">Comissão de 15% sobre todos os traslados</div>
+            <div class="comissao-valor" id="comissaoTotal">R$ -</div>
+            <div class="comissao-periodo">
+                <button class="periodo-btn active" data-periodo="todos">Todos</button>
+                <button class="periodo-btn" data-periodo="mesAtual">Este mês</button>
+                <button class="periodo-btn" data-periodo="mesAnterior">Mês passado</button>
+                <button class="periodo-btn" data-periodo="trimestre">3 meses</button>
+            </div>
+        </div>
+        <div class="table-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <h3>Detalhamento por período</h3>
+                <button class="refresh-btn" id="exportarPdfBtn">📄 Exportar PDF</button>
+            </div>
+            <div id="comissaoDetalhe"></div>
+        </div>
+        <div class="table-container">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <h3>Por motorista (período selecionado)</h3>
+                <button class="refresh-btn" id="exportarMotoristaBtn" style="background:#8b7a5c;">📄 PDF por motorista</button>
+            </div>
+            <div id="porMotorista"></div>
+        </div>
+        <div class="table-container">
+            <h3>Pagamento de comissão (por mês)</h3>
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:12px 0;">
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Mês de referência</label><input type="month" id="pgMes" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"></div>
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Forma de pagamento</label><select id="pgForma" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"><option>Pix</option><option>Dinheiro</option></select></div>
+                <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Data do pagamento</label><input type="date" id="pgData" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"></div>
+                <button class="refresh-btn" id="pgRegistrar">✓ Marcar como pago</button>
+                <button class="refresh-btn" id="pgRecibo" style="background:#8b7a5c;">🧾 Gerar recibo (PDF)</button>
+            </div>
+            <div id="pgResumo"></div>
+        </div>
+    </div>
+
+    <div id="tab-lista" class="tab-content">
+        <div class="table-container">
+            <div class="filtros-bar">
+                <input type="text" id="filtroBusca" class="busca" placeholder="Buscar por nome ou telefone...">
+                <input type="date" id="filtroData" title="Filtrar por data da viagem">
+                <select id="filtroStatus" title="Filtrar por status">
+                    <option value="todos">Todos os status</option>
+                    <option value="ativos">Apenas ativos</option>
+                    <option value="finalizados">Finalizados</option>
+                    <option value="cancelados">Cancelados</option>
+                </select>
+                <select id="filtroSentido" title="Filtrar por sentido">
+                    <option value="todos">Ambos os sentidos</option>
+                    <option value="IN">Rio → Búzios</option>
+                    <option value="OUT">Búzios → Rio</option>
+                </select>
+                <button class="refresh-btn" id="limparFiltros" style="background:#8b7a5c;">Limpar</button>
+            </div>
+            <div style="overflow-x:auto; max-height:560px; overflow-y:auto;">
+                <table>
+                    <thead>
+                        <tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Contato</th><th>Sentido</th><th>Endereço / Local</th><th>Voo</th><th>Veículo</th><th>Valor</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="historyBody">
+                        <tr><td colspan="10" style="text-align:center;">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    const AUTO_REFRESH_MIN = 5;
+    let transfers = [];
+    let pagamentos = [];
+    let currentPeriodo = 'todos';
+    let autoRefreshTimer = null;
+
+    // ===== HELPERS =====
+    function getHorario(t) {
+        let h = t["Horario"] || t["Horário"] || t["horario"] || "";
+        if (h === null || h === undefined || h === "") return "-";
+        h = h.toString().trim();
+        let m = h.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if (m) { let s = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) - (6 * 60 + 28); s = ((s % 86400) + 86400) % 86400; return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor((s % 3600) / 60)).padStart(2, '0'); }
+        m = h.match(/T(\d{2}):(\d{2})/); if (m) return m[1] + ':' + m[2];
+        m = h.match(/^(\d{1,2}):(\d{2})/); if (m) return m[1].padStart(2, '0') + ':' + m[2];
+        return h;
+    }
+    function dateKeyFromDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function dataKey(t) { if (!t || !t["Data Viagem"]) return null; let d = new Date(t["Data Viagem"]); return isNaN(d.getTime()) ? null : dateKeyFromDate(d); }
+    function formatarData(v) { if (!v) return "-"; let d = new Date(v); if (isNaN(d.getTime())) return "-"; return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+    function getStatus(t) { return (t["Status"] || 'active').toString().toLowerCase() || 'active'; }
+    function isCompleted(t) { return getStatus(t) === 'completed'; }
+    function isCancelled(t) { return getStatus(t) === 'cancelled'; }
+
+    // ===== CARREGAR =====
+    async function carregarDados() {
+        try {
+            const r = await fetch(WEBAPP_URL);
+            const d = await r.json();
+            transfers = Array.isArray(d) ? d : [];
+            document.getElementById('lastUpdate').innerHTML = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' (' + transfers.length + ' traslados)';
+            updateComissaoTab(currentPeriodo);
+            updateHistoryTable();
+            carregarPagamentos();
+        } catch (e) {
+            console.error(e);
+            const err = document.getElementById('errorDisplay');
+            err.style.display = 'block'; err.innerHTML = 'Erro ao carregar dados: ' + e.message;
+        }
+    }
+    async function carregarPagamentos() {
+        try { const r = await fetch(WEBAPP_URL + '?action=pagamentos'); const d = await r.json(); pagamentos = Array.isArray(d) ? d : []; }
+        catch (e) { if (!Array.isArray(pagamentos)) pagamentos = []; }
+        renderPagamento();
+    }
+
+    // ===== COMISSÕES =====
+    function transfersDoPeriodo(periodo) {
+        let now = new Date(), mesAtual = now.getMonth(), anoAtual = now.getFullYear();
+        let mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1, anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+        let tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
+        let ativos = transfers.filter(t => !isCancelled(t));
+        if (periodo === 'mesAtual') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
+        if (periodo === 'trimestre') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
+        return ativos;
+    }
+    function updateComissaoTab(periodo = 'todos') {
+        currentPeriodo = periodo;
+        let ativos = transfers.filter(t => !isCancelled(t));
+        let filtered = transfersDoPeriodo(periodo);
+        let total = filtered.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        document.getElementById('comissaoTotal').innerHTML = 'R$ ' + (total * 0.15).toLocaleString('pt-BR');
+        let totalGeral = ativos.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let totalMA = transfersDoPeriodo('mesAtual').reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let totalMP = transfersDoPeriodo('mesAnterior').reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let total3M = transfersDoPeriodo('trimestre').reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        document.getElementById('comissaoDetalhe').innerHTML =
+            '<table style="width:100%"><thead><tr><th>Período</th><th>Total em Traslados</th><th>Comissão (15%)</th></tr></thead><tbody>' +
+            '<tr><td>Todos os períodos</td><td>R$ ' + totalGeral.toLocaleString('pt-BR') + '</td><td>R$ ' + (totalGeral * 0.15).toLocaleString('pt-BR') + '</td></tr>' +
+            '<tr><td>Este mês</td><td>R$ ' + totalMA.toLocaleString('pt-BR') + '</td><td>R$ ' + (totalMA * 0.15).toLocaleString('pt-BR') + '</td></tr>' +
+            '<tr><td>Mês passado</td><td>R$ ' + totalMP.toLocaleString('pt-BR') + '</td><td>R$ ' + (totalMP * 0.15).toLocaleString('pt-BR') + '</td></tr>' +
+            '<tr><td>Últimos 3 meses</td><td>R$ ' + total3M.toLocaleString('pt-BR') + '</td><td>R$ ' + (total3M * 0.15).toLocaleString('pt-BR') + '</td></tr>' +
+            '</tbody></table>';
+        // por motorista
+        let porMot = {};
+        filtered.forEach(t => { let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 }; porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0; });
+        let linhasMot = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => '<tr><td>' + m + '</td><td>' + d.qtd + '</td><td>R$ ' + d.total.toLocaleString('pt-BR') + '</td><td>R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
+        document.getElementById('porMotorista').innerHTML = '<table style="width:100%"><thead><tr><th>Motorista</th><th>Traslados</th><th>Total em traslados</th><th>Comissão (15%)</th></tr></thead><tbody>' + (linhasMot || '<tr><td colspan="4">Sem traslados no período.</td></tr>') + '</tbody></table>';
+        document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
+    }
+    function exportarComissaoPDF() {
+        let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
+        let lista = [...transfersDoPeriodo(currentPeriodo)].sort((a, b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let totalTraslados = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let totalComissao = totalTraslados * 0.15;
+        let linhas = lista.map(t => { let v = parseFloat(t["Valor Total"]) || 0; return '<tr><td>' + formatarData(t["Data Viagem"]) + '</td><td>' + getHorario(t) + '</td><td>' + (t["Nome"] || '-') + '</td><td>' + (t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio") + '</td><td>' + (t["Veículo"] || '-') + '</td><td style="text-align:right;">R$ ' + v.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + (v * 0.15).toLocaleString('pt-BR') + '</td></tr>'; }).join('');
+        let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Comissões - Casas Brancas</title><style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{font-size:1.25rem;color:#9c7d3f;margin-bottom:4px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:18px;}.tot{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap;}.tot div{background:#f3ecdd;border:1px solid #e0d4b5;border-radius:8px;padding:12px 18px;}.tot strong{font-size:1.2rem;color:#9c7d3f;}table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82rem;}th,td{border-bottom:1px solid #ddd;padding:7px 8px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}tfoot td{font-weight:bold;border-top:2px solid #9c7d3f;}@media print{.noprint{display:none;}}</style></head><body>' +
+            '<h1>Relatório de Comissões — Casas Brancas</h1><div class="sub">Período: ' + (labels[currentPeriodo] || 'Todos') + ' · Gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + lista.length + ' traslados</div>' +
+            '<div class="tot"><div>Total em traslados<br><strong>R$ ' + totalTraslados.toLocaleString('pt-BR') + '</strong></div><div>Comissão (15%)<br><strong>R$ ' + totalComissao.toLocaleString('pt-BR') + '</strong></div></div>' +
+            '<button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>' +
+            '<table><thead><tr><th>Data</th><th>Horário</th><th>Hóspede</th><th>Sentido</th><th>Veículo</th><th style="text-align:right;">Valor</th><th style="text-align:right;">Comissão</th></tr></thead><tbody>' + (linhas || '<tr><td colspan="7">Nenhum traslado no período.</td></tr>') + '</tbody><tfoot><tr><td colspan="5">Total</td><td style="text-align:right;">R$ ' + totalTraslados.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + totalComissao.toLocaleString('pt-BR') + '</td></tr></tfoot></table></body></html>';
+        let win = window.open('', '_blank'); if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
+        win.document.write(html); win.document.close(); win.focus(); setTimeout(() => { try { win.print(); } catch (e) {} }, 600);
+    }
+    function exportarMotoristaPDF() {
+        let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
+        let lista = transfersDoPeriodo(currentPeriodo);
+        let porMot = {};
+        lista.forEach(t => { let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 }; porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0; });
+        let linhas = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => '<tr><td>' + m + '</td><td style="text-align:center;">' + d.qtd + '</td><td style="text-align:right;">R$ ' + d.total.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
+        let totGeral = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+        let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório por Motorista - Casas Brancas</title><style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{font-size:1.25rem;color:#9c7d3f;margin-bottom:4px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:18px;}table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.86rem;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}tfoot td{font-weight:bold;border-top:2px solid #9c7d3f;}@media print{.noprint{display:none;}}</style></head><body>' +
+            '<h1>Relatório por Motorista — Casas Brancas</h1><div class="sub">Período: ' + (labels[currentPeriodo] || 'Todos') + ' · Gerado em ' + new Date().toLocaleString('pt-BR') + '</div>' +
+            '<button class="noprint" onclick="window.print()" style="margin-bottom:12px;padding:8px 16px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>' +
+            '<table><thead><tr><th>Motorista</th><th style="text-align:center;">Traslados</th><th style="text-align:right;">Total em traslados</th><th style="text-align:right;">Comissão (15%)</th></tr></thead><tbody>' + (linhas || '<tr><td colspan="4">Sem traslados no período.</td></tr>') + '</tbody><tfoot><tr><td>Total</td><td style="text-align:center;">' + lista.length + '</td><td style="text-align:right;">R$ ' + totGeral.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + (totGeral * 0.15).toLocaleString('pt-BR') + '</td></tr></tfoot></table></body></html>';
+        let win = window.open('', '_blank'); if (!win) { alert('Permita pop-ups para exportar o PDF.'); return; }
+        win.document.write(html); win.document.close(); win.focus(); setTimeout(() => { try { win.print(); } catch (e) {} }, 600);
+    }
+
+    // ===== PAGAMENTO + RECIBO =====
+    function mesLabel(yyyymm) { if (!yyyymm) return '-'; let [y, m] = yyyymm.split('-'); let nomes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro']; return (nomes[parseInt(m) - 1] || '') + ' de ' + y; }
+    function transfersDoMesRef(yyyymm) { return transfers.filter(t => !isCancelled(t)).filter(t => { let d = new Date(t["Data Viagem"]); if (isNaN(d.getTime())) return false; return (d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')) === yyyymm; }); }
+    function pagamentoDoMes(yyyymm) { return pagamentos.find(p => (p["Mes"] || '').toString() === yyyymm) || null; }
+    function totaisMes(yyyymm) { let lista = transfersDoMesRef(yyyymm); let total = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0); return { qtd: lista.length, total: total, comissao: total * 0.15 }; }
+    function renderPagamento() {
+        let mes = document.getElementById('pgMes').value;
+        let cont = document.getElementById('pgResumo');
+        if (!mes) { cont.innerHTML = '<div style="color:#8a8270;font-size:0.85rem;">Selecione um mês.</div>'; return; }
+        let tt = totaisMes(mes); let pg = pagamentoDoMes(mes);
+        let statusHtml = pg ? '<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#e6f0f2;color:#2f7d8c;">PAGO em ' + (pg["Data"] || '-') + ' · ' + (pg["Forma"] || '-') + '</span>' : '<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#fff3cd;color:#8a6d1b;">Em aberto</span>';
+        cont.innerHTML = '<table style="width:100%"><tbody>' +
+            '<tr><td>Mês de referência</td><td><strong>' + mesLabel(mes) + '</strong></td></tr>' +
+            '<tr><td>Traslados no mês</td><td>' + tt.qtd + '</td></tr>' +
+            '<tr><td>Total em traslados</td><td>R$ ' + tt.total.toLocaleString('pt-BR') + '</td></tr>' +
+            '<tr><td>Comissão (15%)</td><td><strong>R$ ' + tt.comissao.toLocaleString('pt-BR') + '</strong></td></tr>' +
+            '<tr><td>Situação</td><td>' + statusHtml + '</td></tr></tbody></table>';
+    }
+    function registrarPagamento() {
+        let mes = document.getElementById('pgMes').value;
+        if (!mes) { alert('Selecione o mês de referência.'); return; }
+        let tt = totaisMes(mes);
+        if (tt.qtd === 0 && !confirm('Este mês não tem traslados. Marcar como pago mesmo assim?')) return;
+        let forma = document.getElementById('pgForma').value;
+        let dataPg = document.getElementById('pgData').value;
+        let dataBR = dataPg ? dataPg.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
+        if (!confirm('Confirmar pagamento da comissão de ' + mesLabel(mes) + ' (R$ ' + tt.comissao.toLocaleString('pt-BR') + ') via ' + forma + '?')) return;
+        let registro = { Mes: mes, Total: tt.total, Comissao: tt.comissao, Forma: forma, Data: dataBR, Qtd: tt.qtd };
+        let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
+        if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
+        try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pagamentoComissao', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) }); } catch (e) { console.error(e); }
+        renderPagamento(); alert('Pagamento registrado.');
+    }
+    function gerarReciboPDF() {
+        let mes = document.getElementById('pgMes').value;
+        if (!mes) { alert('Selecione o mês de referência.'); return; }
+        let tt = totaisMes(mes); let pg = pagamentoDoMes(mes);
+        let forma = pg ? (pg["Forma"] || '-') : document.getElementById('pgForma').value;
+        let dataPg = pg ? (pg["Data"] || '-') : (document.getElementById('pgData').value ? document.getElementById('pgData').value.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR'));
+        let pago = !!pg;
+        let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Recibo de Comissão - Casas Brancas</title><style>body{font-family:Georgia,serif;color:#2b2a26;padding:48px 44px;max-width:720px;margin:0 auto;}.top{text-align:center;border-bottom:2px solid #9c7d3f;padding-bottom:14px;margin-bottom:26px;}.brand{font-style:italic;font-size:1.8rem;color:#9c7d3f;}.brand small{display:block;font-family:Arial,sans-serif;font-style:normal;letter-spacing:2px;font-size:0.62rem;color:#8a7a55;margin-top:4px;}h1{font-size:1.15rem;margin:0 0 18px;font-family:Arial,sans-serif;}.corpo{font-family:Arial,sans-serif;font-size:0.95rem;line-height:1.8;}.valor{font-size:1.5rem;font-weight:bold;color:#9c7d3f;}table{width:100%;border-collapse:collapse;margin:18px 0;font-family:Arial,sans-serif;font-size:0.9rem;}td{padding:7px 6px;border-bottom:1px solid #eee;}td:last-child{text-align:right;font-weight:600;}.status{display:inline-block;padding:4px 14px;border-radius:40px;font-family:Arial,sans-serif;font-size:0.8rem;font-weight:700;}.pago{background:#e6f0f2;color:#2f7d8c;}.aberto{background:#fff3cd;color:#8a6d1b;}.assinaturas{display:flex;gap:30px;margin-top:70px;font-family:Arial,sans-serif;}.assinaturas div{flex:1;text-align:center;border-top:1px solid #2b2a26;padding-top:8px;font-size:0.8rem;}@media print{.noprint{display:none;}}</style></head><body>' +
+            '<div class="top"><div class="brand">Casas Brancas<small>BOUTIQUE-HOTEL & SPA · BÚZIOS</small></div></div>' +
+            '<h1>RECIBO DE COMISSÃO</h1><div class="corpo">' +
+            '<p>Declaramos, para os devidos fins, ter recebido de <strong>MF Transporte Executivo</strong> a importância de <span class="valor">R$ ' + tt.comissao.toLocaleString('pt-BR') + '</span>, referente à <strong>comissão de 15%</strong> sobre os traslados realizados no mês de <strong>' + mesLabel(mes) + '</strong>.</p>' +
+            '<table><tr><td>Mês de referência</td><td>' + mesLabel(mes) + '</td></tr><tr><td>Quantidade de traslados</td><td>' + tt.qtd + '</td></tr><tr><td>Total em traslados</td><td>R$ ' + tt.total.toLocaleString('pt-BR') + '</td></tr><tr><td>Comissão (15%)</td><td>R$ ' + tt.comissao.toLocaleString('pt-BR') + '</td></tr><tr><td>Forma de pagamento</td><td>' + forma + '</td></tr><tr><td>Data do pagamento</td><td>' + dataPg + '</td></tr><tr><td>Situação</td><td><span class="status ' + (pago ? 'pago' : 'aberto') + '">' + (pago ? 'PAGO' : 'EM ABERTO') + '</span></td></tr></table>' +
+            '<p>Búzios, ' + new Date().toLocaleDateString('pt-BR') + '.</p></div>' +
+            '<div class="assinaturas"><div>MF Transporte Executivo</div><div>Financeiro</div><div>Recepção</div></div>' +
+            '<button class="noprint" onclick="window.print()" style="margin-top:30px;padding:10px 18px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:Arial;">Imprimir / Salvar PDF</button></body></html>';
+        let win = window.open('', '_blank'); if (!win) { alert('Permita pop-ups para gerar o recibo.'); return; }
+        win.document.write(html); win.document.close(); win.focus();
+    }
+
+    // ===== LISTA (somente consulta) =====
+    function getFiltros() {
+        return {
+            busca: (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim(),
+            data: document.getElementById('filtroData')?.value || '',
+            status: document.getElementById('filtroStatus')?.value || 'todos',
+            sentido: document.getElementById('filtroSentido')?.value || 'todos'
+        };
+    }
+    function updateHistoryTable() {
+        let tbody = document.getElementById('historyBody');
+        if (!transfers.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado encontrado</td></tr>'; return; }
+        let f = getFiltros();
+        let lista = transfers.filter(t => {
+            if (f.busca) { let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '') + ' ' + (t["Email"] || '')).toLowerCase(); if (!alvo.includes(f.busca)) return false; }
+            if (f.data && dataKey(t) !== f.data) return false;
+            if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
+            if (f.status === 'ativos' && (isCompleted(t) || isCancelled(t))) return false;
+            if (f.status === 'finalizados' && !isCompleted(t)) return false;
+            if (f.status === 'cancelados' && !isCancelled(t)) return false;
+            return true;
+        });
+        if (!lista.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado com esses filtros</td></tr>'; return; }
+        let sorted = [...lista].sort((a, b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let grouped = {};
+        sorted.forEach(t => { if (!t["Data Viagem"]) return; let d = new Date(t["Data Viagem"]); if (!isNaN(d.getTime())) { let my = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }); (grouped[my] = grouped[my] || []).push(t); } });
+        let html = '';
+        for (let [my, items] of Object.entries(grouped)) {
+            let ativos = items.filter(t => !isCancelled(t));
+            let totalMes = ativos.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
+            html += '<tr class="month-group"><td colspan="10"><strong>' + my + '</strong> (' + ativos.length + ' ativos de ' + items.length + ') | Total: R$ ' + totalMes.toLocaleString('pt-BR') + ' | Comissão: R$ ' + (totalMes * 0.15).toLocaleString('pt-BR') + '</td></tr>';
+            items.forEach(t => {
+                let endereco = t["Endereço"] || t["Endereco"] || '-';
+                let voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
+                let vooNum = (t["Voo"] || '').toString().replace(/\s+/g, '').toUpperCase();
+                let ehHoje = dataKey(t) === dateKeyFromDate(new Date());
+                let st = getStatus(t);
+                let rowClass = st === 'cancelled' ? 'cancelled-row' : (st === 'completed' ? 'completed-row' : (st === 'em_andamento' ? 'andamento-row' : ''));
+                let stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : (st === 'em_andamento' ? 'Em andamento' : 'Ativo'));
+                let stStyle = st === 'completed' ? 'color:#2f7d8c;background:#e6f0f2' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#9c7d3f;background:#f3ecdd'));
+                let contato = (t["Telefone"] || '').toString().trim() || (t["Email"] || '').toString().trim() || '-';
+                html += '<tr class="' + rowClass + '">' +
+                    '<td>' + formatarData(t["Data Viagem"]) + '</td>' +
+                    '<td>' + getHorario(t) + '</td>' +
+                    '<td>' + (t["Nome"] || '-') + '</td>' +
+                    '<td>' + contato + '</td>' +
+                    '<td>' + (t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio") + '</td>' +
+                    '<td>' + endereco + '</td>' +
+                    '<td>' + voo + (ehHoje && vooNum ? ' <span class="voo-status" data-voo="' + vooNum + '">…</span>' : '') + '</td>' +
+                    '<td>' + (t["Veículo"] || '-') + '</td>' +
+                    '<td>R$ ' + (parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR') + '</td>' +
+                    '<td><span class="status-tag" style="' + stStyle + '">' + stLabel + '</span></td>' +
+                    '</tr>';
+            });
+        }
+        tbody.innerHTML = html;
+        atualizarStatusVoos();
+    }
+
+    // ===== STATUS DE VOO (somente exibição) =====
+    const vooCache = {};
+    async function consultarVoo(voo) {
+        const agora = Date.now();
+        if (vooCache[voo] && (agora - vooCache[voo].ts < 5 * 60 * 1000)) return vooCache[voo].d;
+        try { const d = await (await fetch(WEBAPP_URL + '?action=flightstatus&voo=' + encodeURIComponent(voo))).json(); vooCache[voo] = { d, ts: agora }; return d; }
+        catch (e) { return { erro: e.message }; }
+    }
+    function vooBadgeInfo(d) {
+        if (!d || d.erro) return { t: '', c: '' };
+        const atraso = Math.max(parseInt(d.atrasoChegada) || 0, parseInt(d.atrasoPartida) || 0);
+        switch ((d.status || '').toLowerCase()) {
+            case 'cancelled': return { t: 'Cancelado', c: 'vb-red' };
+            case 'landed': return { t: 'Pousou', c: 'vb-blue' };
+            case 'active': return atraso > 0 ? { t: 'Em voo · +' + atraso + 'min', c: 'vb-amber' } : { t: 'Em voo', c: 'vb-blue' };
+            case 'scheduled': return atraso > 0 ? { t: 'Atrasado +' + atraso + 'min', c: 'vb-amber' } : { t: 'No horário', c: 'vb-green' };
+            case 'diverted': return { t: 'Desviado', c: 'vb-amber' };
+            case 'incident': return { t: 'Incidente', c: 'vb-red' };
+            case 'sem_dados': return { t: 'sem dados', c: 'vb-gray' };
+            default: return { t: (d.status || ''), c: 'vb-gray' };
+        }
+    }
+    async function atualizarStatusVoos() {
+        const els = document.querySelectorAll('.voo-status[data-voo]:not([data-done])');
+        for (const el of els) {
+            el.setAttribute('data-done', '1');
+            const info = vooBadgeInfo(await consultarVoo(el.getAttribute('data-voo')));
+            if (info.t) { el.className = 'vb ' + info.c; el.innerText = info.t; } else { el.innerText = ''; }
+        }
+    }
+
+    // ===== AUTO-ATUALIZAÇÃO =====
+    function setupAutoRefresh() {
+        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+        if (document.getElementById('autoRefresh')?.checked) autoRefreshTimer = setInterval(carregarDados, AUTO_REFRESH_MIN * 60 * 1000);
+    }
+
+    // ===== EVENTOS =====
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+        let id = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById('tab-' + id).classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }));
+    document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
+    document.getElementById('refreshBtn').addEventListener('click', carregarDados);
+    document.getElementById('exportarPdfBtn').addEventListener('click', exportarComissaoPDF);
+    document.getElementById('exportarMotoristaBtn').addEventListener('click', exportarMotoristaPDF);
+    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
+    ['filtroBusca', 'filtroData', 'filtroStatus', 'filtroSentido'].forEach(id => { let el = document.getElementById(id); if (el) { el.addEventListener('input', updateHistoryTable); el.addEventListener('change', updateHistoryTable); } });
+    document.getElementById('limparFiltros').addEventListener('click', () => {
+        document.getElementById('filtroBusca').value = ''; document.getElementById('filtroData').value = '';
+        document.getElementById('filtroStatus').value = 'todos'; document.getElementById('filtroSentido').value = 'todos';
+        updateHistoryTable();
+    });
+    document.getElementById('pgMes').addEventListener('change', renderPagamento);
+    document.getElementById('pgRegistrar').addEventListener('click', registrarPagamento);
+    document.getElementById('pgRecibo').addEventListener('click', gerarReciboPDF);
+    (function initPagamento() {
+        let now = new Date();
+        let mesStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        let pgM = document.getElementById('pgMes'); if (pgM && !pgM.value) pgM.value = mesStr;
+        let pgD = document.getElementById('pgData'); if (pgD && !pgD.value) pgD.value = now.toISOString().slice(0, 10);
+    })();
+
+    setupAutoRefresh();
+    carregarDados();
+</script>
+</body>
+</html>
