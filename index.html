@@ -1352,14 +1352,17 @@
         const steps = [t.step1, t.step2, t.step3, t.step4, t.step5, t.step6, t.step7];
         stepTitles.forEach((el, i) => { if (steps[i]) el.innerHTML = steps[i]; });
 
-        const radios = document.querySelectorAll('.radio-group');
-        if (radios[0]) {
-            radios[0].querySelectorAll('label')[0].childNodes[1].textContent = " " + t.inOption;
-            radios[0].querySelectorAll('label')[1].childNodes[1].textContent = " " + t.outOption;
+        const sg = document.getElementById('sentidoGroup');
+        if (sg) {
+            const ls = sg.querySelectorAll('label');
+            if (ls[0]) ls[0].childNodes[1].textContent = " " + t.inOption;
+            if (ls[1]) ls[1].childNodes[1].textContent = " " + t.outOption;
         }
-        if (radios[1]) {
-            radios[1].querySelectorAll('label')[0].childNodes[1].textContent = " " + t.regiaoCentro;
-            radios[1].querySelectorAll('label')[1].childNodes[1].textContent = " " + t.regiaoOeste;
+        const rg = document.getElementById('regiaoGroup');
+        if (rg) {
+            const lr = rg.querySelectorAll('label');
+            if (lr[0]) lr[0].childNodes[1].textContent = " " + t.regiaoCentro;
+            if (lr[1]) lr[1].childNodes[1].textContent = " " + t.regiaoOeste;
         }
 
         // Rótulos dos dados do hóspede (step 2) — por ID
