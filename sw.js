@@ -1,7 +1,7 @@
-const CACHE = 'cb-transfers-v4';
+const CACHE = 'cb-transfers-v5';
 const ASSETS = [
-  'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'transfer.html',
-  'icon-192-v3.png', 'icon-512-v3.png', 'manifest.json'
+  'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'transfer.html', 'financeiro.html',
+  'icon-192-v4.png', 'icon-512-v4.png', 'manifest.json'
 ];
 
 self.addEventListener('install', (e) => {
