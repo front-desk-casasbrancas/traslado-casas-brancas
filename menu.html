@@ -85,11 +85,18 @@
 </div>
 <script>
 (function () {
-    var USER = "casasbrancas", SENHA = "Cb1974";
-    function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
+    var USER = "casasbrancas", SENHA = "Cb1974", JANELA = 30 * 60 * 1000; // 30 min
+    var g = document.getElementById('authGate');
+    function marcar() { try { localStorage.setItem('cb_menu_login_ts', String(Date.now())); } catch (e) {} }
+    function liberar() { if (g) g.style.display = 'none'; }
+    // Janela de 30 min: se logou recentemente, não pede de novo (e renova o tempo)
+    try {
+        var ts = parseInt(localStorage.getItem('cb_menu_login_ts') || '0', 10);
+        if (ts && (Date.now() - ts) < JANELA) { marcar(); liberar(); return; }
+    } catch (e) {}
     var b = document.getElementById('authBtn'), u = document.getElementById('authUser'), i = document.getElementById('authInput');
     function tentar() {
-        if ((u.value || '').trim().toLowerCase() === USER && i.value === SENHA) { liberar(); }
+        if ((u.value || '').trim().toLowerCase() === USER && i.value === SENHA) { marcar(); liberar(); }
         else { document.getElementById('authErro').style.display = 'block'; i.value = ''; }
     }
     b.addEventListener('click', tentar);
