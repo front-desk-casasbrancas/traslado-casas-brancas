@@ -128,6 +128,7 @@
             (badges[st] || '') +
             `<div class="linha"><span class="rot">Data e horário</span><span class="val destaque">${formatarData(t["Data Viagem"])} ${getHorario(t)}</span></div>` +
             linha('Hóspede', t["Nome"] || '-') +
+            linha('Reserva', t["Reserva"] || '-') +
             linha('Telefone', (t["Telefone"] || '-') + (wa ? ` &nbsp;<a class="wa" href="${wa}" target="_blank">WhatsApp</a>` : '')) +
             linha('Sentido', sentido) +
             linha('Endereço / Local', t["Endereço"] || t["Endereco"] || '-') +

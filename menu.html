@@ -166,8 +166,11 @@
                 </a>
             </div>
             <div class="card">
-                <h3>Traslados de hoje</h3>
-                <div id="hojeLista"><div class="vazio">Carregando...</div></div>
+                <h3>Traslados — Hoje e Amanhã</h3>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Hoje <span id="cHoje" style="color:#9a917c;font-weight:400;"></span></h4><div id="hojeLista"><div class="vazio">Carregando...</div></div></div>
+                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Amanhã <span id="cAmanha" style="color:#9a917c;font-weight:400;"></span></h4><div id="amanhaLista"><div class="vazio">Carregando...</div></div></div>
+                </div>
             </div>
         </div>
     </div>
@@ -194,7 +197,7 @@
         m = v.match(/^(\d{1,2}):(\d{2})/); if (m) return m[1].padStart(2, '0') + ':' + m[2];
         return v;
     }
-    function dKey(v) { let d = new Date(v); return isNaN(d) ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+    function dKey(v) { if(!v) return null; let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3]; let d = new Date(v); return isNaN(d) ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
     function brl(n) { return 'R$ ' + (Math.round(n) || 0).toLocaleString('pt-BR'); }
 
     async function carregar() {
@@ -204,6 +207,8 @@
             const hojeKey = dKey(agora);
             const mesAtual = agora.getMonth(), anoAtual = agora.getFullYear();
             const hoje = ativos.filter(t => dKey(t["Data Viagem"]) === hojeKey).sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
+            let amDate = new Date(agora); amDate.setDate(amDate.getDate() + 1); const amanhaKey = dKey(amDate);
+            const amanha = ativos.filter(t => dKey(t["Data Viagem"]) === amanhaKey).sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
             const doMes = ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
             const valorMes = doMes.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
             const media = doMes.length ? valorMes / doMes.length : 0;
@@ -238,14 +243,20 @@
                 });
             }
 
-            const cont = document.getElementById('hojeLista');
-            if (!hoje.length) { cont.innerHTML = '<div class="vazio">Nenhum traslado para hoje.</div>'; return; }
-            cont.innerHTML = hoje.map(t => {
-                const sent = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-                const st = (t["Status"] || 'active').toString().toLowerCase();
-                const tag = st === 'completed' ? ' · Finalizado' : (st === 'em_andamento' ? ' · Em andamento' : '');
-                return '<div class="hoje-item"><div class="hoje-hora">' + getHorario(t) + '</div><div class="hoje-info"><b>' + (t["Nome"] || '-') + '</b><span>' + sent + ' · ' + (t["Veículo"] || '-') + tag + '</span></div></div>';
-            }).join('');
+            function renderLista(arr){
+                if(!arr.length) return '<div class="vazio">Nenhum traslado.</div>';
+                return arr.map(t => {
+                    const sent = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+                    const st = (t["Status"] || 'active').toString().toLowerCase();
+                    const tag = st === 'completed' ? ' · Finalizado' : (st === 'em_andamento' ? ' · Em andamento' : '');
+                    const rsv = t["Reserva"] ? (' · Reserva ' + t["Reserva"]) : '';
+                    return '<div class="hoje-item"><div class="hoje-hora">' + getHorario(t) + '</div><div class="hoje-info"><b>' + (t["Nome"] || '-') + '</b><span>' + sent + ' · ' + (t["Veículo"] || '-') + rsv + tag + '</span></div></div>';
+                }).join('');
+            }
+            document.getElementById('hojeLista').innerHTML = renderLista(hoje);
+            document.getElementById('amanhaLista').innerHTML = renderLista(amanha);
+            document.getElementById('cHoje').innerText = '(' + hoje.length + ')';
+            document.getElementById('cAmanha').innerText = '(' + amanha.length + ')';
         } catch (e) {
             document.getElementById('hojeLista').innerHTML = '<div class="vazio">Erro ao carregar dados.</div>';
         }

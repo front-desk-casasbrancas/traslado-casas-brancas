@@ -489,18 +489,23 @@
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
 
+    // Lê datas "YYYY-MM-DD" no fuso LOCAL (evita o dia 1º cair no mês anterior).
+    function parseLocal(v) {
+        if (!v) return new Date(NaN);
+        let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+        return new Date(v);
+    }
+
     function dataKey(t) {
         if (!t || !t["Data Viagem"]) return null;
-        let d = new Date(t["Data Viagem"]);
-        if (isNaN(d.getTime())) return null;
-        return dateKeyFromDate(d);
+        let d = parseLocal(t["Data Viagem"]);
+        return isNaN(d.getTime()) ? null : dateKeyFromDate(d);
     }
 
     function formatarData(valor) {
-        if (!valor) return "-";
-        let d = new Date(valor);
-        if (isNaN(d.getTime())) return "-";
-        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        let d = parseLocal(valor);
+        return isNaN(d.getTime()) ? "-" : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     }
 
     // Normaliza o telefone para o WhatsApp (adiciona DDI 55 quando faltar).
@@ -558,7 +563,7 @@
 
     // ==================== CONFLITOS NA AGENDA ====================
     function inicioDateTime(t) {
-        let d = new Date(t["Data Viagem"]);
+        let d = parseLocal(t["Data Viagem"]);
         if (isNaN(d.getTime())) return null;
         let h = getHorario(t); let m = (h || '').match(/^(\d{1,2}):(\d{2})/);
         let hh = m ? parseInt(m[1]) : 0, mm = m ? parseInt(m[2]) : 0;
@@ -615,13 +620,14 @@
 
         let itemHtml = (t) => {
             let sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
-            let transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+            let _id = (t["ID"] || '').toString();
+            let rsv = t["Reserva"] ? ` · Reserva ${t["Reserva"]}` : '';
             return `<div class="proximo-item">
                 <div>
                     <span class="proximo-hora">${getHorario(t)}</span> · ${t["Nome"] || '-'}<br>
-                    <span class="proximo-sub">${sentido} · ${t["Veículo"] || '-'}</span>
+                    <span class="proximo-sub">${sentido} · ${t["Veículo"] || '-'}${rsv}</span>
                 </div>
-                <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})'>WhatsApp</button>
+                <button class="confirm-btn" data-act="confirmar" data-id="${_id}">WhatsApp</button>
             </div>`;
         };
 
@@ -631,6 +637,7 @@
         };
 
         cont.innerHTML = coluna('Hoje', doDia(hojeKey)) + coluna('Amanhã', doDia(amanhaKey));
+        cont.querySelectorAll('button[data-act="confirmar"]').forEach(b => b.addEventListener('click', () => { let t = transferPorId(b.dataset.id); if (t) enviarConfirmacao(t); }));
     }
 
     // ==================== DASHBOARD ====================
@@ -654,7 +661,7 @@
         const monthlyData = {};
         ativos.forEach(t => {
             if (t["Data Viagem"]) {
-                let d = new Date(t["Data Viagem"]);
+                let d = parseLocal(t["Data Viagem"]);
                 if (!isNaN(d.getTime())) {
                     let month = d.toLocaleString('pt-BR', { month: 'short', year: 'numeric' });
                     monthlyData[month] = (monthlyData[month] || 0) + 1;
@@ -788,13 +795,13 @@
         }
 
         // Ordenar por data da viagem (mais antigo primeiro)
-        let sorted = [...lista].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let sorted = [...lista].sort((a,b) => parseLocal(a["Data Viagem"]) - parseLocal(b["Data Viagem"]));
 
         // Agrupar por mês
         let grouped = {};
         sorted.forEach(t => {
             if (!t["Data Viagem"]) return;
-            let d = new Date(t["Data Viagem"]);
+            let d = parseLocal(t["Data Viagem"]);
             if (!isNaN(d.getTime())) {
                 let my = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
                 if (!grouped[my]) grouped[my] = [];
@@ -821,13 +828,14 @@
                 let andamento = getStatus(t) === 'em_andamento';
                 let rowClass = cancelled ? 'cancelled-row' : (completed ? 'completed-row' : (andamento ? 'andamento-row' : ''));
                 let disabled = cancelled || completed;
-                let transferJson = JSON.stringify(t).replace(/"/g, '&quot;');
+                let _id = (t["ID"] || '').toString();
                 let idEnc = encodeURIComponent(t["ID"]);
+                let rsv = t["Reserva"] ? `<br><span style="font-size:0.72rem;color:#8a8270;">Reserva: ${t["Reserva"]}<\/span>` : '';
 
                 html += `<tr class="${rowClass}">
                     <td>${data}${andamento ? '<br><span class="tag-andamento">Em andamento<\/span>' : ''}<\/td>
                     <td>${horario}<\/td>
-                    <td>${t["Nome"] || '-'}<\/td>
+                    <td>${t["Nome"] || '-'}${rsv}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
                     <td>${endereco}<\/td>
@@ -836,15 +844,23 @@
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
                     <td>
                         <a class="abrir-link" href="transfer.html?id=${idEnc}" target="_blank">Abrir<\/a>
-                        <button class="editar-btn" onclick='abrirEdicao(${transferJson})' ${cancelled ? 'disabled' : ''}>Editar<\/button>
-                        <button class="confirm-btn" onclick='enviarConfirmacao(${transferJson})' ${disabled ? 'disabled' : ''}>Confirmar<\/button>
-                        <button class="complete-btn ${completed ? 'completed' : ''}" onclick='marcarFinalizado(${transferJson})' ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}<\/button>
-                        <button class="cancel-btn ${cancelled ? 'cancelled' : ''}" onclick='marcarCancelado(${transferJson})' ${cancelled ? 'disabled' : ''}>${cancelled ? '❌ Cancelado' : 'Cancelar'}<\/button>
+                        <button class="editar-btn" data-act="edit" data-id="${_id}" ${cancelled ? 'disabled' : ''}>Editar<\/button>
+                        <button class="confirm-btn" data-act="confirmar" data-id="${_id}" ${disabled ? 'disabled' : ''}>Confirmar<\/button>
+                        <button class="complete-btn ${completed ? 'completed' : ''}" data-act="completed" data-id="${_id}" ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}<\/button>
+                        <button class="cancel-btn ${cancelled ? 'cancelled' : ''}" data-act="cancelled" data-id="${_id}" ${cancelled ? 'disabled' : ''}>${cancelled ? '❌ Cancelado' : 'Cancelar'}<\/button>
                     <\/td>
                 <\/tr>`;
             });
         }
         tbody.innerHTML = html;
+        tbody.querySelectorAll('button[data-act]').forEach(b => b.addEventListener('click', () => {
+            let t = transferPorId(b.dataset.id); if (!t) return;
+            let a = b.dataset.act;
+            if (a === 'edit') abrirEdicao(t);
+            else if (a === 'confirmar') enviarConfirmacao(t);
+            else if (a === 'completed') marcarFinalizado(t);
+            else if (a === 'cancelled') marcarCancelado(t);
+        }));
         atualizarStatusVoos();
     }
 
@@ -855,9 +871,9 @@
         let mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1, anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
         let tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         let ativos = transfers.filter(t => !isCancelled(t));
-        if (periodo === 'mesAtual') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
-        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
-        if (periodo === 'trimestre') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
+        if (periodo === 'mesAtual') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
+        if (periodo === 'trimestre') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
         return ativos;
     }
 
@@ -908,7 +924,7 @@
     }
     function transfersDoMesRef(yyyymm) {
         return transfers.filter(t => !isCancelled(t)).filter(t => {
-            let d = new Date(t["Data Viagem"]);
+            let d = parseLocal(t["Data Viagem"]);
             if (isNaN(d.getTime())) return false;
             let ref = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
             return ref === yyyymm;
@@ -1058,7 +1074,7 @@
     // ==================== EXPORTAR COMISSÕES EM PDF ====================
     function exportarComissaoPDF() {
         let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
-        let lista = [...transfersDoPeriodo(currentPeriodo)].sort((a,b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
+        let lista = [...transfersDoPeriodo(currentPeriodo)].sort((a,b) => parseLocal(a["Data Viagem"]) - parseLocal(b["Data Viagem"]));
         let totalTraslados = lista.reduce((s,t)=>s+(parseFloat(t["Valor Total"])||0),0);
         let totalComissao = totalTraslados * 0.15;
 

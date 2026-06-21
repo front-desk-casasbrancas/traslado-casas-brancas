@@ -198,8 +198,9 @@
         return h;
     }
     function dateKeyFromDate(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
-    function dataKey(t) { if (!t || !t["Data Viagem"]) return null; let d = new Date(t["Data Viagem"]); return isNaN(d.getTime()) ? null : dateKeyFromDate(d); }
-    function formatarData(v) { if (!v) return "-"; let d = new Date(v); if (isNaN(d.getTime())) return "-"; return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+    function parseLocal(v) { if (!v) return new Date(NaN); let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return new Date(+m[1], +m[2] - 1, +m[3]); return new Date(v); }
+    function dataKey(t) { if (!t || !t["Data Viagem"]) return null; let d = parseLocal(t["Data Viagem"]); return isNaN(d.getTime()) ? null : dateKeyFromDate(d); }
+    function formatarData(v) { let d = parseLocal(v); return isNaN(d.getTime()) ? "-" : String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
     function getStatus(t) { return (t["Status"] || 'active').toString().toLowerCase() || 'active'; }
     function isCompleted(t) { return getStatus(t) === 'completed'; }
     function isCancelled(t) { return getStatus(t) === 'cancelled'; }
@@ -232,9 +233,9 @@
         let mesAnterior = mesAtual === 0 ? 11 : mesAtual - 1, anoMesAnterior = mesAtual === 0 ? anoAtual - 1 : anoAtual;
         let tresMesesAtras = new Date(); tresMesesAtras.setMonth(tresMesesAtras.getMonth() - 3);
         let ativos = transfers.filter(t => !isCancelled(t));
-        if (periodo === 'mesAtual') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
-        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
-        if (periodo === 'trimestre') return ativos.filter(t => { let d = new Date(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
+        if (periodo === 'mesAtual') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAtual && d.getFullYear() === anoAtual; });
+        if (periodo === 'mesAnterior') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d.getMonth() === mesAnterior && d.getFullYear() === anoMesAnterior; });
+        if (periodo === 'trimestre') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
         return ativos;
     }
     function updateComissaoTab(periodo = 'todos') {
@@ -386,7 +387,7 @@
                 html += '<tr class="' + rowClass + '">' +
                     '<td>' + formatarData(t["Data Viagem"]) + '</td>' +
                     '<td>' + getHorario(t) + '</td>' +
-                    '<td>' + (t["Nome"] || '-') + '</td>' +
+                    '<td>' + (t["Nome"] || '-') + (t["Reserva"] ? '<br><span style="font-size:0.72rem;color:#8a8270;">Reserva: ' + t["Reserva"] + '</span>' : '') + '</td>' +
                     '<td>' + contato + '</td>' +
                     '<td>' + (t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio") + '</td>' +
                     '<td>' + endereco + '</td>' +

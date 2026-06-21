@@ -308,7 +308,7 @@
                 html += `<tr class="${rowClass}">
                     <td>${formatarData(t["Data Viagem"])}</td>
                     <td><strong>${getHorario(t)}</strong></td>
-                    <td>${t["Nome"] || '-'}</td>
+                    <td>${t["Nome"] || '-'}${t["Reserva"] ? '<br><span style="font-size:0.7rem;color:#8a8270;">Reserva: ' + t["Reserva"] + '</span>' : ''}</td>
                     <td>${tel}${wa ? ` <br><a class="wa-link" href="${wa}" target="_blank">WhatsApp</a>` : ''}</td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
                     <td>${endereco}</td>
