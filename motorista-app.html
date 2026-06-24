@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Casas Brancas Motorista</title>
+    <meta name="theme-color" content="#2b2a26">
+    <link rel="apple-touch-icon" href="icon-192-v4.png">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
+        body { font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif; color:#34322c; min-height:100vh; position:relative; padding:18px 16px 90px; }
+        body::before { content:''; position:fixed; inset:0; z-index:-2; background:url('fundo-hotel.jpg') center 40% / cover no-repeat; }
+        body::after { content:''; position:fixed; inset:0; z-index:-1; background:linear-gradient(rgba(248,245,239,0.92), rgba(246,242,235,0.96)); }
+        .wrap { max-width:620px; margin:0 auto; }
+        .topo { position:relative; overflow:hidden; border-radius:20px; color:#fff; padding:22px 24px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; gap:14px; box-shadow:0 12px 30px rgba(40,36,28,0.22); background-image:linear-gradient(100deg, rgba(30,28,23,0.85), rgba(30,28,23,0.45)), url('fundo-hotel.jpg'); background-size:cover; background-position:center 38%; }
+        .topo .nome { font-family:'Georgia',serif; font-style:italic; font-size:1.5rem; line-height:1; }
+        .topo .sub { font-size:0.72rem; letter-spacing:2px; color:var(--gold-l); margin-top:6px; font-weight:600; }
+        .topo .ola { font-size:0.95rem; margin-top:8px; opacity:0.95; }
+        .sair { background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:8px 14px; border-radius:40px; font-size:0.78rem; cursor:pointer; font-weight:600; white-space:nowrap; }
+        .filtros { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+        .fbtn { background:#fff; border:1px solid #d8cbb0; padding:8px 16px; border-radius:40px; font-size:0.82rem; cursor:pointer; color:#8a7a55; }
+        .fbtn.on { background:var(--gold); color:#fff; border-color:var(--gold); }
+        .card { background:#fff; border:1px solid rgba(184,153,90,0.25); border-radius:16px; padding:16px 18px; margin-bottom:12px; box-shadow:0 6px 18px rgba(40,36,28,0.07); }
+        .card.andamento { border-color:#e0a060; box-shadow:0 0 0 2px #f0d9b0 inset; }
+        .card.completed { opacity:0.7; }
+        .ch { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+        .ch .hr { font-size:1.3rem; font-weight:700; color:var(--gold-d); }
+        .ch .dt { font-size:0.78rem; color:#8a8270; }
+        .tag { padding:3px 10px; border-radius:40px; font-size:0.7rem; font-weight:600; white-space:nowrap; }
+        .nome-h { font-weight:600; font-size:1rem; margin-top:6px; }
+        .linha { font-size:0.85rem; color:#5a5446; margin-top:3px; }
+        .linha b { color:#34322c; }
+        .acoes { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+        .btn { flex:1; min-width:120px; padding:12px; border:none; border-radius:40px; font-weight:600; font-size:0.9rem; cursor:pointer; }
+        .btn-ini { background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; }
+        .btn-fim { background:#2f7d8c; color:#fff; }
+        .btn-map { background:#fff; border:1px solid #cfc4a8; color:#8a7a55; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; }
+        .btn:disabled { opacity:0.5; }
+        .vazio { background:#fff; border:1px dashed #d8cbb0; border-radius:16px; padding:26px; text-align:center; color:#8a8270; }
+        .upd { text-align:center; font-size:0.74rem; color:#8a8270; margin-top:14px; }
+        /* GATE */
+        .gate { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background-image:linear-gradient(rgba(30,28,23,0.72),rgba(30,28,23,0.72)), url('fundo-hotel.jpg'); background-size:cover; background-position:center; }
+        .gate-card { background:#fff; padding:32px 28px; border-radius:18px; max-width:340px; width:100%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,0.35); }
+        .gate-card .tt { font-family:'Georgia',serif; font-style:italic; color:var(--gold-d); font-size:1.5rem; }
+        .gate-card .ds { font-size:0.8rem; color:#8a8270; margin:4px 0 18px; }
+        .gate-card input { width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:10px; text-align:center; }
+        .gate-card button { width:100%; padding:12px; background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; }
+        .gate-erro { color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none; }
+    </style>
+</head>
+<body>
+<div class="gate" id="gate">
+    <div class="gate-card">
+        <div class="tt">Casas Brancas</div>
+        <div class="ds">Área do motorista</div>
+        <input type="text" id="gNome" placeholder="Nome" autocomplete="off" autocapitalize="none" data-lpignore="true">
+        <input type="password" id="gSenha" placeholder="Senha" autocomplete="off" data-lpignore="true">
+        <button id="gBtn">Entrar</button>
+        <div class="gate-erro" id="gErro">Nome ou senha incorretos</div>
+    </div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+    <div class="topo">
+        <div>
+            <div class="nome">Casas Brancas</div>
+            <div class="sub">TRASLADOS · MOTORISTA</div>
+            <div class="ola" id="ola">Olá!</div>
+        </div>
+        <button class="sair" id="sairBtn">Sair</button>
+    </div>
+    <div class="filtros">
+        <div class="fbtn on" data-f="proximos">Próximos</div>
+        <div class="fbtn" data-f="hoje">Hoje</div>
+        <div class="fbtn" data-f="todos">Todos</div>
+    </div>
+    <div id="lista"></div>
+    <div class="upd" id="upd"></div>
+</div>
+
+<script>
+    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    // Nenhuma senha fica no app. O nome e a senha são validados no servidor (Code.gs),
+    // que só devolve os transfers em que ESTE motorista foi marcado.
+
+    let motorista = "", chave = "", transfers = [], filtro = "proximos", timer = null;
+
+    function urlMotorista(){ return WEBAPP_URL + '?action=motorista&nome=' + encodeURIComponent(motorista) + '&chave=' + encodeURIComponent(chave); }
+
+    function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[^a-z]/gi,''); }
+    function parseLocal(v){ if(!v) return new Date(NaN); let m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); return new Date(v); }
+    function dKey(v){ let d=parseLocal(v); return isNaN(d.getTime())?null:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+    function fData(v){ let d=parseLocal(v); return isNaN(d.getTime())?'-':String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+    function getHorario(t){ let v=(t["Horario"]||t["Horário"]||'').toString().trim(); if(!v)return '-';
+        let m=v.match(/1899-\d{2}-\d{2}T(\d{2}):(\d{2}):(\d{2})/);
+        if(m){ let s=(+m[1])*3600+(+m[2])*60+(+m[3])-(6*60+28); s=((s%86400)+86400)%86400; return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0'); }
+        m=v.match(/T(\d{2}):(\d{2})/); if(m)return m[1]+':'+m[2];
+        m=v.match(/^(\d{1,2}):(\d{2})/); if(m)return m[1].padStart(2,'0')+':'+m[2]; return v; }
+    function getStatus(t){ return (t["Status"]||'active').toString().toLowerCase()||'active'; }
+    function idOf(t){ return (t["ID"]||t["Id"]||t["id"]||'').toString(); }
+
+    // ===== LOGIN (validado no servidor) =====
+    async function entrar(){
+        let nome = document.getElementById('gNome').value.trim();
+        let senha = document.getElementById('gSenha').value;
+        let btn = document.getElementById('gBtn');
+        if(!nome || !senha){ return; }
+        btn.disabled=true; btn.innerText='Entrando...';
+        document.getElementById('gErro').style.display='none';
+        try{
+            motorista = nome; chave = senha;
+            let d = await (await fetch(urlMotorista())).json();
+            if(Array.isArray(d)){
+                transfers = d.filter(function(t){ return getStatus(t)!=='cancelled'; });
+                document.getElementById('gate').style.display='none';
+                iniciar(true);
+            } else {
+                motorista=''; chave='';
+                document.getElementById('gErro').style.display='block';
+                document.getElementById('gSenha').value='';
+            }
+        }catch(e){
+            motorista=''; chave='';
+            document.getElementById('gErro').style.display='block';
+        }
+        btn.disabled=false; btn.innerText='Entrar';
+    }
+    document.getElementById('gBtn').addEventListener('click',entrar);
+    ['gNome','gSenha'].forEach(function(id){ document.getElementById(id).addEventListener('keydown',function(e){ if(e.key==='Enter')entrar(); }); });
+    document.getElementById('gNome').focus();
+
+    document.getElementById('sairBtn').addEventListener('click',function(){ motorista=''; chave=''; transfers=[]; if(timer){clearInterval(timer);timer=null;} document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='flex'; document.getElementById('gSenha').value=''; document.getElementById('gErro').style.display='none'; });
+    document.querySelectorAll('.fbtn').forEach(function(b){ b.addEventListener('click',function(){ filtro=b.getAttribute('data-f'); document.querySelectorAll('.fbtn').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); render(); }); });
+
+    function iniciar(jaTemDados){
+        document.getElementById('app').style.display='block';
+        document.getElementById('ola').innerText='Olá, '+motorista+'!';
+        if(jaTemDados){ document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleTimeString('pt-BR'); render(); }
+        else { carregar(); }
+        if(timer)clearInterval(timer);
+        timer = setInterval(carregar, 3*60*1000);
+    }
+
+    async function carregar(){
+        if(!motorista || !chave) return;
+        try{
+            const d = await (await fetch(urlMotorista())).json();
+            if(!Array.isArray(d)) return; // acesso negado / erro: mantém o que já tinha
+            transfers = d.filter(function(t){ return getStatus(t)!=='cancelled'; });
+            document.getElementById('upd').innerText = 'Atualizado: '+new Date().toLocaleTimeString('pt-BR');
+            render();
+        }catch(e){ document.getElementById('upd').innerText='Erro ao atualizar.'; }
+    }
+
+    function statusTag(t){ let s=getStatus(t);
+        if(s==='completed')return '<span class="tag" style="color:#2f7d8c;background:#e6f0f2;">Finalizado</span>';
+        if(s==='em_andamento')return '<span class="tag" style="color:#8a6d1b;background:#fff3cd;">Em andamento</span>';
+        return '<span class="tag" style="color:#9c7d3f;background:#f3ecdd;">A iniciar</span>'; }
+
+    function render(){
+        let cont=document.getElementById('lista');
+        let hojeK=dKey(new Date());
+        let lista=transfers.slice();
+        if(filtro==='hoje') lista=lista.filter(function(t){ return dKey(t["Data Viagem"])===hojeK; });
+        else if(filtro==='proximos') lista=lista.filter(function(t){ let k=dKey(t["Data Viagem"]); return k && k>=hojeK; });
+        lista.sort(function(a,b){ return (parseLocal(a["Data Viagem"])-parseLocal(b["Data Viagem"])) || getHorario(a).localeCompare(getHorario(b)); });
+
+        if(!lista.length){ cont.innerHTML='<div class="vazio">Nenhum traslado '+(filtro==='hoje'?'para hoje':(filtro==='proximos'?'próximo':''))+'.</div>'; return; }
+
+        cont.innerHTML=lista.map(function(t){
+            let s=getStatus(t);
+            let sent = t["Sentido"]==="IN" ? "Rio → Búzios" : "Búzios → Rio";
+            let end = (t["Endereço"]||t["Endereco"]||'').toString().trim();
+            let voo = [t["Voo"], t["Cia Aérea"]||t["Cia Aerea"]].filter(function(x){return x && x!=='-';}).join(' / ');
+            let _id=idOf(t);
+            let mapBtn = end ? '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(end+', Búzios RJ')+'" target="_blank">📍 Maps</a>' : '';
+            let iniBtn = (s==='completed') ? '' : '<button class="btn btn-ini" data-act="iniciar" data-id="'+_id+'" '+(s==='em_andamento'?'disabled':'')+'>'+(s==='em_andamento'?'Iniciado':'Iniciar')+'</button>';
+            let fimBtn = (s==='completed') ? '' : '<button class="btn btn-fim" data-act="finalizar" data-id="'+_id+'">Finalizar</button>';
+            return '<div class="card '+(s==='em_andamento'?'andamento':(s==='completed'?'completed':''))+'">'+
+                '<div class="ch"><div><div class="hr">'+getHorario(t)+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
+                '<div class="nome-h">'+(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+t["Reserva"]+'</span>':'')+'</div>'+
+                '<div class="linha"><b>'+sent+'</b> · '+(t["Veículo"]||'-')+'</div>'+
+                (end?'<div class="linha">📍 '+end+'</div>':'')+
+                (voo?'<div class="linha">✈️ '+voo+'</div>':'')+
+                (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':'')+
+                '<div class="acoes">'+iniBtn+fimBtn+mapBtn+'</div>'+
+            '</div>';
+        }).join('');
+
+        cont.querySelectorAll('button[data-act]').forEach(function(b){
+            b.addEventListener('click',function(){
+                let t=transfers.find(function(x){ return idOf(x)===b.dataset.id; }); if(!t)return;
+                if(b.dataset.act==='iniciar'){ if(!confirm('Iniciar este traslado?'))return; mudarStatus(t,'em_andamento'); }
+                else if(b.dataset.act==='finalizar'){ if(!confirm('Finalizar este traslado?'))return; mudarStatus(t,'completed'); }
+            });
+        });
+    }
+
+    function mudarStatus(t, st){
+        t["Status"]=st;
+        try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',id:idOf(t),status:st})}); }catch(e){}
+        render();
+        setTimeout(carregar,1500);
+    }
+
+    // ===== PWA: app instalável próprio (id distinto) + service worker + auto-update =====
+    try{
+        var _m={ id:'casasbrancas-motorista', name:'Casas Brancas Motorista', short_name:'CB Motorista',
+            start_url:'motorista-app.html?from=app', scope:'./', display:'standalone', orientation:'portrait',
+            background_color:'#f6f2eb', theme_color:'#2b2a26',
+            icons:[{src:'icon-192-v4.png',sizes:'192x192',type:'image/png'},{src:'icon-512-v4.png',sizes:'512x512',type:'image/png'}] };
+        var _b=new Blob([JSON.stringify(_m)],{type:'application/manifest+json'});
+        var _l=document.createElement('link'); _l.rel='manifest'; _l.href=URL.createObjectURL(_b); document.head.appendChild(_l);
+    }catch(e){}
+    if('serviceWorker' in navigator){
+        navigator.serviceWorker.register('sw.js').then(function(r){ if(r.waiting)r.waiting.postMessage('skipWaiting'); setInterval(function(){ r.update(); }, 30*60*1000); }).catch(function(){});
+        var _rl=false; navigator.serviceWorker.addEventListener('controllerchange', function(){ if(_rl)return; _rl=true; location.reload(); });
+        document.addEventListener('visibilitychange', function(){ if(!document.hidden && navigator.serviceWorker.controller){ navigator.serviceWorker.getRegistration().then(function(r){ if(r)r.update(); }); } });
+    }
+</script>
+</body>
+</html>

@@ -1,8 +1,10 @@
-const CACHE = 'cb-transfers-v5';
+const CACHE = 'cb-transfers-v6';
 const ASSETS = [
-  'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'transfer.html', 'financeiro.html',
+  'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'motorista-app.html', 'transfer.html', 'financeiro.html',
   'icon-192-v4.png', 'icon-512-v4.png', 'manifest.json'
 ];
+
+self.addEventListener('message', (e) => { if (e.data === 'skipWaiting') self.skipWaiting(); });
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
