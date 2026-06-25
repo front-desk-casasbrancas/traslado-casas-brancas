@@ -524,6 +524,13 @@
     }
     function isCompleted(t) { return getStatus(t) === 'completed'; }
     function isCancelled(t) { return getStatus(t) === 'cancelled'; }
+    // Status em curso vindos do app do motorista
+    function emCurso(s) { return ['em_andamento','a_caminho','cheguei','embarcou'].indexOf(s) > -1; }
+    function labelAndamento(s) {
+        if (s === 'embarcou') return 'Embarcou';
+        if (s === 'cheguei') return 'No local';
+        return 'A caminho'; // a_caminho ou em_andamento (legado)
+    }
     function transferPorId(id) { return transfers.find(x => (x["ID"] || '').toString() === (id || '').toString()); }
     function postUpdate(id, campos) {
         try {
@@ -825,7 +832,7 @@
 
                 let completed = isCompleted(t);
                 let cancelled = isCancelled(t);
-                let andamento = getStatus(t) === 'em_andamento';
+                let andamento = emCurso(getStatus(t));
                 let rowClass = cancelled ? 'cancelled-row' : (completed ? 'completed-row' : (andamento ? 'andamento-row' : ''));
                 let disabled = cancelled || completed;
                 let _id = (t["ID"] || '').toString();
@@ -833,7 +840,7 @@
                 let rsv = t["Reserva"] ? `<br><span style="font-size:0.72rem;color:#8a8270;">Reserva: ${t["Reserva"]}<\/span>` : '';
 
                 html += `<tr class="${rowClass}">
-                    <td>${data}${andamento ? '<br><span class="tag-andamento">Em andamento<\/span>' : ''}<\/td>
+                    <td>${data}${andamento ? '<br><span class="tag-andamento">'+labelAndamento(getStatus(t))+'<\/span>' : ''}<\/td>
                     <td>${horario}<\/td>
                     <td>${t["Nome"] || '-'}${rsv}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>

@@ -36,6 +36,7 @@
         .btn-ini { background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; }
         .btn-fim { background:#2f7d8c; color:#fff; }
         .btn-map { background:#fff; border:1px solid #cfc4a8; color:#8a7a55; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; }
+        .btn-zap { background:#25d366; color:#fff; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; }
         .btn:disabled { opacity:0.5; }
         .vazio { background:#fff; border:1px dashed #d8cbb0; border-radius:16px; padding:26px; text-align:center; color:#8a8270; }
         .upd { text-align:center; font-size:0.74rem; color:#8a8270; margin-top:14px; }
@@ -153,9 +154,20 @@
         }catch(e){ document.getElementById('upd').innerText='Erro ao atualizar.'; }
     }
 
+    // Fluxo: (a iniciar) -> a_caminho -> cheguei -> embarcou -> completed
+    function emCurso(s){ return s==='a_caminho'||s==='cheguei'||s==='embarcou'||s==='em_andamento'; }
+    function proximoPasso(s){
+        if(s==='completed') return null;
+        if(s==='embarcou')  return {st:'completed', label:'✓ Finalizar', cls:'btn-fim'};
+        if(s==='cheguei')   return {st:'embarcou',  label:'Embarcou', cls:'btn-ini'};
+        if(s==='a_caminho') return {st:'cheguei',   label:'Cheguei', cls:'btn-ini'};
+        return {st:'a_caminho', label:'A caminho', cls:'btn-ini'}; // inclui em_andamento legado
+    }
     function statusTag(t){ let s=getStatus(t);
         if(s==='completed')return '<span class="tag" style="color:#2f7d8c;background:#e6f0f2;">Finalizado</span>';
-        if(s==='em_andamento')return '<span class="tag" style="color:#8a6d1b;background:#fff3cd;">Em andamento</span>';
+        if(s==='embarcou') return '<span class="tag" style="color:#2f7d8c;background:#e6f0f2;">Embarcou</span>';
+        if(s==='cheguei')  return '<span class="tag" style="color:#8a6d1b;background:#fff3cd;">No local</span>';
+        if(s==='a_caminho'||s==='em_andamento')return '<span class="tag" style="color:#8a6d1b;background:#fff3cd;">A caminho</span>';
         return '<span class="tag" style="color:#9c7d3f;background:#f3ecdd;">A iniciar</span>'; }
 
     function render(){
@@ -175,31 +187,43 @@
             let voo = [t["Voo"], t["Cia Aérea"]||t["Cia Aerea"]].filter(function(x){return x && x!=='-';}).join(' / ');
             let _id=idOf(t);
             let mapBtn = end ? '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(end+', Búzios RJ')+'" target="_blank">📍 Maps</a>' : '';
-            let iniBtn = (s==='completed') ? '' : '<button class="btn btn-ini" data-act="iniciar" data-id="'+_id+'" '+(s==='em_andamento'?'disabled':'')+'>'+(s==='em_andamento'?'Iniciado':'Iniciar')+'</button>';
-            let fimBtn = (s==='completed') ? '' : '<button class="btn btn-fim" data-act="finalizar" data-id="'+_id+'">Finalizar</button>';
-            return '<div class="card '+(s==='em_andamento'?'andamento':(s==='completed'?'completed':''))+'">'+
+            let tel = (t["Telefone"]||'').toString().replace(/\D/g,'');
+            let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank">💬 WhatsApp</a>' : '';
+            let pp = proximoPasso(s);
+            let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+_id+'">'+pp.label+'</button>' : '';
+            return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
                 '<div class="ch"><div><div class="hr">'+getHorario(t)+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
                 '<div class="nome-h">'+(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+t["Reserva"]+'</span>':'')+'</div>'+
                 '<div class="linha"><b>'+sent+'</b> · '+(t["Veículo"]||'-')+'</div>'+
                 (end?'<div class="linha">📍 '+end+'</div>':'')+
                 (voo?'<div class="linha">✈️ '+voo+'</div>':'')+
                 (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':'')+
-                '<div class="acoes">'+iniBtn+fimBtn+mapBtn+'</div>'+
+                (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+t["ObsMotorista"]+'</div>':'')+
+                '<div class="acoes">'+nextBtn+zapBtn+mapBtn+'</div>'+
             '</div>';
         }).join('');
 
-        cont.querySelectorAll('button[data-act]').forEach(function(b){
+        cont.querySelectorAll('button[data-act="passo"]').forEach(function(b){
             b.addEventListener('click',function(){
                 let t=transfers.find(function(x){ return idOf(x)===b.dataset.id; }); if(!t)return;
-                if(b.dataset.act==='iniciar'){ if(!confirm('Iniciar este traslado?'))return; mudarStatus(t,'em_andamento'); }
-                else if(b.dataset.act==='finalizar'){ if(!confirm('Finalizar este traslado?'))return; mudarStatus(t,'completed'); }
+                let st=b.dataset.st;
+                let rotulo={a_caminho:'sair a caminho',cheguei:'avisar que chegou',embarcou:'confirmar que o hóspede embarcou',completed:'finalizar'}[st]||'atualizar';
+                if(!confirm('Deseja '+rotulo+'?'))return;
+                if(st==='completed'){
+                    let obs=prompt('Observações da corrida (opcional): km, intercorrências, etc.','');
+                    mudarStatus(t,'completed', obs||'');
+                } else {
+                    mudarStatus(t,st);
+                }
             });
         });
     }
 
-    function mudarStatus(t, st){
+    function mudarStatus(t, st, obs){
         t["Status"]=st;
-        try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',id:idOf(t),status:st})}); }catch(e){}
+        var corpo={action:'update', id:idOf(t), status:st};
+        if(typeof obs==='string' && obs.trim()){ corpo.obsMotorista=obs.trim(); t["ObsMotorista"]=obs.trim(); }
+        try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}); }catch(e){}
         render();
         setTimeout(carregar,1500);
     }
