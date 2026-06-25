@@ -246,6 +246,9 @@
         if (periodo === 'trimestre') return ativos.filter(t => { let d = parseLocal(t["Data Viagem"]); return !isNaN(d.getTime()) && d >= tresMesesAtras; });
         return ativos;
     }
+    // Consolida o mesmo motorista escrito com grafias/maiúsculas diferentes
+    function chaveMot(s){ let t=(s||'').toString().trim(); return t ? t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '__sem__'; }
+    function nomeDisp(s){ let t=(s||'').toString().trim(); if(!t) return '(sem motorista)'; return t.toLowerCase().replace(/(^|\s)\S/g, c=>c.toUpperCase()); }
     function updateComissaoTab(periodo = 'todos') {
         currentPeriodo = periodo;
         let ativos = transfers.filter(t => !isCancelled(t));
@@ -265,8 +268,8 @@
             '</tbody></table>';
         // por motorista
         let porMot = {};
-        filtered.forEach(t => { let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 }; porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0; });
-        let linhasMot = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => '<tr><td>' + m + '</td><td>' + d.qtd + '</td><td>R$ ' + d.total.toLocaleString('pt-BR') + '</td><td>R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
+        filtered.forEach(t => { let raw = (t["Motorista"] || '').toString().trim(); let k = chaveMot(raw); if (!porMot[k]) porMot[k] = { disp: nomeDisp(raw), qtd: 0, total: 0 }; porMot[k].qtd++; porMot[k].total += parseFloat(t["Valor Total"]) || 0; });
+        let linhasMot = Object.values(porMot).sort((a, b) => b.total - a.total).map(d => '<tr><td>' + d.disp + '</td><td>' + d.qtd + '</td><td>R$ ' + d.total.toLocaleString('pt-BR') + '</td><td>R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
         document.getElementById('porMotorista').innerHTML = '<table style="width:100%"><thead><tr><th>Motorista</th><th>Traslados</th><th>Total em traslados</th><th>Comissão (15%)</th></tr></thead><tbody>' + (linhasMot || '<tr><td colspan="4">Sem traslados no período.</td></tr>') + '</tbody></table>';
         try { renderGraficos(filtered); } catch (e) { console.error(e); }
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
@@ -281,7 +284,7 @@
             let d = parseLocal(t["Data Viagem"]);
             if (!isNaN(d.getTime())) { let k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); mes[k] = (mes[k] || 0) + v; }
             let vc = (t["Veículo"] || '-').toString(); veic[vc] = (veic[vc] || 0) + v;
-            let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; mot[m] = (mot[m] || 0) + v;
+            let mraw = (t["Motorista"] || '').toString().trim(); let mk2 = chaveMot(mraw); if (!mot[mk2]) mot[mk2] = { disp: nomeDisp(mraw), v: 0 }; mot[mk2].v += v;
         });
         const gold = ['#b8995a', '#9c7d3f', '#cbb27a', '#8b7a5c', '#d8c79a', '#6f5f3f', '#e3d8c2'];
         function mk(id, type, labels, data, label) {
@@ -297,8 +300,8 @@
         mk('chMes', 'line', mesK, mesK.map(k => Math.round(mes[k])), 'R$');
         let vK = Object.keys(veic).sort((a, b) => veic[b] - veic[a]);
         mk('chVeic', 'doughnut', vK, vK.map(k => Math.round(veic[k])));
-        let mK = Object.keys(mot).sort((a, b) => mot[b] - mot[a]);
-        mk('chMot', 'bar', mK, mK.map(k => Math.round(mot[k])), 'R$');
+        let mK = Object.keys(mot).sort((a, b) => mot[b].v - mot[a].v);
+        mk('chMot', 'bar', mK.map(k => mot[k].disp), mK.map(k => Math.round(mot[k].v)), 'R$');
     }
     function exportarComissaoPDF() {
         let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
@@ -318,8 +321,8 @@
         let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };
         let lista = transfersDoPeriodo(currentPeriodo);
         let porMot = {};
-        lista.forEach(t => { let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 }; porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0; });
-        let linhas = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => '<tr><td>' + m + '</td><td style="text-align:center;">' + d.qtd + '</td><td style="text-align:right;">R$ ' + d.total.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
+        lista.forEach(t => { let raw = (t["Motorista"] || '').toString().trim(); let k = chaveMot(raw); if (!porMot[k]) porMot[k] = { disp: nomeDisp(raw), qtd: 0, total: 0 }; porMot[k].qtd++; porMot[k].total += parseFloat(t["Valor Total"]) || 0; });
+        let linhas = Object.values(porMot).sort((a, b) => b.total - a.total).map(d => '<tr><td>' + d.disp + '</td><td style="text-align:center;">' + d.qtd + '</td><td style="text-align:right;">R$ ' + d.total.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
         let totGeral = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório por Motorista - Casas Brancas</title><style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{font-size:1.25rem;color:#9c7d3f;margin-bottom:4px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:18px;}table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.86rem;}th,td{border-bottom:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}tfoot td{font-weight:bold;border-top:2px solid #9c7d3f;}@media print{.noprint{display:none;}}</style></head><body>' +
             '<h1>Relatório por Motorista — Casas Brancas</h1><div class="sub">Período: ' + (labels[currentPeriodo] || 'Todos') + ' · Gerado em ' + new Date().toLocaleString('pt-BR') + '</div>' +
