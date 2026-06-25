@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casas Brancas — Avaliações</title>
+<meta name="theme-color" content="#2b2a26">
+<link rel="apple-touch-icon" href="icon-192-v4.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--gold:#b8995a;--gold-d:#9c7d3f;--gold-l:#cbb27a;--ink:#2b2a26;}
+  body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#34322c;min-height:100vh;position:relative;padding:16px 14px 50px;}
+  body::before{content:'';position:fixed;inset:0;z-index:-2;background:url('fundo-hotel.jpg') center 40%/cover no-repeat;}
+  body::after{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(248,245,239,0.93),rgba(246,242,235,0.96));}
+  .wrap{max-width:760px;margin:0 auto;}
+  .topo{border-radius:18px;color:#fff;padding:18px 22px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;background-image:linear-gradient(100deg,rgba(30,28,23,0.85),rgba(30,28,23,0.5)),url('fundo-hotel.jpg');background-size:cover;background-position:center 38%;box-shadow:0 10px 26px rgba(40,36,28,0.2);}
+  .topo .nome{font-family:'Georgia',serif;font-style:italic;font-size:1.4rem;}
+  .topo .sub{font-size:0.7rem;letter-spacing:2px;color:var(--gold-l);font-weight:600;margin-top:4px;}
+  .voltar{background:rgba(255,255,255,0.16);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 14px;border-radius:30px;font-size:0.8rem;text-decoration:none;white-space:nowrap;}
+  .resumo{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .kpi{flex:1;min-width:150px;background:#fff;border:1px solid rgba(184,153,90,0.25);border-radius:14px;padding:14px 16px;box-shadow:0 5px 16px rgba(40,36,28,0.06);}
+  .kpi .lab{font-size:0.72rem;color:#8a8270;}
+  .kpi .val{font-size:1.6rem;font-weight:700;color:var(--gold-d);}
+  .card{background:#fff;border:1px solid rgba(184,153,90,0.25);border-radius:14px;padding:16px 18px;margin-bottom:14px;box-shadow:0 5px 16px rgba(40,36,28,0.06);}
+  .card h3{font-size:0.8rem;color:var(--gold-d);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+  table{width:100%;border-collapse:collapse;font-size:0.9rem;}
+  th,td{text-align:left;padding:7px 6px;border-bottom:1px solid #eee5d3;}
+  th{color:#8a7a55;font-size:0.78rem;}
+  .estrelas{color:#e8b84a;letter-spacing:1px;}
+  .coment{margin-top:3px;color:#5a5446;font-size:0.9rem;}
+  .item{padding:11px 0;border-bottom:1px solid #eee5d3;}
+  .item:last-child{border-bottom:none;}
+  .meta{font-size:0.76rem;color:#8a8270;}
+  .vazio{color:#8a8270;text-align:center;padding:24px;}
+  /* gate */
+  .gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background-image:linear-gradient(rgba(30,28,23,0.72),rgba(30,28,23,0.72)),url('fundo-hotel.jpg');background-size:cover;background-position:center;}
+  .gate-card{background:#fff;padding:30px 26px;border-radius:18px;max-width:330px;width:100%;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,0.35);}
+  .gate-card .tt{font-family:'Georgia',serif;font-style:italic;color:var(--gold-d);font-size:1.5rem;}
+  .gate-card input{width:100%;padding:12px 14px;border:1px solid #d8cbb0;border-radius:10px;font-size:1rem;margin:14px 0 10px;text-align:center;}
+  .gate-card button{width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;border:none;border-radius:40px;font-weight:600;cursor:pointer;}
+  .gate-erro{color:#b85c5a;font-size:0.8rem;margin-top:10px;display:none;}
+</style>
+</head>
+<body>
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="tt">Casas Brancas</div>
+    <div style="font-size:0.72rem;letter-spacing:2px;color:var(--gold);font-weight:600;margin-top:4px;">AVALIAÇÕES</div>
+    <input type="password" id="gSenha" placeholder="Senha" autocomplete="off" data-lpignore="true">
+    <button id="gBtn">Entrar</button>
+    <div class="gate-erro" id="gErro">Senha incorreta</div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <div class="topo">
+    <div><div class="nome">Casas Brancas</div><div class="sub">AVALIAÇÕES DOS CLIENTES</div></div>
+    <a class="voltar" href="menu.html">‹ Menu</a>
+  </div>
+  <div class="resumo" id="resumo"></div>
+  <div class="card"><h3>Média por motorista</h3><div id="porMot"></div></div>
+  <div class="card"><h3>Comentários recentes</h3><div id="lista"></div></div>
+  <div class="meta" id="upd" style="text-align:center;"></div>
+</div>
+
+<script>
+  const WEBAPP_URL="https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+  const SENHA="Casas1974";
+  function chaveMot(s){ let t=(s||'').toString().trim(); return t? t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '__sem__'; }
+  function nomeDisp(s){ let t=(s||'').toString().trim(); if(!t) return '(sem motorista)'; return t.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()); }
+  function estrelas(n){ n=parseInt(n,10)||0; return '★★★★★'.slice(0,n)+'<span style="color:#e3d8c2;">'+'★★★★★'.slice(0,5-n)+'</span>'; }
+  function fData(v){ let d=new Date(v); if(isNaN(d))return '-'; return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+
+  document.getElementById('gBtn').addEventListener('click',entrar);
+  document.getElementById('gSenha').addEventListener('keydown',e=>{ if(e.key==='Enter')entrar(); });
+  document.getElementById('gSenha').focus();
+  function entrar(){
+    if(document.getElementById('gSenha').value===SENHA){ document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block'; carregar(); }
+    else { document.getElementById('gErro').style.display='block'; document.getElementById('gSenha').value=''; }
+  }
+
+  async function carregar(){
+    try{
+      const d=await (await fetch(WEBAPP_URL+'?action=avaliacoes')).json();
+      render(Array.isArray(d)?d:[]);
+      document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleString('pt-BR');
+    }catch(e){ document.getElementById('lista').innerHTML='<div class="vazio">Erro ao carregar.</div>'; }
+  }
+
+  function render(arr){
+    if(!arr.length){
+      document.getElementById('resumo').innerHTML='<div class="kpi"><div class="lab">Avaliações</div><div class="val">0</div></div>';
+      document.getElementById('porMot').innerHTML='<div class="vazio">Ainda sem avaliações.</div>';
+      document.getElementById('lista').innerHTML='<div class="vazio">Os comentários dos clientes aparecerão aqui.</div>';
+      return;
+    }
+    let soma=arr.reduce((s,a)=>s+(parseInt(a["Nota"],10)||0),0);
+    let media=(soma/arr.length).toFixed(1);
+    document.getElementById('resumo').innerHTML=
+      '<div class="kpi"><div class="lab">Avaliações (2 meses)</div><div class="val">'+arr.length+'</div></div>'+
+      '<div class="kpi"><div class="lab">Média geral</div><div class="val">'+media+' <span style="font-size:1rem;">★</span></div></div>';
+    // por motorista (nomes consolidados)
+    let pm={};
+    arr.forEach(a=>{ let k=chaveMot(a["Motorista"]); if(!pm[k])pm[k]={disp:nomeDisp(a["Motorista"]),n:0,soma:0}; pm[k].n++; pm[k].soma+=parseInt(a["Nota"],10)||0; });
+    let linhas=Object.values(pm).sort((x,y)=>(y.soma/y.n)-(x.soma/x.n)).map(d=>'<tr><td>'+d.disp+'</td><td>'+d.n+'</td><td class="estrelas">'+(d.soma/d.n).toFixed(1)+' ★</td></tr>').join('');
+    document.getElementById('porMot').innerHTML='<table><thead><tr><th>Motorista</th><th>Avaliações</th><th>Média</th></tr></thead><tbody>'+linhas+'</tbody></table>';
+    // comentários (mais recentes primeiro)
+    let itens=arr.slice().sort((a,b)=>new Date(b["Data"])-new Date(a["Data"])).map(a=>{
+      let com=(a["Comentario"]||'').toString().trim();
+      return '<div class="item"><div class="estrelas">'+estrelas(a["Nota"])+'</div>'+
+        (com?'<div class="coment">"'+com+'"</div>':'<div class="coment" style="color:#b0a890;">(sem comentário)</div>')+
+        '<div class="meta">'+(a["Hospede"]||'-')+' · '+nomeDisp(a["Motorista"])+' · '+fData(a["Data"])+'</div></div>';
+    }).join('');
+    document.getElementById('lista').innerHTML=itens;
+  }
+</script>
+</body>
+</html>
