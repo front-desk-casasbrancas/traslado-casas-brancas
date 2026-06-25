@@ -134,6 +134,14 @@
             <div id="porMotorista"></div>
         </div>
         <div class="table-container">
+            <h3>Gráficos (período selecionado)</h3>
+            <div style="display:flex; gap:18px; flex-wrap:wrap; margin-top:10px;">
+                <div style="flex:1; min-width:260px;"><div style="font-size:0.8rem;color:#8a7a55;margin-bottom:6px;">Faturamento por mês</div><canvas id="chMes" height="180"></canvas></div>
+                <div style="flex:1; min-width:220px;"><div style="font-size:0.8rem;color:#8a7a55;margin-bottom:6px;">Por veículo</div><canvas id="chVeic" height="180"></canvas></div>
+                <div style="flex:1; min-width:220px;"><div style="font-size:0.8rem;color:#8a7a55;margin-bottom:6px;">Por motorista</div><canvas id="chMot" height="180"></canvas></div>
+            </div>
+        </div>
+        <div class="table-container">
             <h3>Pagamento de comissão (por mês)</h3>
             <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin:12px 0;">
                 <div><label style="display:block;font-size:0.75rem;color:#8a7a55;margin-bottom:4px;">Mês de referência</label><input type="month" id="pgMes" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;"></div>
@@ -260,7 +268,37 @@
         filtered.forEach(t => { let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; if (!porMot[m]) porMot[m] = { qtd: 0, total: 0 }; porMot[m].qtd++; porMot[m].total += parseFloat(t["Valor Total"]) || 0; });
         let linhasMot = Object.entries(porMot).sort((a, b) => b[1].total - a[1].total).map(([m, d]) => '<tr><td>' + m + '</td><td>' + d.qtd + '</td><td>R$ ' + d.total.toLocaleString('pt-BR') + '</td><td>R$ ' + (d.total * 0.15).toLocaleString('pt-BR') + '</td></tr>').join('');
         document.getElementById('porMotorista').innerHTML = '<table style="width:100%"><thead><tr><th>Motorista</th><th>Traslados</th><th>Total em traslados</th><th>Comissão (15%)</th></tr></thead><tbody>' + (linhasMot || '<tr><td colspan="4">Sem traslados no período.</td></tr>') + '</tbody></table>';
+        try { renderGraficos(filtered); } catch (e) { console.error(e); }
         document.querySelectorAll('.periodo-btn').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-periodo') === periodo) btn.classList.add('active'); });
+    }
+    // ===== GRÁFICOS (Chart.js) =====
+    let chartRefs = {};
+    function renderGraficos(lista) {
+        if (typeof Chart === 'undefined') return;
+        let mes = {}, veic = {}, mot = {};
+        lista.forEach(t => {
+            let v = parseFloat(t["Valor Total"]) || 0;
+            let d = parseLocal(t["Data Viagem"]);
+            if (!isNaN(d.getTime())) { let k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); mes[k] = (mes[k] || 0) + v; }
+            let vc = (t["Veículo"] || '-').toString(); veic[vc] = (veic[vc] || 0) + v;
+            let m = (t["Motorista"] || '').toString().trim() || '(sem motorista)'; mot[m] = (mot[m] || 0) + v;
+        });
+        const gold = ['#b8995a', '#9c7d3f', '#cbb27a', '#8b7a5c', '#d8c79a', '#6f5f3f', '#e3d8c2'];
+        function mk(id, type, labels, data, label) {
+            let c = document.getElementById(id); if (!c) return;
+            if (chartRefs[id]) chartRefs[id].destroy();
+            chartRefs[id] = new Chart(c, {
+                type: type,
+                data: { labels: labels, datasets: [{ label: label || '', data: data, backgroundColor: (type === 'line' ? 'rgba(184,153,90,0.2)' : gold), borderColor: '#9c7d3f', fill: (type === 'line'), tension: 0.3 }] },
+                options: { plugins: { legend: { display: type === 'doughnut' } }, scales: (type === 'doughnut' ? {} : { y: { beginAtZero: true } }) }
+            });
+        }
+        let mesK = Object.keys(mes).sort();
+        mk('chMes', 'line', mesK, mesK.map(k => Math.round(mes[k])), 'R$');
+        let vK = Object.keys(veic).sort((a, b) => veic[b] - veic[a]);
+        mk('chVeic', 'doughnut', vK, vK.map(k => Math.round(veic[k])));
+        let mK = Object.keys(mot).sort((a, b) => mot[b] - mot[a]);
+        mk('chMot', 'bar', mK, mK.map(k => Math.round(mot[k])), 'R$');
     }
     function exportarComissaoPDF() {
         let labels = { todos: 'Todos os períodos', mesAtual: 'Este mês', mesAnterior: 'Mês passado', trimestre: 'Últimos 3 meses' };

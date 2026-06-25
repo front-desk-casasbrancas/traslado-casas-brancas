@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casas Brancas — Avalie seu traslado</title>
+<meta name="theme-color" content="#2b2a26">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--gold:#b8995a;--gold-d:#9c7d3f;--gold-l:#cbb27a;--ink:#2b2a26;}
+  body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#34322c;min-height:100vh;position:relative;padding:18px 16px 40px;display:flex;align-items:center;justify-content:center;}
+  body::before{content:'';position:fixed;inset:0;z-index:-2;background:url('fundo-hotel.jpg') center 40%/cover no-repeat;}
+  body::after{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(248,245,239,0.92),rgba(246,242,235,0.96));}
+  .card{background:#fff;border:1px solid rgba(184,153,90,0.25);border-radius:20px;padding:30px 26px;max-width:440px;width:100%;text-align:center;box-shadow:0 14px 40px rgba(40,36,28,0.18);}
+  .nome{font-family:'Georgia',serif;font-style:italic;color:var(--gold-d);font-size:1.7rem;}
+  .sub{font-size:0.72rem;letter-spacing:2px;color:var(--gold);font-weight:600;margin:6px 0 18px;}
+  h1{font-size:1.15rem;margin-bottom:6px;}
+  p.desc{font-size:0.9rem;color:#8a8270;margin-bottom:18px;}
+  .estrelas{display:flex;justify-content:center;gap:8px;margin-bottom:18px;}
+  .star{font-size:2.4rem;color:#e3d8c2;cursor:pointer;transition:transform .1s;}
+  .star.on{color:#e8b84a;}
+  .star:active{transform:scale(1.2);}
+  textarea{width:100%;border:1px solid #d8cbb0;border-radius:12px;padding:12px;font-size:0.95rem;font-family:inherit;min-height:90px;margin-bottom:16px;resize:vertical;}
+  button{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;border:none;border-radius:40px;font-weight:600;font-size:1rem;cursor:pointer;}
+  button:disabled{opacity:0.5;}
+  .ok{color:#2f7d8c;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="nome">Casas Brancas</div>
+  <div class="sub">AVALIE SEU TRASLADO</div>
+  <div id="form">
+    <h1>Como foi sua viagem?</h1>
+    <p class="desc">Toque nas estrelas para avaliar.</p>
+    <div class="estrelas" id="estrelas">
+      <span class="star" data-n="1">★</span><span class="star" data-n="2">★</span><span class="star" data-n="3">★</span><span class="star" data-n="4">★</span><span class="star" data-n="5">★</span>
+    </div>
+    <textarea id="coment" placeholder="Quer deixar um comentário? (opcional)"></textarea>
+    <button id="enviar" disabled>Enviar avaliação</button>
+  </div>
+  <div id="obrigado" style="display:none;">
+    <h1 class="ok">Obrigado! 🌿</h1>
+    <p class="desc">Sua avaliação foi registrada. Boa estadia na Casas Brancas!</p>
+  </div>
+</div>
+<script>
+  const WEBAPP_URL="https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+  const ID=new URLSearchParams(location.search).get('id')||'';
+  let nota=0;
+  const stars=[...document.querySelectorAll('.star')];
+  function pinta(){ stars.forEach(function(s){ s.classList.toggle('on', (+s.dataset.n)<=nota); }); }
+  stars.forEach(function(s){ s.addEventListener('click',function(){ nota=+s.dataset.n; pinta(); document.getElementById('enviar').disabled=false; }); });
+  document.getElementById('enviar').addEventListener('click',function(){
+    if(!nota||!ID)return;
+    let btn=this; btn.disabled=true; btn.innerText='Enviando…';
+    try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'avaliacao',id:ID,nota:nota,comentario:document.getElementById('coment').value})}); }catch(e){}
+    setTimeout(function(){ document.getElementById('form').style.display='none'; document.getElementById('obrigado').style.display='block'; }, 700);
+  });
+</script>
+</body>
+</html>

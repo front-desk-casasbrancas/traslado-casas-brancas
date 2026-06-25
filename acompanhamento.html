@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casas Brancas — Seu traslado</title>
+<meta name="theme-color" content="#2b2a26">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--gold:#b8995a;--gold-d:#9c7d3f;--gold-l:#cbb27a;--ink:#2b2a26;--sea:#2f7d8c;}
+  body{font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Arial,sans-serif;color:#34322c;min-height:100vh;position:relative;padding:18px 16px 40px;}
+  body::before{content:'';position:fixed;inset:0;z-index:-2;background:url('fundo-hotel.jpg') center 40%/cover no-repeat;}
+  body::after{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(248,245,239,0.92),rgba(246,242,235,0.96));}
+  .wrap{max-width:540px;margin:0 auto;}
+  .topo{position:relative;overflow:hidden;border-radius:20px;color:#fff;padding:22px 24px;margin-bottom:16px;text-align:center;box-shadow:0 12px 30px rgba(40,36,28,0.22);background-image:linear-gradient(100deg,rgba(30,28,23,0.85),rgba(30,28,23,0.5)),url('fundo-hotel.jpg');background-size:cover;background-position:center 38%;}
+  .topo .nome{font-family:'Georgia',serif;font-style:italic;font-size:1.6rem;}
+  .topo .sub{font-size:0.72rem;letter-spacing:2px;color:var(--gold-l);margin-top:6px;font-weight:600;}
+  .card{background:#fff;border:1px solid rgba(184,153,90,0.25);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 6px 18px rgba(40,36,28,0.07);}
+  .ola{font-size:1.15rem;font-weight:600;margin-bottom:4px;}
+  .rota{color:var(--gold-d);font-weight:600;}
+  .linha{font-size:0.92rem;color:#5a5446;margin-top:8px;}
+  .linha b{color:#34322c;}
+  .timeline{margin-top:8px;}
+  .step{display:flex;align-items:center;gap:12px;padding:9px 0;}
+  .dot{width:26px;height:26px;border-radius:50%;background:#e3d8c2;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0;}
+  .step.on .dot{background:var(--gold);}
+  .step.on .lab{color:#34322c;font-weight:600;}
+  .step.done .dot{background:var(--sea);}
+  .lab{color:#9a917e;font-size:0.95rem;}
+  .voo{background:#eef5f6;border:1px solid #cfe3e6;border-radius:12px;padding:12px 14px;margin-top:8px;font-size:0.88rem;color:#2f6470;}
+  .vazio{background:#fff;border:1px dashed #d8cbb0;border-radius:16px;padding:26px;text-align:center;color:#8a8270;}
+  .rod{text-align:center;font-size:0.74rem;color:#8a8270;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo"><div class="nome">Casas Brancas</div><div class="sub">SEU TRASLADO</div></div>
+  <div id="conteudo"><div class="vazio">Carregando…</div></div>
+  <div class="rod">Casas Brancas Boutique Hotel · Búzios</div>
+</div>
+<script>
+  const WEBAPP_URL="https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+  const ID=new URLSearchParams(location.search).get('id')||'';
+  const PASSOS=[['a_caminho','Motorista a caminho'],['cheguei','Motorista no local'],['embarcou','Você embarcou'],['completed','Traslado concluído']];
+  function idxStatus(s){ if(s==='completed')return 3; if(s==='embarcou')return 2; if(s==='cheguei')return 1; if(s==='a_caminho'||s==='em_andamento')return 0; return -1; }
+  function parseLocal(v){ let m=String(v).match(/(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(v); }
+  function fData(v){ let d=parseLocal(v); return isNaN(d)?'-':String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
+  async function carregar(){
+    if(!ID){ document.getElementById('conteudo').innerHTML='<div class="vazio">Link inválido.</div>'; return; }
+    try{
+      const d=await (await fetch(WEBAPP_URL+'?action=transfer&id='+encodeURIComponent(ID))).json();
+      if(!d||!d.ok){ document.getElementById('conteudo').innerHTML='<div class="vazio">Traslado não encontrado.</div>'; return; }
+      render(d);
+      if(d.voo){ buscarVoo(d.voo); }
+    }catch(e){ document.getElementById('conteudo').innerHTML='<div class="vazio">Não foi possível carregar agora.</div>'; }
+  }
+  function render(d){
+    let sent=d.sentido==='IN'?'Rio → Búzios':'Búzios → Rio';
+    let cur=idxStatus(d.status);
+    let steps=PASSOS.map(function(p,i){ let cls=i<cur?'done':(i===cur?'on':''); let ic=i<cur?'✓':(i===cur?'●':(i+1)); return '<div class="step '+cls+'"><div class="dot">'+ic+'</div><div class="lab">'+p[1]+'</div></div>'; }).join('');
+    let mot=d.motorista?('<div class="linha">🧑‍✈️ Motorista: <b>'+d.motorista+'</b></div>'):'<div class="linha" style="color:#8a8270;">Motorista a definir</div>';
+    document.getElementById('conteudo').innerHTML=
+      '<div class="card">'+
+        '<div class="ola">Olá'+(d.nome?', '+d.nome:'')+'! 👋</div>'+
+        '<div class="rota">'+sent+'</div>'+
+        '<div class="linha">📅 <b>'+fData(d.data)+'</b> &nbsp; 🕒 <b>'+(d.horario||'-')+'</b></div>'+
+        '<div class="linha">🚗 '+(d.veiculo||'-')+'</div>'+
+        mot+
+        (d.voo?'<div class="linha">✈️ Voo '+d.voo+(d.cia?' · '+d.cia:'')+'</div>':'')+
+        '<div id="voobox"></div>'+
+      '</div>'+
+      '<div class="card"><div class="timeline">'+steps+'</div></div>';
+  }
+  async function buscarVoo(voo){
+    try{
+      const v=await (await fetch(WEBAPP_URL+'?action=flightstatus&voo='+encodeURIComponent(voo))).json();
+      if(v&&v.status&&v.status!=='sem_dados'&&!v.erro){
+        let txt='Status do voo: <b>'+v.status+'</b>';
+        if(v.atrasoChegada)txt+=' · atraso ~'+v.atrasoChegada+' min';
+        if(v.portao)txt+=' · portão '+v.portao;
+        document.getElementById('voobox').innerHTML='<div class="voo">'+txt+'</div>';
+      }
+    }catch(e){}
+  }
+  carregar();
+  setInterval(carregar, 60*1000);
+</script>
+</body>
+</html>

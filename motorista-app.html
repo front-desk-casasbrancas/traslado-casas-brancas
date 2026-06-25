@@ -37,6 +37,7 @@
         .btn-fim { background:#2f7d8c; color:#fff; }
         .btn-map { background:#fff; border:1px solid #cfc4a8; color:#8a7a55; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; }
         .btn-zap { background:#25d366; color:#fff; text-decoration:none; text-align:center; display:flex; align-items:center; justify-content:center; }
+        .btn-foto { background:#fff; border:1px solid #cfc4a8; color:#8a7a55; }
         .btn:disabled { opacity:0.5; }
         .vazio { background:#fff; border:1px dashed #d8cbb0; border-radius:16px; padding:26px; text-align:center; color:#8a8270; }
         .upd { text-align:center; font-size:0.74rem; color:#8a8270; margin-top:14px; }
@@ -79,6 +80,8 @@
     <div id="lista"></div>
     <div class="upd" id="upd"></div>
 </div>
+<input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none">
+
 
 <script>
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
@@ -191,6 +194,7 @@
             let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank">💬 WhatsApp</a>' : '';
             let pp = proximoPasso(s);
             let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+_id+'">'+pp.label+'</button>' : '';
+            let fotoBtn = (emCurso(s)||s==='completed') ? '<button class="btn btn-foto" data-act="foto" data-id="'+_id+'">📷 Foto</button>' : '';
             return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
                 '<div class="ch"><div><div class="hr">'+getHorario(t)+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
                 '<div class="nome-h">'+(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+t["Reserva"]+'</span>':'')+'</div>'+
@@ -199,7 +203,7 @@
                 (voo?'<div class="linha">✈️ '+voo+'</div>':'')+
                 (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':'')+
                 (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+t["ObsMotorista"]+'</div>':'')+
-                '<div class="acoes">'+nextBtn+zapBtn+mapBtn+'</div>'+
+                '<div class="acoes">'+nextBtn+zapBtn+mapBtn+fotoBtn+'</div>'+
             '</div>';
         }).join('');
 
@@ -217,7 +221,29 @@
                 }
             });
         });
+        cont.querySelectorAll('button[data-act="foto"]').forEach(function(b){
+            b.addEventListener('click',function(){ fotoAlvo=b.dataset.id; fotoInput.value=''; fotoInput.click(); });
+        });
     }
+
+    // ===== Foto da corrida (comprime e envia ao Drive via backend) =====
+    let fotoAlvo='';
+    const fotoInput=document.getElementById('fotoInput');
+    fotoInput.addEventListener('change',function(){
+        let f=fotoInput.files&&fotoInput.files[0]; if(!f||!fotoAlvo)return;
+        let img=new Image(), rd=new FileReader();
+        rd.onload=function(){ img.onload=function(){
+            let max=1024, w=img.width, h=img.height;
+            if(w>h&&w>max){ h=Math.round(h*max/w); w=max; } else if(h>=w&&h>max){ w=Math.round(w*max/h); h=max; }
+            let cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+            cv.getContext('2d').drawImage(img,0,0,w,h);
+            let b64=cv.toDataURL('image/jpeg',0.7);
+            let t=transfers.find(function(x){ return idOf(x)===fotoAlvo; });
+            try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',id:fotoAlvo,fotoBase64:b64,fotoTipo:'image/jpeg'})}); }catch(e){}
+            alert('Foto enviada ✓');
+        }; img.src=rd.result; };
+        rd.readAsDataURL(f);
+    });
 
     function mudarStatus(t, st, obs){
         t["Status"]=st;
