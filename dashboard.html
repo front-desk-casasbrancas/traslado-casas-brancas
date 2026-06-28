@@ -399,6 +399,23 @@
     </div>
 </div>
 
+<div class="edit-overlay" id="avalOverlay">
+    <div class="edit-card">
+        <h3>Enviar avaliação ao hóspede</h3>
+        <div id="avalResumo" style="font-size:0.82rem;color:#7a8b6e;margin-bottom:8px;"></div>
+        <label>Nome do hóspede</label>
+        <input type="text" id="avalNome">
+        <label>Enviar por</label>
+        <select id="avalMetodo"><option value="WhatsApp">WhatsApp</option><option value="Email">E-mail</option></select>
+        <label id="avalContatoLbl">Telefone</label>
+        <input type="text" id="avalContato">
+        <div class="edit-acoes">
+            <button class="btn-cancelar-edit" id="avalCancelar">Agora não</button>
+            <button class="btn-ajustar" id="avalEnviar">Enviar avaliação</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ==================== CONFIGURAÇÃO ====================
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
@@ -572,6 +589,7 @@
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
             carregarPagamentos();
+            verificarAvaliacoesPendentes();
         } catch(e) {
             console.error(e);
             document.getElementById('errorDisplay').style.display = 'block';
@@ -752,6 +770,57 @@
         } catch (e) { if (win) win.close(); alert("Não foi possível gerar a confirmação agora."); }
     }
 
+    // ==================== AVALIAÇÃO (a recepção confere e envia ao finalizar) ====================
+    const AVALIACAO_URL = "https://front-desk-casasbrancas.github.io/traslado-casas-brancas/avaliacao.html?id=";
+    let avalAlvo = null;
+    function avalTratadas() { try { return JSON.parse(localStorage.getItem('aval_tratadas') || '[]'); } catch (e) { return []; } }
+    function marcarTratada(id) { try { let s = avalTratadas(); if (s.indexOf(String(id)) < 0) { s.push(String(id)); localStorage.setItem('aval_tratadas', JSON.stringify(s)); } } catch (e) {} }
+    function avalContatoToggle() { document.getElementById('avalContatoLbl').innerText = (document.getElementById('avalMetodo').value === 'Email') ? 'E-mail' : 'Telefone'; }
+    function abrirAvaliacao(t) {
+        avalAlvo = transferPorId(t["ID"]) || t;
+        let metodo = (((avalAlvo["Contato"] || '').toString().toLowerCase() === 'email') || (!avalAlvo["Telefone"] && avalAlvo["Email"])) ? 'Email' : 'WhatsApp';
+        document.getElementById('avalResumo').innerText = (avalAlvo["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio") + ' · ' + (formatarData(avalAlvo["Data Viagem"]) || '');
+        document.getElementById('avalNome').value = avalAlvo["Nome"] || '';
+        document.getElementById('avalMetodo').value = metodo;
+        document.getElementById('avalContato').value = (metodo === 'Email') ? (avalAlvo["Email"] || '') : (avalAlvo["Telefone"] || '');
+        avalContatoToggle();
+        document.getElementById('avalOverlay').classList.add('show');
+    }
+    function fecharAvaliacao() { document.getElementById('avalOverlay').classList.remove('show'); }
+    function enviarAvaliacaoDash() {
+        if (!avalAlvo) return;
+        let id = avalAlvo["ID"];
+        let metodo = document.getElementById('avalMetodo').value;
+        let nome = document.getElementById('avalNome').value.trim();
+        let contato = document.getElementById('avalContato').value.trim();
+        if (!contato) { alert('Informe o ' + (metodo === 'Email' ? 'e-mail' : 'telefone') + ' do hóspede.'); return; }
+        if (nome && nome !== avalAlvo["Nome"]) { avalAlvo["Nome"] = nome; try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id: id, nome: nome }) }); } catch (e) {} }
+        if (metodo === 'Email') {
+            try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'enviarAvaliacao', id: id, metodo: 'Email', email: contato }) }); } catch (e) {}
+            avalAlvo["Email"] = contato; avalAlvo["Contato"] = 'Email'; avalAlvo["AvaliacaoConviteEm"] = new Date().toISOString();
+            alert('Avaliação enviada por e-mail ao hóspede (pela front@casasbrancas.com.br).');
+        } else {
+            let tel = formatWhatsAppPhone(contato);
+            if (!tel || tel.length < 12) { alert('Telefone inválido!'); return; }
+            let lang = (avalAlvo["Idioma"] || 'pt').toString().toLowerCase();
+            let msg = (lang === 'en' ? 'Hello! How was your transfer with Casas Brancas? Please rate it here: ' : (lang === 'es' ? '¡Hola! ¿Cómo fue su traslado con Casas Brancas? Evalúe aquí: ' : 'Olá! Como foi seu traslado com a Casas Brancas? Avalie aqui: ')) + AVALIACAO_URL + encodeURIComponent(id);
+            window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
+            try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'enviarAvaliacao', id: id, metodo: 'WhatsApp', telefone: contato }) }); } catch (e) {}
+            avalAlvo["Telefone"] = contato; avalAlvo["Contato"] = 'WhatsApp'; avalAlvo["AvaliacaoConviteEm"] = new Date().toISOString();
+        }
+        marcarTratada(id);
+        fecharAvaliacao();
+    }
+    function verificarAvaliacoesPendentes() {
+        if (document.getElementById('avalOverlay').classList.contains('show')) return;
+        let trat = avalTratadas();
+        let pend = transfers.filter(t => getStatus(t) === 'completed' && !t["AvaliacaoConviteEm"] && trat.indexOf(String(t["ID"])) < 0);
+        if (pend.length) abrirAvaliacao(pend[0]);
+    }
+    document.getElementById('avalMetodo').addEventListener('change', function () { avalContatoToggle(); if (avalAlvo) document.getElementById('avalContato').value = (this.value === 'Email') ? (avalAlvo["Email"] || '') : (avalAlvo["Telefone"] || ''); });
+    document.getElementById('avalEnviar').addEventListener('click', enviarAvaliacaoDash);
+    document.getElementById('avalCancelar').addEventListener('click', function () { if (avalAlvo) marcarTratada(avalAlvo["ID"]); fecharAvaliacao(); });
+
     // ==================== AÇÕES ====================
     function marcarFinalizado(t) {
         let item = transferPorId(t["ID"]) || t;
@@ -762,6 +831,7 @@
         updateDashboard();
         renderProximos();
         updateComissaoTab(currentPeriodo);
+        abrirAvaliacao(item);
     }
 
     function marcarCancelado(t) {

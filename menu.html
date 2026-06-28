@@ -230,11 +230,16 @@
         if (!pipDisponivel()) { alert('A janela flutuante (PiP) funciona no Chrome ou Edge no computador.'); return; }
         try {
             pipWin = await documentPictureInPicture.requestWindow({ width: 340, height: 460 });
+            // Ao fechar a janela flutuante, traz o app de volta ao foco
+            pipWin.addEventListener('pagehide', function () { pipWin = null; try { window.focus(); } catch (e) {} });
             var s = pipWin.document.createElement('style');
             s.textContent = 'body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f6f2eb;color:#2b2a26;} .h{background:#2b2a26;color:#fff;padding:12px 14px;} .h b{color:#cbb27a;font-style:italic;} .sub{font-size:0.7rem;letter-spacing:1px;color:#cbb27a;} .it{padding:9px 12px;border-bottom:1px solid #e7dcc4;font-size:0.9rem;} .hr{color:#9c7d3f;font-weight:700;} .vz{padding:18px;text-align:center;color:#8a8270;font-size:0.85rem;}';
             pipWin.document.head.appendChild(s);
             pipWin.document.body.innerHTML = '<div class="h"><div><b>Casas Brancas</b></div><div class="sub">TRASLADOS DE HOJE</div></div><div id="pipBody"></div>';
             atualizarPiP();
+            // Traz a janela flutuante para a frente e tira o foco da principal (efeito de "minimizar")
+            try { pipWin.focus(); } catch (e) {}
+            try { window.blur(); } catch (e) {}
         } catch (e) { alert('Não foi possível abrir a janela flutuante.'); }
     }
     function atualizarPiP() {

@@ -55,7 +55,10 @@
 <div class="wrap" id="app" style="display:none;">
   <div class="topo">
     <div><div class="nome">Casas Brancas</div><div class="sub">AVALIAÇÕES DOS CLIENTES</div></div>
-    <a class="voltar" href="menu.html">‹ Menu</a>
+    <div style="display:flex;gap:8px;">
+      <button class="voltar" id="btnRelatorio" style="cursor:pointer;">📄 Relatório</button>
+      <a class="voltar" href="menu.html">‹ Menu</a>
+    </div>
   </div>
   <div class="resumo" id="resumo"></div>
   <div class="card"><h3>Média por motorista</h3><div id="porMot"></div></div>
@@ -87,7 +90,9 @@
     }catch(e){ document.getElementById('lista').innerHTML='<div class="vazio">Erro ao carregar.</div>'; }
   }
 
+  let dadosAval = [];
   function render(arr){
+    dadosAval = arr || [];
     if(!arr.length){
       document.getElementById('resumo').innerHTML='<div class="kpi"><div class="lab">Avaliações</div><div class="val">0</div></div>';
       document.getElementById('porMot').innerHTML='<div class="vazio">Ainda sem avaliações.</div>';
@@ -113,6 +118,29 @@
     }).join('');
     document.getElementById('lista').innerHTML=itens;
   }
+
+  // ===== Relatório (PDF via impressão) =====
+  function gerarRelatorio(){
+    const arr = dadosAval || [];
+    if(!arr.length){ alert('Ainda não há avaliações para gerar relatório.'); return; }
+    const soma = arr.reduce((s,a)=>s+(parseInt(a["Nota"],10)||0),0);
+    const media = (soma/arr.length).toFixed(1);
+    let pm={}; arr.forEach(a=>{ let k=chaveMot(a["Motorista"]); if(!pm[k])pm[k]={disp:nomeDisp(a["Motorista"]),n:0,soma:0}; pm[k].n++; pm[k].soma+=parseInt(a["Nota"],10)||0; });
+    const linhasMot = Object.values(pm).sort((x,y)=>(y.soma/y.n)-(x.soma/x.n)).map(d=>'<tr><td>'+d.disp+'</td><td style="text-align:center">'+d.n+'</td><td style="text-align:center">'+(d.soma/d.n).toFixed(1)+' ★</td></tr>').join('');
+    const linhasCom = arr.slice().sort((a,b)=>new Date(b["Data"])-new Date(a["Data"])).map(a=>'<tr><td>'+fData(a["Data"])+'</td><td>'+(a["Hospede"]||'-')+'</td><td>'+nomeDisp(a["Motorista"])+'</td><td style="text-align:center">'+(parseInt(a["Nota"],10)||0)+' ★</td><td>'+((a["Comentario"]||'').toString().replace(/</g,'&lt;')||'—')+'</td></tr>').join('');
+    const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Avaliações - Casas Brancas</title>' +
+      '<style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{color:#9c7d3f;font-size:1.3rem;margin-bottom:2px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:16px;}.kpis{margin:10px 0 18px;font-size:0.95rem;}.kpis b{color:#9c7d3f;}table{width:100%;border-collapse:collapse;margin:8px 0 20px;font-size:0.85rem;}th,td{border-bottom:1px solid #ddd;padding:7px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}h3{margin:10px 0 4px;color:#2b2a26;}@media print{.noprint{display:none;}}</style></head><body>' +
+      '<h1>Casas Brancas — Relatório de Avaliações</h1>' +
+      '<div class="sub">Gerado em ' + new Date().toLocaleString('pt-BR') + ' · período em exibição (últimos 2 meses)</div>' +
+      '<div class="kpis"><b>Avaliações:</b> ' + arr.length + ' &nbsp;|&nbsp; <b>Média geral:</b> ' + media + ' ★</div>' +
+      '<h3>Média por motorista</h3><table><thead><tr><th>Motorista</th><th style="text-align:center">Avaliações</th><th style="text-align:center">Média</th></tr></thead><tbody>' + linhasMot + '</tbody></table>' +
+      '<h3>Comentários</h3><table><thead><tr><th>Data</th><th>Hóspede</th><th>Motorista</th><th style="text-align:center">Nota</th><th>Comentário</th></tr></thead><tbody>' + linhasCom + '</tbody></table>' +
+      '<button class="noprint" onclick="window.print()" style="margin-top:10px;padding:10px 18px;background:#9c7d3f;color:#fff;border:none;border-radius:8px;cursor:pointer;">Imprimir / Salvar PDF</button>' +
+      '<script>setTimeout(function(){window.print();},400);<\/script></body></html>';
+    const w = window.open('', '_blank');
+    if(w){ w.document.write(html); w.document.close(); } else { alert('Permita pop-ups para gerar o relatório.'); }
+  }
+  document.getElementById('btnRelatorio').addEventListener('click', gerarRelatorio);
 </script>
 </body>
 </html>
