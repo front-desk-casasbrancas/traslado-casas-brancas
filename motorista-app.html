@@ -191,7 +191,8 @@
             let _id=idOf(t);
             let mapBtn = end ? '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(end+', Búzios RJ')+'" target="_blank">📍 Maps</a>' : '';
             let tel = (t["Telefone"]||'').toString().replace(/\D/g,'');
-            let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank">💬 WhatsApp</a>' : '';
+            let email = (t["Email"]||'').toString().trim();
+            let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank">💬 WhatsApp</a>' : (email ? '<a class="btn btn-zap" style="background:#b8995a;" href="mailto:'+email+'">✉️ E-mail</a>' : '');
             let pp = proximoPasso(s);
             let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+_id+'">'+pp.label+'</button>' : '';
             let fotoBtn = (emCurso(s)||s==='completed') ? '<button class="btn btn-foto" data-act="foto" data-id="'+_id+'">📷 Foto</button>' : '';
@@ -201,7 +202,7 @@
                 '<div class="linha"><b>'+sent+'</b> · '+(t["Veículo"]||'-')+'</div>'+
                 (end?'<div class="linha">📍 '+end+'</div>':'')+
                 (voo?'<div class="linha">✈️ '+voo+'</div>':'')+
-                (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':'')+
+                (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':(email?'<div class="linha">📧 '+email+'</div>':''))+
                 (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+t["ObsMotorista"]+'</div>':'')+
                 '<div class="acoes">'+nextBtn+zapBtn+mapBtn+fotoBtn+'</div>'+
             '</div>';

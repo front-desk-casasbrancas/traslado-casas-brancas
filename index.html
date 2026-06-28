@@ -347,11 +347,23 @@
 </div>
 
 <div class="overlay" id="sucessoOverlay">
-    <div class="overlay-card">
+    <div class="overlay-card" style="position:relative;">
+        <button type="button" id="sucessoFechar" aria-label="Fechar" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.6rem;line-height:1;color:#9a917e;cursor:pointer;">&times;</button>
         <div class="overlay-check">&#10003;</div>
         <h2 id="sucessoTitulo">Solicitação enviada!</h2>
-        <p id="sucessoTexto">Abrimos o WhatsApp com os dados da sua solicitação. Toque em enviar para a recepção confirmar.</p>
+        <p id="sucessoTexto">Em breve você receberá a confirmação.</p>
         <button type="button" class="btn-submit" id="novaSolicitacaoBtn">Fazer nova solicitação</button>
+    </div>
+</div>
+
+<div class="overlay" id="revisaoOverlay">
+    <div class="overlay-card" style="position:relative;text-align:left;max-width:460px;">
+        <button type="button" id="revisaoFechar" aria-label="Fechar" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.6rem;line-height:1;color:#9a917e;cursor:pointer;">&times;</button>
+        <h2 id="revisaoTitulo" style="text-align:center;font-size:1.2rem;margin-bottom:4px;">Confira seus dados</h2>
+        <p id="revisaoSub" style="text-align:center;font-size:0.82rem;color:#8a8270;margin-bottom:14px;">Revise antes de enviar.</p>
+        <div id="revisaoBody" style="font-size:0.92rem;color:#34322c;"></div>
+        <button type="button" class="btn-submit" id="revisaoConfirmar" style="margin-top:14px;">Confirmar e enviar</button>
+        <button type="button" id="revisaoVoltar" style="width:100%;margin-top:8px;background:none;border:none;color:#8a7a55;font-size:0.9rem;cursor:pointer;text-decoration:underline;">Voltar e editar</button>
     </div>
 </div>
 
@@ -405,7 +417,7 @@
             viaEmail: "E-mail",
             emailLabel: "E-mail",
             erroEmail: "Informe um e-mail válido.",
-            enviarEmail: "Enviar por e-mail",
+            enviarEmail: "Confirmar e enviar via e-mail",
             adultos: "Adultos",
             criancas: "Crianças",
             bag23kg: "23kg",
@@ -421,7 +433,7 @@
             cartao: "Cartão de crédito (diretamente ao motorista)",
             dinheiro: "Dinheiro",
             pix: "PIX",
-            enviar: "Enviar via WhatsApp",
+            enviar: "Confirmar e enviar via WhatsApp",
             copiar: "Copiar resumo",
             footer: "Tempo estimado de viagem: 3h00 a 3h30 (pode variar em alta temporada).\nCancelamentos com mínimo 24h de antecedência. Motorista aguarda com placa do hotel.\nServiço terceirizado – o hotel não se responsabiliza por intercorrências.",
             notInformed: "não informado",
@@ -449,7 +461,7 @@
             enviando: "Enviando...",
             copiado: "Resumo copiado!",
             sucessoTitulo: "Solicitação enviada!",
-            sucessoTexto: "Abrimos o WhatsApp com os dados da sua solicitação. Toque em enviar para a recepção confirmar.",
+            sucessoTexto: "Em breve você receberá a confirmação.",
             novaSolicitacao: "Fazer nova solicitação",
             labelDataEmbarque: "Data de embarque (Rio)",
             labelHoraEmbarque: "Horário de chegada",
@@ -495,7 +507,7 @@
             viaEmail: "Email",
             emailLabel: "Email",
             erroEmail: "Please enter a valid email.",
-            enviarEmail: "Send by email",
+            enviarEmail: "Confirm and send via email",
             adultos: "Adults",
             criancas: "Children",
             bag23kg: "23kg",
@@ -511,7 +523,7 @@
             cartao: "Credit card (directly to driver)",
             dinheiro: "Cash",
             pix: "PIX",
-            enviar: "Send via WhatsApp",
+            enviar: "Confirm and send via WhatsApp",
             copiar: "Copy summary",
             footer: "Estimated travel time: 3h00 to 3h30 (may vary during high season).\nCancellations require 24h notice. Driver waits with hotel sign.\nThird-party service – hotel is not responsible for issues.",
             notInformed: "not informed",
@@ -539,7 +551,7 @@
             enviando: "Sending...",
             copiado: "Summary copied!",
             sucessoTitulo: "Request sent!",
-            sucessoTexto: "We opened WhatsApp with your request. Tap send so the front desk can confirm.",
+            sucessoTexto: "You will receive the confirmation shortly.",
             novaSolicitacao: "Make a new request",
             labelDataEmbarque: "Departure date (Rio)",
             labelHoraEmbarque: "Arrival time",
@@ -585,7 +597,7 @@
             viaEmail: "Correo",
             emailLabel: "Correo electrónico",
             erroEmail: "Ingrese un correo válido.",
-            enviarEmail: "Enviar por correo",
+            enviarEmail: "Confirmar y enviar por correo",
             adultos: "Adultos",
             criancas: "Niños",
             bag23kg: "23kg",
@@ -601,7 +613,7 @@
             cartao: "Tarjeta de crédito (directamente al conductor)",
             dinheiro: "Efectivo",
             pix: "PIX",
-            enviar: "Enviar por WhatsApp",
+            enviar: "Confirmar y enviar por WhatsApp",
             copiar: "Copiar resumen",
             footer: "Tiempo estimado de viaje: 3h00 a 3h30 (puede variar en temporada alta).\nCancelaciones con mínimo 24h de anticipación. Conductor espera con cartel del hotel.\nServicio tercerizado – el hotel no se responsabiliza por incidentes.",
             notInformed: "no informado",
@@ -629,7 +641,7 @@
             enviando: "Enviando...",
             copiado: "¡Resumen copiado!",
             sucessoTitulo: "¡Solicitud enviada!",
-            sucessoTexto: "Abrimos WhatsApp con tu solicitud. Toca enviar para que la recepción confirme.",
+            sucessoTexto: "Pronto recibirás la confirmación.",
             novaSolicitacao: "Hacer una nueva solicitud",
             labelDataEmbarque: "Fecha de embarque (Río)",
             labelHoraEmbarque: "Hora de llegada",
@@ -1257,6 +1269,54 @@
             return;
         }
 
+        // Passou na validação → mostra a tela de conferência (double check) antes de enviar
+        montarRevisao();
+        document.getElementById('revisaoOverlay').classList.add('show');
+    }
+
+    function montarRevisao() {
+        const L = {
+            pt: { rev: 'Confira seus dados', sub: 'Revise antes de enviar.', voltar: 'Voltar e editar', reserva: 'Reserva/Quarto', contato: 'Contato', sentido: 'Sentido', data: 'Data', hora: 'Horário', local: 'Local/Destino', voo: 'Voo', cia: 'Cia aérea', veic: 'Veículo', pax: 'Passageiros', ad: 'adultos', cr: 'crianças', malas: 'Malas', valor: 'Valor total', nome: 'Nome' },
+            en: { rev: 'Review your details', sub: 'Please review before sending.', voltar: 'Back to edit', reserva: 'Reservation/Room', contato: 'Contact', sentido: 'Direction', data: 'Date', hora: 'Time', local: 'Location', voo: 'Flight', cia: 'Airline', veic: 'Vehicle', pax: 'Passengers', ad: 'adults', cr: 'children', malas: 'Luggage', valor: 'Total', nome: 'Name' },
+            es: { rev: 'Revise sus datos', sub: 'Revise antes de enviar.', voltar: 'Volver y editar', reserva: 'Reserva/Habitación', contato: 'Contacto', sentido: 'Sentido', data: 'Fecha', hora: 'Hora', local: 'Ubicación', voo: 'Vuelo', cia: 'Aerolínea', veic: 'Vehículo', pax: 'Pasajeros', ad: 'adultos', cr: 'niños', malas: 'Equipaje', valor: 'Total', nome: 'Nombre' }
+        }[currentLang] || {};
+        const t = translations[currentLang];
+        const metodo = metodoContato();
+        const nome = (document.getElementById('nome')?.value || '').trim();
+        const reserva = document.getElementById('reserva')?.value || '-';
+        const contato = metodo === 'Email' ? getEmail() : getTelefone().sheet;
+        const sent = (document.querySelector('input[name="sentido"]:checked')?.value === 'IN') ? 'Rio → Búzios' : 'Búzios → Rio';
+        const dv = document.getElementById('dataViagem')?.value || '';
+        const dataBR = dv ? dv.split('-').reverse().join('/') : '-';
+        const hora = document.getElementById('horaEmbarque')?.value || '-';
+        const local = document.getElementById('endereco')?.value || '-';
+        const voo = document.getElementById('voo')?.value || '';
+        const cia = document.getElementById('ciaAerea')?.value || '';
+        const veic = document.getElementById('veiculoSelecionado')?.value || '-';
+        const ad = parseInt(document.getElementById('adultos')?.value) || 0;
+        const cr = parseInt(document.getElementById('criancas')?.value) || 0;
+        const malas = (parseInt(document.getElementById('bag23kg')?.value) || 0) + (parseInt(document.getElementById('bag10kg')?.value) || 0) + (parseInt(document.getElementById('bagMao')?.value) || 0);
+        const valor = 'R$ ' + (calcularTotal() || 0).toLocaleString('pt-BR');
+        function row(lbl, val) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #eef0e8;"><span style="color:#8a8270;">' + lbl + '</span><b style="text-align:right;">' + (val || '-') + '</b></div>'; }
+        let html = row(L.nome, nome) + row(L.reserva, reserva) + row(L.contato, contato) + row(L.sentido, sent) +
+            row(L.data, dataBR) + row(L.hora, hora) + row(L.local, local) +
+            (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '') +
+            row(L.veic, veic) + row(L.pax, ad + ' ' + L.ad + (cr ? ' + ' + cr + ' ' + L.cr : '')) +
+            row(L.malas, malas) + row(L.valor, valor);
+        document.getElementById('revisaoBody').innerHTML = html;
+        document.getElementById('revisaoTitulo').innerText = L.rev;
+        document.getElementById('revisaoSub').innerText = L.sub;
+        document.getElementById('revisaoVoltar').innerText = L.voltar;
+        document.getElementById('revisaoConfirmar').innerText = (metodo === 'Email') ? t.enviarEmail : t.enviar;
+    }
+
+    async function confirmarEnvioFinal() {
+        const t = translations[currentLang];
+        const veiculo = document.getElementById("veiculoSelecionado")?.value;
+        const nome = (document.getElementById("nome")?.value || "").trim();
+        const tel = getTelefone();
+        const metodo = metodoContato();
+        const email = getEmail();
         const dadosPlanilha = {
             id: Date.now(),
             nome: nome,
@@ -1288,6 +1348,7 @@
             aceitePoliticas: true
         };
 
+        document.getElementById('revisaoOverlay').classList.remove('show');
         mostrarFeedback(t.enviando, "success");
         await enviarParaGoogleSheets(dadosPlanilha);
 
@@ -1458,6 +1519,12 @@
         translatePage();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+    document.getElementById('sucessoFechar').addEventListener('click', () => {
+        document.getElementById('sucessoOverlay').classList.remove('show');
+    });
+    document.getElementById('revisaoConfirmar').addEventListener('click', confirmarEnvioFinal);
+    document.getElementById('revisaoFechar').addEventListener('click', () => document.getElementById('revisaoOverlay').classList.remove('show'));
+    document.getElementById('revisaoVoltar').addEventListener('click', () => document.getElementById('revisaoOverlay').classList.remove('show'));
 
     // Detecta o idioma do navegador (pt/en/es).
     (function detectarIdioma() {
