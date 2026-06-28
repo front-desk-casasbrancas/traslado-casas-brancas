@@ -204,6 +204,50 @@
     function dKey(v) { if(!v) return null; let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3]; let d = new Date(v); return isNaN(d) ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
     function brl(n) { return 'R$ ' + (Math.round(n) || 0).toLocaleString('pt-BR'); }
 
+    // ===== Toasts flutuantes + bip =====
+    function _toastBox() {
+        var b = document.getElementById('cbToasts');
+        if (!b) { b = document.createElement('div'); b.id = 'cbToasts'; b.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:10000;display:flex;flex-direction:column;gap:10px;max-width:330px;'; document.body.appendChild(b); }
+        return b;
+    }
+    function _bip() { try { var a = new (window.AudioContext || window.webkitAudioContext)(); var o = a.createOscillator(); var g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(function () { o.stop(); a.close(); }, 220); } catch (e) {} }
+    function showToast(titulo, corpo, opts) {
+        opts = opts || {};
+        var t = document.createElement('div');
+        t.style.cssText = 'background:#fff;border-left:5px solid ' + (opts.cor || '#b8995a') + ';border-radius:12px;padding:12px 14px;box-shadow:0 10px 28px rgba(40,36,28,0.22);cursor:' + (opts.onClick ? 'pointer' : 'default') + ';animation:cbIn .2s ease;';
+        t.innerHTML = '<div style="font-weight:700;color:#9c7d3f;font-size:0.92rem;">' + titulo + '</div>' + (corpo ? '<div style="font-size:0.82rem;color:#5a5446;margin-top:3px;">' + corpo + '</div>' : '');
+        if (opts.onClick) t.addEventListener('click', opts.onClick);
+        _toastBox().appendChild(t);
+        if (opts.som) _bip();
+        setTimeout(function () { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 400); }, opts.duracao || 9000);
+    }
+    (function () { var st = document.createElement('style'); st.textContent = '@keyframes cbIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}'; document.head.appendChild(st); })();
+
+    // ===== Janela flutuante PiP (sempre-no-topo, desktop Chrome/Edge) =====
+    var pipWin = null, ultimaHoje = [];
+    function pipDisponivel() { return ('documentPictureInPicture' in window); }
+    async function abrirPiP() {
+        if (!pipDisponivel()) { alert('A janela flutuante (PiP) funciona no Chrome ou Edge no computador.'); return; }
+        try {
+            pipWin = await documentPictureInPicture.requestWindow({ width: 340, height: 460 });
+            var s = pipWin.document.createElement('style');
+            s.textContent = 'body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f6f2eb;color:#2b2a26;} .h{background:#2b2a26;color:#fff;padding:12px 14px;} .h b{color:#cbb27a;font-style:italic;} .sub{font-size:0.7rem;letter-spacing:1px;color:#cbb27a;} .it{padding:9px 12px;border-bottom:1px solid #e7dcc4;font-size:0.9rem;} .hr{color:#9c7d3f;font-weight:700;} .vz{padding:18px;text-align:center;color:#8a8270;font-size:0.85rem;}';
+            pipWin.document.head.appendChild(s);
+            pipWin.document.body.innerHTML = '<div class="h"><div><b>Casas Brancas</b></div><div class="sub">TRASLADOS DE HOJE</div></div><div id="pipBody"></div>';
+            atualizarPiP();
+        } catch (e) { alert('Não foi possível abrir a janela flutuante.'); }
+    }
+    function atualizarPiP() {
+        if (!pipWin || pipWin.closed) return;
+        var body = pipWin.document.getElementById('pipBody'); if (!body) return;
+        if (!ultimaHoje.length) { body.innerHTML = '<div class="vz">Nenhum traslado para hoje.</div>'; return; }
+        body.innerHTML = ultimaHoje.map(function (t) {
+            var sent = t["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio";
+            return '<div class="it"><span class="hr">' + getHorario(t) + '</span> · ' + (t["Nome"] || '-') + '<br><span style="font-size:0.78rem;color:#8a8270;">' + sent + ' · ' + (t["Veículo"] || '-') + ' · ' + (t["Motorista"] || 'sem motorista') + '</span></div>';
+        }).join('');
+    }
+    function pipNovo(nome) { if (pipWin && !pipWin.closed) { try { var d = pipWin.document.getElementById('pipBody'); if (d) { var a = pipWin.document.createElement('div'); a.className = 'it'; a.style.background = '#fff8e6'; a.innerHTML = '🔔 <b>Nova solicitação:</b> ' + (nome || ''); d.insertBefore(a, d.firstChild); } } catch (e) {} } }
+
     // ===== Pop-up de nova solicitação de traslado =====
     function detectarNovas(lista) {
         var ativas = (Array.isArray(lista) ? lista : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
@@ -213,9 +257,16 @@
         if (!seen) { try { localStorage.setItem('cb_seen_transfers', JSON.stringify(ids)); } catch (e) {} return; }
         var seenSet = {}; seen.forEach(function (x) { seenSet[x] = 1; });
         var novos = ativas.filter(t => !seenSet[String(t["ID"] || t["Id"] || '')]);
-        if (novos.length) mostrarPopupNovas(novos);
+        if (novos.length) {
+            var nomes = novos.slice(0, 3).map(function (t) { return t["Nome"] || '-'; }).join(', ') + (novos.length > 3 ? ' +' + (novos.length - 3) : '');
+            showToast('🔔 Nova solicitação de traslado', nomes, { som: true, onClick: function () { location.href = 'dashboard.html'; } });
+            notificarDesktop('Nova solicitação de traslado', nomes);
+            novos.forEach(function (t) { pipNovo(t["Nome"] || ''); });
+        }
         try { localStorage.setItem('cb_seen_transfers', JSON.stringify(ids)); } catch (e) {}
     }
+    function pedirPermissaoNotif() { try { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {} }
+    function notificarDesktop(titulo, corpo) { try { if ('Notification' in window && Notification.permission === 'granted') new Notification(titulo, { body: corpo, icon: 'icon-192-v4.png' }); } catch (e) {} }
     function mostrarPopupNovas(novos) {
         var ov = document.getElementById('cbPopupNovas');
         if (!ov) {
@@ -258,6 +309,14 @@
             document.getElementById('stMes').innerText = doMes.length;
             document.getElementById('stComissao').innerText = brl(valorMes * 0.15);
             document.getElementById('stMedia').innerText = brl(media);
+
+            // Janela flutuante (PiP) + toast de "transfers de hoje" + permissão de notificação
+            ultimaHoje = hoje; atualizarPiP();
+            if (!window.__bootMenu) {
+                window.__bootMenu = true;
+                pedirPermissaoNotif();
+                showToast('🚗 Transfers de hoje: ' + hoje.length, hoje.length ? 'Toque para ver no dashboard.' : 'Nenhum para hoje.', { onClick: function () { location.href = 'dashboard.html'; }, duracao: 7000 });
+            }
 
             if (window.Chart) {
                 const dias = [];
@@ -341,6 +400,16 @@
     carregarTempo();
     setInterval(carregar, 5 * 60 * 1000);
     setInterval(carregarTempo, 30 * 60 * 1000);
+
+    // Botão flutuante para abrir a janela sempre-no-topo (PiP), só no desktop com suporte
+    if (pipDisponivel()) {
+        var pb = document.createElement('button');
+        pb.id = 'cbPipBtn';
+        pb.innerHTML = '🔳 Janela flutuante';
+        pb.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9999;background:#2b2a26;color:#cbb27a;border:1px solid #b8995a;border-radius:40px;padding:10px 16px;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(40,36,28,0.25);';
+        pb.addEventListener('click', function () { pedirPermissaoNotif(); abrirPiP(); });
+        document.body.appendChild(pb);
+    }
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
