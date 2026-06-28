@@ -811,10 +811,19 @@
         marcarTratada(id);
         fecharAvaliacao();
     }
+    // Data/hora real do transfer (para a regra das 48h)
+    function dataHoraTransfer(t) {
+        let iso = toISODate(t["Data Viagem"]); if (!iso) return null;
+        let h = getHorario(t); let hm = (h && h !== '-') ? h : '00:00';
+        let p = iso.split('-'); let hp = hm.split(':');
+        return new Date(+p[0], +p[1] - 1, +p[2], +hp[0] || 0, +hp[1] || 0);
+    }
+    function avaliacaoNoPrazo(t) { let dt = dataHoraTransfer(t); if (!dt) return false; let diff = Date.now() - dt.getTime(); return diff <= 48 * 3600000 && diff > -3600000; }
+    function avaliacaoVencida(t) { let dt = dataHoraTransfer(t); if (!dt) return false; return (Date.now() - dt.getTime()) > 48 * 3600000; }
     function verificarAvaliacoesPendentes() {
         if (document.getElementById('avalOverlay').classList.contains('show')) return;
         let trat = avalTratadas();
-        let pend = transfers.filter(t => getStatus(t) === 'completed' && !t["AvaliacaoConviteEm"] && trat.indexOf(String(t["ID"])) < 0);
+        let pend = transfers.filter(t => getStatus(t) === 'completed' && !t["AvaliacaoConviteEm"] && trat.indexOf(String(t["ID"])) < 0 && avaliacaoNoPrazo(t));
         if (pend.length) abrirAvaliacao(pend[0]);
     }
     document.getElementById('avalMetodo').addEventListener('change', function () { avalContatoToggle(); if (avalAlvo) document.getElementById('avalContato').value = (this.value === 'Email') ? (avalAlvo["Email"] || '') : (avalAlvo["Telefone"] || ''); });
@@ -921,11 +930,12 @@
                 let pessoasV = (t["Pessoas"] !== undefined && t["Pessoas"] !== '') ? t["Pessoas"] : '';
                 let malasV = (t["Malas"] !== undefined && t["Malas"] !== '') ? t["Malas"] : '';
                 let pm = (pessoasV !== '' || malasV !== '') ? `<br><span style="font-size:0.72rem;color:#8a8270;">👥 ${pessoasV !== '' ? pessoasV : '-'} · 🧳 ${malasV !== '' ? malasV : '-'}<\/span>` : '';
+                let avalNota = (completed && !t["AvaliacaoConviteEm"] && avaliacaoVencida(t)) ? `<br><span style="font-size:0.72rem;color:#b85c5a;">⚠️ Avaliação não enviada<\/span>` : '';
 
                 html += `<tr class="${rowClass}">
                     <td>${data}${andamento ? '<br><span class="tag-andamento">'+labelAndamento(getStatus(t))+'<\/span>' : ''}<\/td>
                     <td>${horario}<\/td>
-                    <td>${t["Nome"] || '-'}${rsv}${pm}<\/td>
+                    <td>${t["Nome"] || '-'}${rsv}${pm}${avalNota}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
                     <td>${endereco}<\/td>
