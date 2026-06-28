@@ -1,4 +1,4 @@
-const CACHE = 'cb-transfers-v8';
+const CACHE = 'cb-transfers-v9';
 const ASSETS = [
   'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'motorista-app.html', 'transfer.html', 'financeiro.html',
   'acompanhamento.html', 'avaliacao.html', 'avaliacoes.html',

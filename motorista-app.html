@@ -164,7 +164,7 @@
         if(s==='embarcou')  return {st:'completed', label:'✓ Finalizar', cls:'btn-fim'};
         if(s==='cheguei')   return {st:'embarcou',  label:'Embarcou', cls:'btn-ini'};
         if(s==='a_caminho') return {st:'cheguei',   label:'Cheguei', cls:'btn-ini'};
-        return {st:'a_caminho', label:'A caminho', cls:'btn-ini'}; // inclui em_andamento legado
+        return {st:'a_caminho', label:'▶ Iniciar', cls:'btn-ini'}; // inclui em_andamento legado
     }
     function statusTag(t){ let s=getStatus(t);
         if(s==='completed')return '<span class="tag" style="color:#2f7d8c;background:#e6f0f2;">Finalizado</span>';

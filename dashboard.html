@@ -249,6 +249,7 @@
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
         <button class="tab-btn" data-tab="comissao">Comissões (15%)</button>
         <button class="tab-btn" data-tab="lista">Lista de Transfers</button>
+        <button class="tab-btn" data-tab="auditoria">Auditoria</button>
     </div>
 
     <div class="header-actions">
@@ -351,6 +352,20 @@
                 </table>
             </div>
         </div>
+    </div>
+</div>
+
+<div id="tab-auditoria" class="tab-content">
+    <div class="table-container">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+            <h3>Auditoria — histórico de alterações</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <input type="text" id="auditBusca" placeholder="Filtrar (ID, campo, origem...)" style="padding:9px 12px;border:1px solid #d8cbb0;border-radius:10px;min-width:180px;">
+                <button class="refresh-btn" id="auditRefresh">Atualizar</button>
+                <button class="refresh-btn" id="auditPdf" style="background:#8b7a5c;">📄 Relatório</button>
+            </div>
+        </div>
+        <div id="auditBody">Abra esta aba para carregar o histórico.</div>
     </div>
 </div>
 
@@ -939,7 +954,7 @@
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
                     <td>${endereco}<\/td>
-                    <td>${voo}${ehHoje && vooNum ? ` <span class="voo-status" data-voo="${vooNum}">…<\/span>` : ''}<\/td>
+                    <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${vooNum}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
                     <td>
@@ -961,7 +976,7 @@
             else if (a === 'completed') marcarFinalizado(t);
             else if (a === 'cancelled') marcarCancelado(t);
         }));
-        atualizarStatusVoos();
+        /* status de voo agora é sob demanda (botão "Ver status") */
     }
 
     // ==================== COMISSÕES ====================
@@ -1377,23 +1392,49 @@
             default: return { t: (d.status || ''), c: 'vb-gray' };
         }
     }
-    async function atualizarStatusVoos() {
-        const els = document.querySelectorAll('.voo-status[data-voo]:not([data-done])');
-        for (const el of els) {
-            el.setAttribute('data-done', '1');
-            const info = vooBadgeInfo(await consultarVoo(el.getAttribute('data-voo')));
-            if (info.t) { el.className = 'vb ' + info.c; el.innerText = info.t; }
-            else { el.innerText = ''; }
-        }
+    // Status do voo SOB DEMANDA (clique) — economiza a cota da API gratuita
+    async function verVooStatus(btn) {
+        let voo = btn.getAttribute('data-voo'); if (!voo) return;
+        btn.disabled = true; btn.innerText = 'consultando…';
+        let d = await consultarVoo(voo); let info = vooBadgeInfo(d);
+        if (info.t) { btn.outerHTML = '<span class="vb ' + info.c + '">' + info.t + '</span>'; }
+        else { btn.outerHTML = '<span style="font-size:0.66rem;color:#b85c5a;">' + (d && d.erro ? 'indisponível' : 'sem dados') + '</span>'; }
     }
+    document.addEventListener('click', function (e) { let b = e.target.closest ? e.target.closest('.voo-check') : null; if (b) verVooStatus(b); });
 
     // ==================== EVENTOS ====================
+    // ==================== AUDITORIA (aba) ====================
+    let dadosAudit = [];
+    async function carregarAuditoria() {
+        document.getElementById('auditBody').innerHTML = 'Carregando...';
+        try { const d = await (await fetch(WEBAPP_URL + '?action=auditoria&t=' + Date.now())).json(); dadosAudit = Array.isArray(d) ? d : []; renderAuditoria(); }
+        catch (e) { document.getElementById('auditBody').innerHTML = 'Erro ao carregar o histórico.'; }
+    }
+    function _auditQuando(v) { let d = new Date(v); return isNaN(d) ? (v || '') : d.toLocaleString('pt-BR'); }
+    function renderAuditoria() {
+        let q = (document.getElementById('auditBusca').value || '').toLowerCase().trim();
+        let arr = dadosAudit.filter(l => !q || JSON.stringify(l).toLowerCase().indexOf(q) > -1);
+        if (!arr.length) { document.getElementById('auditBody').innerHTML = '<div style="padding:14px;color:#8a8270;">Nenhum registro.</div>'; return; }
+        let linhas = arr.map(l => '<tr><td>' + _auditQuando(l["Quando"]) + '</td><td>' + (l["Origem"] || '') + '</td><td>' + (l["Campo"] || '') + '</td><td>' + (l["De"] || '') + ' → ' + (l["Para"] || '') + '</td><td>' + (l["ID"] || '') + '</td></tr>').join('');
+        document.getElementById('auditBody').innerHTML = '<table style="width:100%"><thead><tr><th>Quando</th><th>Origem</th><th>Campo</th><th>Alteração (de → para)</th><th>ID</th></tr></thead><tbody>' + linhas + '</tbody></table>';
+    }
+    function gerarRelatorioAuditoria() {
+        let arr = dadosAudit || []; if (!arr.length) { alert('Sem registros para gerar relatório.'); return; }
+        let linhas = arr.map(l => '<tr><td>' + _auditQuando(l["Quando"]) + '</td><td>' + (l["Origem"] || '') + '</td><td>' + (l["Campo"] || '') + '</td><td>' + (l["De"] || '') + ' → ' + (l["Para"] || '') + '</td><td>' + (l["ID"] || '') + '</td></tr>').join('');
+        let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Auditoria - Casas Brancas</title><style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{color:#9c7d3f;font-size:1.2rem;margin-bottom:2px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:14px;}table{width:100%;border-collapse:collapse;font-size:0.8rem;}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}</style></head><body><h1>Casas Brancas — Auditoria de alterações</h1><div class="sub">Gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + arr.length + ' registro(s)</div><table><thead><tr><th>Quando</th><th>Origem</th><th>Campo</th><th>Alteração (de → para)</th><th>ID</th></tr></thead><tbody>' + linhas + '</tbody></table><scr' + 'ipt>setTimeout(function(){window.print();},400);<\/scr' + 'ipt></body></html>';
+        let w = window.open('', '_blank'); if (w) { w.document.write(html); w.document.close(); } else { alert('Permita pop-ups para gerar o relatório.'); }
+    }
+    document.getElementById('auditRefresh').addEventListener('click', carregarAuditoria);
+    document.getElementById('auditPdf').addEventListener('click', gerarRelatorioAuditoria);
+    document.getElementById('auditBusca').addEventListener('input', renderAuditoria);
+
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
         let id = btn.getAttribute('data-tab');
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
         document.getElementById(`tab-${id}`).classList.add('active');
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        if (id === 'auditoria') carregarAuditoria();
     }));
 
     document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
