@@ -722,44 +722,34 @@
     }
 
     // ==================== CONFIRMAÇÃO WHATSAPP ====================
-    function enviarConfirmacao(t) {
-        let data = formatarData(t["Data Viagem"]);
-        let horario = getHorario(t);
-        let endereco = t["Endereço"] || t["Endereco"] || "-";
-        let voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || "-";
-        let atualizado = !!t["Modificacao"];
-
-        let msg = (atualizado ? `TRASLADO ATUALIZADO - CASAS BRANCAS\n\n` : `TRASLADO CONFIRMADO - CASAS BRANCAS\n\n`) +
-                  (atualizado ? `Sua reserva foi ATUALIZADA. Confira os novos detalhes:\n\n` : `Sua solicitação foi confirmada!\n\n`) +
-                  `Detalhes da viagem:\n` +
-                  `Hóspede: ${t["Nome"] || "-"}\n` +
-                  `Reserva: ${t["Reserva"] || "-"}\n` +
-                  `Data: ${data}\n` +
-                  `Horário: ${horario}\n` +
-                  `Sentido: ${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}\n` +
-                  `Local: ${endereco}\n` +
-                  `Voo: ${voo}\n` +
-                  `Veículo: ${t["Veículo"] || "-"}\n` +
-                  `Valor total: R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}\n\n` +
-                  `Políticas: Motorista aguarda com placa. Pagamento direto. Cancelamento 24h.\n\n` +
-                  `Agradecemos a preferência!\nCasas Brancas Boutique Hotel`;
-
-        // Canal escolhido pelo hóspede no formulário
+    async function enviarConfirmacao(t) {
+        let id = t["ID"];
         let metodo = (t["Contato"] || "").toString().trim().toLowerCase();
         let email = (t["Email"] || "").toString().trim();
         let usarEmail = (metodo === 'email') || (!t["Telefone"] && email);
 
         if (usarEmail) {
             if (!email) { alert("Hóspede optou por e-mail, mas não há e-mail cadastrado."); return; }
-            let assunto = encodeURIComponent((atualizado ? "Traslado atualizado" : "Confirmação do seu traslado") + " - Casas Brancas");
-            window.location.href = `mailto:${email}?subject=${assunto}&body=${encodeURIComponent(msg)}`;
+            try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'confirmarEmail', id: id }) }); } catch (e) {}
+            t["Status"] = 'confirmed';
+            updateHistoryTable(); renderProximos();
+            alert("Confirmação enviada por e-mail ao hóspede (pela front@casasbrancas.com.br).");
             return;
         }
 
+        // WhatsApp: abre o NOSSO WhatsApp já com o texto padronizado (no idioma do hóspede)
         let telLimpo = formatWhatsAppPhone(t["Telefone"]);
-        if (!telLimpo) { alert("Cliente sem telefone!"); return; }
-        if (telLimpo.length < 12) { alert("Telefone inválido!"); return; }
-        window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+        if (!telLimpo || telLimpo.length < 12) { alert("Cliente sem telefone válido!"); return; }
+        let win = window.open('', '_blank'); // abre já (preserva o gesto do clique) e preenche depois
+        try {
+            let r = await (await fetch(WEBAPP_URL + '?action=confirmacaoTexto&id=' + encodeURIComponent(id))).json();
+            let texto = (r && r.texto) ? r.texto : '';
+            let url = 'https://wa.me/' + telLimpo + '?text=' + encodeURIComponent(texto);
+            if (win) win.location.href = url; else window.open(url, '_blank');
+            t["Status"] = 'confirmed';
+            try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'update', id: id, status: 'confirmed' }) }); } catch (e) {}
+            updateHistoryTable(); renderProximos();
+        } catch (e) { if (win) win.close(); alert("Não foi possível gerar a confirmação agora."); }
     }
 
     // ==================== AÇÕES ====================
