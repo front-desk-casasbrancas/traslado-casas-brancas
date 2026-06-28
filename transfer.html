@@ -110,15 +110,21 @@
 
         const badges = {
             active: '<span class="badge b-active">Aguardando início</span>',
+            confirmed: '<span class="badge b-active">Confirmado</span>',
+            a_caminho: '<span class="badge b-andamento">A caminho</span>',
+            cheguei: '<span class="badge b-andamento">No local</span>',
+            embarcou: '<span class="badge b-andamento">Embarcou</span>',
             em_andamento: '<span class="badge b-andamento">Em andamento</span>',
             completed: '<span class="badge b-completed">Finalizado</span>',
             cancelled: '<span class="badge b-cancelled">Cancelado</span>'
         };
 
+        const naoIniciado = (st === 'active' || st === 'confirmed');
+        const emCurso = (['em_andamento', 'a_caminho', 'cheguei', 'embarcou'].indexOf(st) > -1);
         let botao = '';
-        if (st === 'active') botao = `<button class="btn btn-iniciar" id="btnIniciar">▶ Iniciar transfer</button>`;
-        else if (st === 'em_andamento') botao = `<button class="btn btn-iniciar" disabled>Em andamento</button>`;
-        else if (st === 'completed') botao = `<button class="btn btn-iniciar" disabled>Finalizado pela recepção</button>`;
+        if (naoIniciado) botao = `<button class="btn btn-iniciar" id="btnIniciar">▶ Iniciar transfer</button>`;
+        else if (emCurso) botao = `<button class="btn btn-iniciar" disabled>Em andamento</button>`;
+        else if (st === 'completed') botao = `<button class="btn btn-iniciar" disabled>Finalizado</button>`;
         else if (st === 'cancelled') botao = `<div class="aviso">Este transfer foi cancelado.</div>`;
 
         const linha = (rot, val) => `<div class="linha"><span class="rot">${rot}</span><span class="val">${val}</span></div>`;
