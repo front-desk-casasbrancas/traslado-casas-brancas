@@ -397,7 +397,7 @@
             inOption: "Transfer IN (Rio → Búzios)",
             outOption: "Transfer OUT (Búzios → Rio)",
             nome: "Nome completo (titular da reserva)",
-            reserva: "Número da reserva",
+            reserva: "Número da reserva ou do quarto",
             telefone: "Telefone celular (WhatsApp)",
             pais: "País",
             contatoMetodo: "Como prefere receber a confirmação?",
@@ -487,7 +487,7 @@
             inOption: "Transfer IN (Rio → Búzios)",
             outOption: "Transfer OUT (Búzios → Rio)",
             nome: "Full name (reservation holder)",
-            reserva: "Reservation number",
+            reserva: "Reservation or room number",
             telefone: "Mobile phone (WhatsApp)",
             pais: "Country",
             contatoMetodo: "How would you like to receive the confirmation?",
@@ -577,7 +577,7 @@
             inOption: "Traslado IN (Rio → Búzios)",
             outOption: "Traslado OUT (Búzios → Rio)",
             nome: "Nombre completo (titular de la reserva)",
-            reserva: "Número de reserva",
+            reserva: "Número de reserva o de habitación",
             telefone: "Teléfono celular (WhatsApp)",
             pais: "País",
             contatoMetodo: "¿Cómo prefiere recibir la confirmación?",
@@ -1232,19 +1232,27 @@
         const contatoOk = metodo === 'Email' ? emailValido(email) : (tel.numLen >= 8);
 
         const aceite = document.getElementById("aceitePoliticas")?.checked;
+        const pessoas = (parseInt(document.getElementById('adultos')?.value) || 0) + (parseInt(document.getElementById('criancas')?.value) || 0);
+        const malas = (parseInt(document.getElementById('bag23kg')?.value) || 0) + (parseInt(document.getElementById('bag10kg')?.value) || 0) + (parseInt(document.getElementById('bagMao')?.value) || 0);
+        const pessoasOk = pessoas >= 1;
+        const malasOk = malas >= 1;
         let ok = true;
         marcarErro('nome', !nome); if (!nome) ok = false;
         if (metodo === 'Email') marcarErro('email', !contatoOk); else marcarErro('telefone', !contatoOk);
         if (!contatoOk) ok = false;
+        if (!pessoasOk) ok = false;
+        if (!malasOk) ok = false;
         if (!veiculo) ok = false;
         if (!aceite) ok = false;
 
         if (!ok) {
             let msgContato = metodo === 'Email' ? t.erroEmail : t.erroTelefone;
-            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : (!contatoOk ? msgContato : t.erroAceite));
+            let msgPessoas = { pt: 'Informe quantas pessoas viajam.', en: 'Please enter the number of people.', es: 'Indique el número de personas.' }[currentLang] || 'Informe quantas pessoas viajam.';
+            let msgMalas = { pt: 'Informe quantas malas.', en: 'Please enter the number of bags.', es: 'Indique el número de maletas.' }[currentLang] || 'Informe quantas malas.';
+            let msg = !veiculo ? t.erroVeiculo : (!nome ? t.erroNome : (!contatoOk ? msgContato : (!pessoasOk ? msgPessoas : (!malasOk ? msgMalas : t.erroAceite))));
             mostrarFeedback(msg, "error");
             let alvoContato = metodo === 'Email' ? 'email' : 'telefone';
-            let alvo = !nome ? 'nome' : (!contatoOk ? alvoContato : (!veiculo ? 'veiculosContainer' : 'aceitePoliticas'));
+            let alvo = !nome ? 'nome' : (!contatoOk ? alvoContato : (!pessoasOk ? 'adultos' : (!malasOk ? 'bag23kg' : (!veiculo ? 'veiculosContainer' : 'aceitePoliticas'))));
             document.getElementById(alvo)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
@@ -1268,6 +1276,9 @@
             bagagem23kg: parseInt(document.getElementById("bag23kg")?.value) || 0,
             bagagem10kg: parseInt(document.getElementById("bag10kg")?.value) || 0,
             bagagemMao: parseInt(document.getElementById("bagMao")?.value) || 0,
+            adultos: parseInt(document.getElementById("adultos")?.value) || 0,
+            criancas: parseInt(document.getElementById("criancas")?.value) || 0,
+            pessoas: (parseInt(document.getElementById("adultos")?.value) || 0) + (parseInt(document.getElementById("criancas")?.value) || 0),
             obs: document.getElementById("obs")?.value || "",
             pagamento: document.getElementById("pagamento")?.value,
             endereco: document.getElementById("endereco")?.value || "",

@@ -204,9 +204,46 @@
     function dKey(v) { if(!v) return null; let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return m[1]+'-'+m[2]+'-'+m[3]; let d = new Date(v); return isNaN(d) ? null : d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
     function brl(n) { return 'R$ ' + (Math.round(n) || 0).toLocaleString('pt-BR'); }
 
+    // ===== Pop-up de nova solicitação de traslado =====
+    function detectarNovas(lista) {
+        var ativas = (Array.isArray(lista) ? lista : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
+        var ids = ativas.map(t => String(t["ID"] || t["Id"] || ''));
+        var seen = null;
+        try { seen = JSON.parse(localStorage.getItem('cb_seen_transfers') || 'null'); } catch (e) { seen = null; }
+        if (!seen) { try { localStorage.setItem('cb_seen_transfers', JSON.stringify(ids)); } catch (e) {} return; }
+        var seenSet = {}; seen.forEach(function (x) { seenSet[x] = 1; });
+        var novos = ativas.filter(t => !seenSet[String(t["ID"] || t["Id"] || '')]);
+        if (novos.length) mostrarPopupNovas(novos);
+        try { localStorage.setItem('cb_seen_transfers', JSON.stringify(ids)); } catch (e) {}
+    }
+    function mostrarPopupNovas(novos) {
+        var ov = document.getElementById('cbPopupNovas');
+        if (!ov) {
+            ov = document.createElement('div'); ov.id = 'cbPopupNovas';
+            ov.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(30,28,23,0.55);';
+            ov.innerHTML = '<div style="background:#fff;border-radius:18px;max-width:380px;width:100%;padding:24px;box-shadow:0 18px 50px rgba(0,0,0,0.35);text-align:center;border-top:5px solid #b8995a;">' +
+                '<div style="font-size:2rem;">🔔</div>' +
+                '<h3 style="color:#9c7d3f;font-family:Georgia,serif;margin:6px 0 4px;">Nova solicitação de traslado</h3>' +
+                '<div id="cbPopupBody" style="font-size:0.9rem;color:#5a5446;margin:10px 0 16px;text-align:left;"></div>' +
+                '<button id="cbPopupBtn" style="background:linear-gradient(135deg,#b8995a,#9c7d3f);color:#fff;border:none;border-radius:40px;padding:11px 26px;font-weight:600;cursor:pointer;">Ver no dashboard</button>' +
+                '<div style="margin-top:10px;"><a href="#" id="cbPopupFechar" style="font-size:0.82rem;color:#8a8270;">Fechar</a></div></div>';
+            document.body.appendChild(ov);
+            document.getElementById('cbPopupBtn').addEventListener('click', function () { location.href = 'dashboard.html'; });
+            document.getElementById('cbPopupFechar').addEventListener('click', function (e) { e.preventDefault(); ov.style.display = 'none'; });
+        }
+        ov.querySelector('#cbPopupBody').innerHTML = novos.slice(0, 5).map(function (t) {
+            var sent = t["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio";
+            var dk = dKey(t["Data Viagem"]); var ds = dk ? dk.split('-').reverse().join('/') : '';
+            return '<div style="padding:6px 0;border-bottom:1px solid #eee5d3;"><b>' + (t["Nome"] || '-') + '</b><br><span style="font-size:0.8rem;color:#8a8270;">' + sent + ' · ' + ds + ' ' + getHorario(t) + '</span></div>';
+        }).join('') + (novos.length > 5 ? ('<div style="margin-top:6px;font-size:0.8rem;">+ ' + (novos.length - 5) + ' outro(s)</div>') : '');
+        ov.style.display = 'flex';
+        try { var a = new (window.AudioContext || window.webkitAudioContext)(); var o = a.createOscillator(); var g = a.createGain(); o.connect(g); g.connect(a.destination); o.frequency.value = 880; g.gain.value = 0.05; o.start(); setTimeout(function () { o.stop(); a.close(); }, 250); } catch (e) {}
+    }
+
     async function carregar() {
         try {
             const dados = await (await fetch(WEBAPP_URL)).json();
+            try { detectarNovas(dados); } catch (e) {}
             const ativos = (Array.isArray(dados) ? dados : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
             const hojeKey = dKey(agora);
             const mesAtual = agora.getMonth(), anoAtual = agora.getFullYear();

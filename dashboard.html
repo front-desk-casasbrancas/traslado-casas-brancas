@@ -358,14 +358,34 @@
     <div class="edit-card">
         <h3>Ajustar transfer</h3>
         <div id="editResumo" style="font-size:0.82rem;color:#7a8b6e;margin-bottom:6px;"></div>
+        <label>Nome do hóspede</label>
+        <input type="text" id="editNome">
+        <label>Número da reserva ou do quarto</label>
+        <input type="text" id="editReserva">
+        <label>Telefone</label>
+        <input type="text" id="editTelefone" placeholder="+55 21 99999-9999">
+        <label>E-mail</label>
+        <input type="text" id="editEmail" placeholder="nome@email.com">
+        <label>Sentido</label>
+        <select id="editSentido"><option value="IN">Chegada (Rio → Búzios)</option><option value="OUT">Saída (Búzios → Rio)</option></select>
         <label>Data</label>
         <input type="date" id="editData">
         <label>Horário</label>
         <input type="time" id="editHora">
         <label>Destino / Endereço</label>
         <input type="text" id="editDestino" placeholder="Ex.: Aeroporto GIG">
+        <label>Voo</label>
+        <input type="text" id="editVoo">
+        <label>Companhia aérea</label>
+        <input type="text" id="editCia">
+        <label>Nº de pessoas</label>
+        <input type="number" id="editPessoas" min="0" step="1" inputmode="numeric">
+        <label>Nº de malas</label>
+        <input type="number" id="editMalas" min="0" step="1" inputmode="numeric">
         <label>Veículo</label>
         <select id="editVeiculo"></select>
+        <label>Motorista</label>
+        <input type="text" id="editMotorista" placeholder="Nome do motorista">
         <label>Valor (R$) — editável</label>
         <input type="number" id="editValor" min="0" step="10" inputmode="numeric">
         <div class="edit-total" id="editTotal">Total: R$ -</div>
@@ -837,12 +857,15 @@
                 let disabled = cancelled || completed;
                 let _id = (t["ID"] || '').toString();
                 let idEnc = encodeURIComponent(t["ID"]);
-                let rsv = t["Reserva"] ? `<br><span style="font-size:0.72rem;color:#8a8270;">Reserva: ${t["Reserva"]}<\/span>` : '';
+                let rsv = t["Reserva"] ? `<br><span style="font-size:0.72rem;color:#8a8270;">Reserva/Quarto: ${t["Reserva"]}<\/span>` : '';
+                let pessoasV = (t["Pessoas"] !== undefined && t["Pessoas"] !== '') ? t["Pessoas"] : '';
+                let malasV = (t["Malas"] !== undefined && t["Malas"] !== '') ? t["Malas"] : '';
+                let pm = (pessoasV !== '' || malasV !== '') ? `<br><span style="font-size:0.72rem;color:#8a8270;">👥 ${pessoasV !== '' ? pessoasV : '-'} · 🧳 ${malasV !== '' ? malasV : '-'}<\/span>` : '';
 
                 html += `<tr class="${rowClass}">
                     <td>${data}${andamento ? '<br><span class="tag-andamento">'+labelAndamento(getStatus(t))+'<\/span>' : ''}<\/td>
                     <td>${horario}<\/td>
-                    <td>${t["Nome"] || '-'}${rsv}<\/td>
+                    <td>${t["Nome"] || '-'}${rsv}${pm}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
                     <td>${endereco}<\/td>
@@ -1189,10 +1212,20 @@
     function abrirEdicao(t) {
         editando = transferPorId(t["ID"]) || t;
         document.getElementById('editResumo').innerText = (editando["Nome"] || '-') + ' · ' + (editando["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio");
+        document.getElementById('editNome').value = editando["Nome"] || '';
+        document.getElementById('editReserva').value = editando["Reserva"] || '';
+        document.getElementById('editTelefone').value = editando["Telefone"] || '';
+        document.getElementById('editEmail').value = editando["Email"] || '';
+        document.getElementById('editSentido').value = (editando["Sentido"] === "OUT") ? "OUT" : "IN";
         document.getElementById('editData').value = toISODate(editando["Data Viagem"]);
         let h = getHorario(editando);
         document.getElementById('editHora').value = (h && h !== '-') ? h : '';
         document.getElementById('editDestino').value = editando["Endereço"] || editando["Endereco"] || '';
+        document.getElementById('editVoo').value = editando["Voo"] || '';
+        document.getElementById('editCia').value = editando["Cia Aérea"] || editando["Cia Aerea"] || '';
+        document.getElementById('editPessoas').value = (editando["Pessoas"] !== undefined && editando["Pessoas"] !== '') ? editando["Pessoas"] : '';
+        document.getElementById('editMalas').value = (editando["Malas"] !== undefined && editando["Malas"] !== '') ? editando["Malas"] : '';
+        document.getElementById('editMotorista').value = editando["Motorista"] || '';
         let sel = document.getElementById('editVeiculo');
         sel.innerHTML = montarOpcoesVeiculo(regiaoKey(editando));
         for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"]) { o.selected = true; break; } }
@@ -1213,13 +1246,38 @@
         let novoVeiculo = (document.getElementById('editVeiculo').value || "").split("::")[0];
         let total = parseFloat(document.getElementById('editValor').value);
         if (isNaN(total)) total = recalcularTotalEdit();
+        let novoNome = document.getElementById('editNome').value.trim();
+        let novaReserva = document.getElementById('editReserva').value.trim();
+        let novoTelefone = document.getElementById('editTelefone').value.trim();
+        let novoEmail = document.getElementById('editEmail').value.trim();
+        let novoSentido = document.getElementById('editSentido').value;
+        let novoVoo = document.getElementById('editVoo').value.trim();
+        let novaCia = document.getElementById('editCia').value.trim();
+        let novoMotorista = document.getElementById('editMotorista').value.trim();
+        let novasPessoas = parseInt(document.getElementById('editPessoas').value);
+        let novasMalas = parseInt(document.getElementById('editMalas').value);
+        editando["Nome"] = novoNome;
+        editando["Reserva"] = novaReserva;
+        editando["Telefone"] = novoTelefone;
+        editando["Email"] = novoEmail;
+        editando["Sentido"] = novoSentido;
         editando["Data Viagem"] = novaData;
         editando["Horario"] = novaHora;
         editando["Endereço"] = novoDestino;
+        editando["Voo"] = novoVoo;
+        editando["Cia Aérea"] = novaCia;
         editando["Veículo"] = novoVeiculo;
+        editando["Motorista"] = novoMotorista;
+        if (!isNaN(novasPessoas)) editando["Pessoas"] = novasPessoas;
+        if (!isNaN(novasMalas)) editando["Malas"] = novasMalas;
         editando["Valor Total"] = total;
         editando["Modificacao"] = "Modificado em " + new Date().toLocaleString('pt-BR');
-        postUpdate(id, { dataViagem: novaData, horario: novaHora, endereco: novoDestino, veiculo: novoVeiculo, valorTotal: total });
+        let payload = { dataViagem: novaData, horario: novaHora, endereco: novoDestino, veiculo: novoVeiculo, valorTotal: total,
+            nome: novoNome, reserva: novaReserva, telefone: novoTelefone, email: novoEmail, sentido: novoSentido,
+            voo: novoVoo, ciaAerea: novaCia, motorista: novoMotorista };
+        if (!isNaN(novasPessoas)) payload.pessoas = novasPessoas;
+        if (!isNaN(novasMalas)) payload.malas = novasMalas;
+        postUpdate(id, payload);
         updateHistoryTable(); updateDashboard(); renderProximos(); updateComissaoTab(currentPeriodo);
         document.getElementById('editPosAjuste').style.display = 'flex';
     }
