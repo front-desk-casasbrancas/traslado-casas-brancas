@@ -39,6 +39,10 @@
   .gate-card input{width:100%;padding:12px 14px;border:1px solid #d8cbb0;border-radius:10px;font-size:1rem;margin:14px 0 10px;text-align:center;}
   .gate-card button{width:100%;padding:12px;background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;border:none;border-radius:40px;font-weight:600;cursor:pointer;}
   .gate-erro{color:#b85c5a;font-size:0.8rem;margin-top:10px;display:none;}
+  .env-row{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;}
+  .env-btn{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;border:none;padding:8px 16px;border-radius:30px;font-weight:600;font-size:0.82rem;cursor:pointer;white-space:nowrap;}
+  .env-btn:active{opacity:.85;}
+  .env-ok{color:#2f7d8c;font-size:0.74rem;font-weight:600;}
 </style>
 </head>
 <body>
@@ -61,6 +65,7 @@
     </div>
   </div>
   <div class="resumo" id="resumo"></div>
+  <div class="card"><h3>Enviar avaliação — últimos 3 dias</h3><div id="enviar"><div class="vazio">Carregando...</div></div></div>
   <div class="card"><h3>Média por motorista</h3><div id="porMot"></div></div>
   <div class="card"><h3>Comentários recentes</h3><div id="lista"></div></div>
   <div class="meta" id="upd" style="text-align:center;"></div>
@@ -78,7 +83,7 @@
   document.getElementById('gSenha').addEventListener('keydown',e=>{ if(e.key==='Enter')entrar(); });
   document.getElementById('gSenha').focus();
   function entrar(){
-    if(document.getElementById('gSenha').value===SENHA){ document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block'; carregar(); }
+    if(document.getElementById('gSenha').value===SENHA){ document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block'; carregar(); carregarEnvio(); }
     else { document.getElementById('gErro').style.display='block'; document.getElementById('gSenha').value=''; }
   }
 
@@ -117,6 +122,65 @@
         '<div class="meta">'+(a["Hospede"]||'-')+' · '+nomeDisp(a["Motorista"])+' · '+fData(a["Data"])+'</div></div>';
     }).join('');
     document.getElementById('lista').innerHTML=itens;
+  }
+
+  // ===== Enviar avaliação — transfers dos últimos 3 dias =====
+  const AVALIACAO_URL="https://front-desk-casasbrancas.github.io/traslado-casas-brancas/avaliacao.html?id=";
+  function waPhone(tel){ let d=(tel||'').toString().replace(/\D/g,''); if(!d) return ''; if(!(d.startsWith('55')&&d.length>=12)&&(d.length===10||d.length===11)) d='55'+d; return d; }
+  function diaTransfer(t){ let v=(t["Data Viagem"]||'').toString(); let m=v.match(/(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); let d=new Date(v); return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+  function getHorarioT(t){ let h=(t["Horario"]||t["Horário"]||'').toString().trim(); let m=h.match(/T(\d{2}):(\d{2})/); if(m) return m[1]+':'+m[2]; m=h.match(/^(\d{1,2}):(\d{2})/); if(m) return m[1].padStart(2,'0')+':'+m[2]; return ''; }
+
+  async function carregarEnvio(){
+    const box=document.getElementById('enviar');
+    try{
+      const arr=await (await fetch(WEBAPP_URL)).json();
+      renderEnvio(Array.isArray(arr)?arr:[]);
+    }catch(e){ box.innerHTML='<div class="vazio">Erro ao carregar transfers.</div>'; }
+  }
+
+  function renderEnvio(arr){
+    const box=document.getElementById('enviar');
+    let hoje=new Date(); hoje=new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+    let min=new Date(hoje); min.setDate(min.getDate()-3);
+    let lista=arr.filter(t=>{ let d=diaTransfer(t); if(!d) return false; let st=(t["Status"]||'').toString().toLowerCase(); if(st==='cancelled') return false; return d>=min && d<=hoje; })
+                 .sort((a,b)=>diaTransfer(b)-diaTransfer(a));
+    if(!lista.length){ box.innerHTML='<div class="vazio">Nenhum transfer nos últimos 3 dias.</div>'; return; }
+    box.innerHTML=lista.map((t,i)=>{
+      let sentido=(t["Sentido"]==='IN')?'Rio → Búzios':'Búzios → Rio';
+      let destino=(t["Endereço"]||t["Endereco"]||'').toString().trim();
+      let ja=t["AvaliacaoConviteEm"]?'<div class="env-ok">✓ avaliação já enviada</div>':'';
+      let hora=getHorarioT(t); let dataStr=fData(t["Data Viagem"])+(hora?(' '+hora):'');
+      return '<div class="item env-row" data-i="'+i+'">'+
+        '<div><div style="font-weight:600;">'+(t["Nome"]||'-')+'</div>'+
+        '<div class="meta">'+dataStr+' · Reserva '+(t["Reserva"]||'-')+' · '+sentido+(destino?(' · '+destino):'')+'</div>'+ja+'</div>'+
+        '<button class="env-btn" data-i="'+i+'">📲 Enviar</button></div>';
+    }).join('');
+    box.querySelectorAll('.env-btn').forEach(b=>b.addEventListener('click',()=>enviarAval(lista[+b.getAttribute('data-i')])));
+  }
+
+  function enviarAval(t){
+    const id=t["ID"]; if(!id){ alert('Transfer sem ID.'); return; }
+    const lang=(t["Idioma"]||'pt').toString().toLowerCase();
+    const txt = lang==='en' ? 'We hope you had a wonderful trip.\nCould you share with us how your experience was?\nHere is our review link:\n'
+              : (lang==='es' ? 'Esperamos que haya tenido un excelente viaje.\n¿Podría compartirnos cómo fue su experiencia?\nAquí está nuestro enlace de evaluación:\n'
+              : 'Esperamos que tenha tido uma ótima viagem.\nPoderia nos compartilhar como foi sua experiência?\nSegue nosso link de avaliação:\n');
+    const url=AVALIACAO_URL+encodeURIComponent(id);
+    const email=(t["Email"]||'').toString().trim();
+    let canal=(t["Contato"]||'').toString().toLowerCase();
+    if(canal!=='email' && canal!=='whatsapp') canal = email ? 'email' : 'whatsapp';
+    if(canal==='email'){
+      if(!email){ alert('Este hóspede não tem e-mail cadastrado. Envie por WhatsApp.'); return; }
+      if(!confirm('Enviar avaliação por e-mail para '+email+'?')) return;
+      try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enviarAvaliacao',id:id,metodo:'Email',email:email})}); }catch(e){}
+      alert('Avaliação enviada por e-mail (front@casasbrancas.com.br).');
+    } else {
+      const tel=waPhone(t["Telefone"]);
+      if(!tel){ alert('Sem telefone válido para WhatsApp.'); return; }
+      window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt+url),'_blank');
+      try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enviarAvaliacao',id:id,metodo:'WhatsApp',telefone:t["Telefone"]})}); }catch(e){}
+    }
+    t["AvaliacaoConviteEm"]=new Date().toISOString();
+    carregarEnvio();
   }
 
   // ===== Relatório (PDF via impressão) =====

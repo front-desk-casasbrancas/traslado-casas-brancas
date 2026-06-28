@@ -818,7 +818,7 @@
             let tel = formatWhatsAppPhone(contato);
             if (!tel || tel.length < 12) { alert('Telefone inválido!'); return; }
             let lang = (avalAlvo["Idioma"] || 'pt').toString().toLowerCase();
-            let msg = (lang === 'en' ? 'Hello! How was your transfer with Casas Brancas? Please rate it here: ' : (lang === 'es' ? '¡Hola! ¿Cómo fue su traslado con Casas Brancas? Evalúe aquí: ' : 'Olá! Como foi seu traslado com a Casas Brancas? Avalie aqui: ')) + AVALIACAO_URL + encodeURIComponent(id);
+            let msg = (lang === 'en' ? 'We hope you had a wonderful trip.\nCould you share with us how your experience was?\nHere is our review link:\n' : (lang === 'es' ? 'Esperamos que haya tenido un excelente viaje.\n¿Podría compartirnos cómo fue su experiencia?\nAquí está nuestro enlace de evaluación:\n' : 'Esperamos que tenha tido uma ótima viagem.\nPoderia nos compartilhar como foi sua experiência?\nSegue nosso link de avaliação:\n')) + AVALIACAO_URL + encodeURIComponent(id);
             window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
             try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'enviarAvaliacao', id: id, metodo: 'WhatsApp', telefone: contato }) }); } catch (e) {}
             avalAlvo["Telefone"] = contato; avalAlvo["Contato"] = 'WhatsApp'; avalAlvo["AvaliacaoConviteEm"] = new Date().toISOString();
