@@ -229,14 +229,15 @@
     async function abrirPiP() {
         if (!pipDisponivel()) { alert('A janela flutuante (PiP) funciona no Chrome ou Edge no computador.'); return; }
         try {
-            pipWin = await documentPictureInPicture.requestWindow({ width: 340, height: 460 });
+            pipWin = await documentPictureInPicture.requestWindow({ width: 340, height: 560 });
             // Ao fechar a janela flutuante, traz o app de volta ao foco
             pipWin.addEventListener('pagehide', function () { pipWin = null; try { window.focus(); } catch (e) {} });
             var s = pipWin.document.createElement('style');
-            s.textContent = 'body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f6f2eb;color:#2b2a26;} .h{background:#2b2a26;color:#fff;padding:12px 14px;} .h b{color:#cbb27a;font-style:italic;} .sub{font-size:0.7rem;letter-spacing:1px;color:#cbb27a;} .h2{background:#e7dcc4;color:#9c7d3f;font-weight:700;padding:7px 12px;font-size:0.82rem;} .it{padding:9px 12px;border-bottom:1px solid #e7dcc4;font-size:0.9rem;} .hr{color:#9c7d3f;font-weight:700;} .vz{padding:12px;text-align:center;color:#8a8270;font-size:0.82rem;}';
+            s.textContent = 'body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f6f2eb;color:#2b2a26;} .h{background:#2b2a26;color:#fff;padding:12px 14px;} .h b{color:#cbb27a;font-style:italic;} .sub{font-size:0.7rem;letter-spacing:1px;color:#cbb27a;} .h2{background:#e7dcc4;color:#9c7d3f;font-weight:700;padding:7px 12px;font-size:0.82rem;} .sec{background:#2b2a26;color:#cbb27a;padding:6px 12px;font-size:0.72rem;letter-spacing:1.5px;font-weight:700;} .it{padding:9px 12px;border-bottom:1px solid #e7dcc4;font-size:0.9rem;} .hr{color:#9c7d3f;font-weight:700;} .vz{padding:10px;text-align:center;color:#8a8270;font-size:0.8rem;}';
             pipWin.document.head.appendChild(s);
-            pipWin.document.body.innerHTML = '<div class="h"><div><b>Casas Brancas</b></div><div class="sub">TRASLADOS — HOJE E AMANHÃ</div></div><div id="pipBody"></div>';
+            pipWin.document.body.innerHTML = '<div class="h"><div><b>Casas Brancas</b></div><div class="sub">RECEPÇÃO — HOJE E AMANHÃ</div></div><div id="pipBody"></div>';
             atualizarPiP();
+            carregarSpaPiP();
             // Traz a janela flutuante para a frente e tira o foco da principal (efeito de "minimizar")
             try { pipWin.focus(); } catch (e) {}
             try { window.blur(); } catch (e) {}
@@ -253,11 +254,36 @@
         } else { h += '<div class="vz">Nenhum traslado.</div>'; }
         return h;
     }
+    // ===== Janela combinada: também mostra o SPA (só 1 PiP é permitida pelo navegador) =====
+    const SPA_URL_PIP = "https://script.google.com/macros/s/AKfycbxOhd-rs25ko1Xkd46A1EKWM7npWBg3rfKigW41XY6Kvdi9wvXCu2PjsVV5w5RNhole/exec";
+    var spaHoje = [], spaAmanha = [];
+    async function carregarSpaPiP() {
+        try {
+            var arr = await (await fetch(SPA_URL_PIP)).json();
+            if (!Array.isArray(arr)) return;
+            var at = arr.filter(function (t) { return (t["Status"] || '').toString().toLowerCase() !== 'cancelled'; });
+            var hk = dKey(agora); var am = new Date(agora); am.setDate(am.getDate() + 1); var ak = dKey(am);
+            spaHoje = at.filter(function (t) { return dKey(t["Data"]) === hk; }).sort(function (a, b) { return getHorario(a).localeCompare(getHorario(b)); });
+            spaAmanha = at.filter(function (t) { return dKey(t["Data"]) === ak; }).sort(function (a, b) { return getHorario(a).localeCompare(getHorario(b)); });
+            atualizarPiP();
+        } catch (e) {}
+    }
+    function _pipDiaSpa(titulo, dataObj, arr) {
+        var h = '<div class="h2">' + titulo + ' (' + _ddmm(dataObj) + ') · ' + arr.length + '</div>';
+        if (arr.length) {
+            h += arr.map(function (t) {
+                return '<div class="it"><span class="hr">' + getHorario(t) + '</span> · ' + (t["Nome"] || '-') + '<br><span style="font-size:0.76rem;color:#8a8270;">' + (t["Servico"] || '-') + ' · ' + (t["Terapeuta"] || 'a definir') + '</span></div>';
+            }).join('');
+        } else { h += '<div class="vz">Nenhum atendimento.</div>'; }
+        return h;
+    }
     function atualizarPiP() {
         if (!pipWin || pipWin.closed) return;
         var body = pipWin.document.getElementById('pipBody'); if (!body) return;
         var am = new Date(agora); am.setDate(am.getDate() + 1);
-        body.innerHTML = _pipDia('Hoje', agora, ultimaHoje) + _pipDia('Amanhã', am, ultimaAmanha);
+        body.innerHTML =
+            '<div class="sec">🚗 TRASLADOS</div>' + _pipDia('Hoje', agora, ultimaHoje) + _pipDia('Amanhã', am, ultimaAmanha) +
+            '<div class="sec">💆 SPA</div>' + _pipDiaSpa('Hoje', agora, spaHoje) + _pipDiaSpa('Amanhã', am, spaAmanha);
     }
     function pipNovo(nome) { if (pipWin && !pipWin.closed) { try { var d = pipWin.document.getElementById('pipBody'); if (d) { var a = pipWin.document.createElement('div'); a.className = 'it'; a.style.background = '#fff8e6'; a.innerHTML = '🔔 <b>Nova solicitação:</b> ' + (nome || ''); d.insertBefore(a, d.firstChild); } } catch (e) {} } }
 
@@ -324,7 +350,7 @@
             document.getElementById('stMedia').innerText = brl(media);
 
             // Janela flutuante (PiP) + toast de "transfers de hoje" + permissão de notificação
-            ultimaHoje = hoje; ultimaAmanha = amanha; atualizarPiP();
+            ultimaHoje = hoje; ultimaAmanha = amanha; atualizarPiP(); if (pipWin && !pipWin.closed) carregarSpaPiP();
             if (!window.__bootMenu) {
                 window.__bootMenu = true;
                 pedirPermissaoNotif();
