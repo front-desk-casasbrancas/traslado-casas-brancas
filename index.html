@@ -342,7 +342,6 @@
             <div class="price-bar-label" id="priceBarLabel">Total</div>
             <div class="price-bar-value" id="priceBarValue">R$ 0</div>
         </div>
-        <button type="button" class="btn-submit" id="enviarBtnBar">Enviar via WhatsApp</button>
     </div>
 </div>
 
@@ -990,9 +989,35 @@
                 const preco = parseFloat(card.getAttribute('data-preco')) || 0;
                 document.getElementById("precoBase").value = preco;
                 marcarErro('veiculosContainer', false);
+                colapsarVeiculos();
                 scheduleUpdate();
             });
         });
+    }
+
+    // Ao escolher um veículo, oculta os demais e mostra um botão "Trocar veículo".
+    function colapsarVeiculos() {
+        const cont = document.getElementById("veiculosContainer");
+        if (!cont) return;
+        cont.querySelectorAll(".veiculo-card").forEach(c => { c.style.display = c.classList.contains("selected") ? "" : "none"; });
+        cont.querySelectorAll(".categoria-grid").forEach(g => { g.style.display = g.querySelector(".veiculo-card.selected") ? "" : "none"; });
+        if (!document.getElementById("trocarVeiculoBtn")) {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.id = "trocarVeiculoBtn";
+            b.style.cssText = "margin-bottom:12px; padding:9px 16px; border:1px solid #d4cbb8; background:#fafaf7; border-radius:40px; font-size:0.82rem; color:#7a8b6e; cursor:pointer;";
+            b.innerText = ({ pt: '↺ Trocar veículo', en: '↺ Change vehicle', es: '↺ Cambiar vehículo' })[currentLang] || '↺ Trocar veículo';
+            b.addEventListener("click", expandirVeiculos);
+            cont.insertBefore(b, cont.firstChild);
+        }
+    }
+    function expandirVeiculos() {
+        const cont = document.getElementById("veiculosContainer");
+        if (!cont) return;
+        cont.querySelectorAll(".veiculo-card").forEach(c => { c.style.display = ""; });
+        cont.querySelectorAll(".categoria-grid").forEach(g => { g.style.display = ""; });
+        const b = document.getElementById("trocarVeiculoBtn");
+        if (b) b.remove();
     }
 
     // Bloqueia visualmente os veículos que não comportam os passageiros.
@@ -1014,6 +1039,8 @@
                 card.classList.remove("insuficiente");
             }
         });
+        // Se a seleção foi perdida (ex.: passou a não caber), volta a mostrar todos os veículos.
+        if (!document.querySelector("#veiculosContainer .veiculo-card.selected")) expandirVeiculos();
     }
 
     function trocarRegiao() {
@@ -1133,7 +1160,12 @@
             </div>
             <div class="step-section"><div class="step-title">${t.step2}</div>
                 <div class="form-row"><label id="lblNome">${t.nome}</label><input type="text" id="nome" required></div>
-                <div class="form-row"><label id="lblReserva">${t.reserva}</label><input type="text" id="reserva"></div>
+                <div class="form-row"><label id="lblReserva">${t.reserva}</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="reserva" style="flex:1;">
+                        <button type="button" id="reservaNA" style="flex:0 0 auto; padding:11px 12px; border:1px solid #d4cbb8; background:#fafaf7; border-radius:10px; font-size:0.76rem; color:#7a8b6e; cursor:pointer; white-space:nowrap;">${({pt:'Não se aplica',en:'Not applicable',es:'No aplica'})[currentLang] || 'Não se aplica'}</button>
+                    </div>
+                </div>
                 <div class="form-row"><label id="lblContato">${t.contatoMetodo}</label>
                     <div class="radio-group" id="contatoGroup">
                         <label><input type="radio" name="contato" value="WhatsApp" checked> <span id="lblViaWhats">${t.viaWhats}</span></label>
@@ -1212,27 +1244,67 @@
         const container = document.getElementById("localFields");
         const t = translations[currentLang];
         const hoje = new Date().toISOString().slice(0, 10);
+        const LL = {
+            pt: { partida: 'Local de partida', partidaPh: 'Endereço, hotel ou aeroporto de partida', destino: 'Destino', tAero: 'Aeroporto', tCidade: 'Cidade do Rio de Janeiro' },
+            en: { partida: 'Pickup location', partidaPh: 'Address, hotel or departure airport', destino: 'Destination', tAero: 'Airport', tCidade: 'Rio de Janeiro city' },
+            es: { partida: 'Lugar de salida', partidaPh: 'Dirección, hotel o aeropuerto de salida', destino: 'Destino', tAero: 'Aeropuerto', tCidade: 'Ciudad de Río de Janeiro' }
+        }[currentLang] || { partida: 'Local de partida', partidaPh: '', destino: 'Destino', tAero: 'Aeroporto', tCidade: 'Cidade do Rio de Janeiro' };
+        const labelData = sentido === "IN" ? t.labelDataEmbarque : t.labelDataSaida;
+        const labelHora = sentido === "IN" ? t.labelHoraEmbarque : t.labelHoraSaida;
+        const horaDefault = sentido === "IN" ? "05:30" : "10:00";
 
-        if (sentido === "IN") {
-            container.innerHTML = `
-                <div class="form-row"><label>${t.labelDataEmbarque}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
-                <div class="form-row"><label>${t.labelHoraEmbarque}</label><input type="time" id="horaEmbarque" value="05:30"></div>
-                <div class="form-row"><label>${t.labelEndereco}</label><input type="text" id="endereco" placeholder="${t.placeholderEndereco}"></div>
+        container.innerHTML = `
+            <div class="form-row"><label>${labelData}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
+            <div class="form-row"><label>${labelHora}</label><input type="time" id="horaEmbarque" value="${horaDefault}"></div>
+            <div class="form-row"><label>${LL.partida}</label><input type="text" id="localPartida" placeholder="${LL.partidaPh}"></div>
+            <div class="form-row"><label>${LL.destino}</label>
+                <select id="destinoTipo">
+                    <option value="aeroporto">${LL.tAero}</option>
+                    <option value="cidade">${LL.tCidade}</option>
+                </select>
+            </div>
+            <div id="destinoDetalhe"></div>
+        `;
+        renderDestinoDetalhe();
+        document.getElementById("destinoTipo")?.addEventListener("change", renderDestinoDetalhe);
+        document.getElementById("localPartida")?.addEventListener("input", () => scheduleUpdate());
+        let he = document.getElementById("horaEmbarque");
+        if (he) he.addEventListener("change", () => { autoMadrugada(); scheduleUpdate(); });
+        autoMadrugada();
+    }
+
+    // Destino dinâmico: Aeroporto (GIG/SDU) mostra voo+cia; Cidade do Rio mostra endereço livre e oculta voo/cia.
+    function renderDestinoDetalhe() {
+        const t = translations[currentLang];
+        const cont = document.getElementById("destinoDetalhe");
+        if (!cont) return;
+        const tipo = document.getElementById("destinoTipo")?.value || "aeroporto";
+        const LL = {
+            pt: { aeroLabel: 'Aeroporto', cidadeLabel: 'Endereço no Rio de Janeiro', cidadePh: 'Bairro, rua e número' },
+            en: { aeroLabel: 'Airport', cidadeLabel: 'Address in Rio de Janeiro', cidadePh: 'Area, street and number' },
+            es: { aeroLabel: 'Aeropuerto', cidadeLabel: 'Dirección en Río de Janeiro', cidadePh: 'Barrio, calle y número' }
+        }[currentLang] || { aeroLabel: 'Aeroporto', cidadeLabel: 'Endereço no Rio de Janeiro', cidadePh: '' };
+        if (tipo === "aeroporto") {
+            cont.innerHTML = `
+                <div class="form-row"><label>${LL.aeroLabel}</label>
+                    <select id="endereco">
+                        <option value="Aeroporto Galeão (GIG)">Galeão (GIG)</option>
+                        <option value="Aeroporto Santos Dumont (SDU)">Santos Dumont (SDU)</option>
+                    </select>
+                </div>
                 <div class="form-row"><label>${t.labelVoo}</label><input type="text" id="voo" placeholder="${t.placeholderVoo}"></div>
                 <div class="form-row"><label>${t.labelCia}</label><input type="text" id="ciaAerea" placeholder="${t.placeholderCia}"></div>
             `;
         } else {
-            container.innerHTML = `
-                <div class="form-row"><label>${t.labelDataSaida}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
-                <div class="form-row"><label>${t.labelHoraSaida}</label><input type="time" id="horaEmbarque" value="10:00"></div>
-                <div class="form-row"><label>${t.labelDestino}</label><input type="text" id="endereco" placeholder="${t.placeholderDestino}"></div>
-                <div class="form-row"><label>${t.labelVooOut}</label><input type="text" id="voo" placeholder="${t.placeholderVooOut}"></div>
-                <div class="form-row"><label>${t.labelCiaOut}</label><input type="text" id="ciaAerea" placeholder="${t.placeholderCiaOut}"></div>
+            cont.innerHTML = `
+                <div class="form-row"><label>${LL.cidadeLabel}</label><input type="text" id="endereco" placeholder="${LL.cidadePh}"></div>
             `;
         }
-        let he = document.getElementById("horaEmbarque");
-        if (he) he.addEventListener("change", () => { autoMadrugada(); scheduleUpdate(); });
-        autoMadrugada();
+        ['endereco', 'voo', 'ciaAerea'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.addEventListener('input', () => scheduleUpdate()); el.addEventListener('change', () => scheduleUpdate()); }
+        });
+        scheduleUpdate();
     }
 
     function getBagagemTexto() {
@@ -1261,6 +1333,7 @@
         const regiao = document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste";
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
+        const localPartida = document.getElementById("localPartida")?.value || "-";
         const endereco = document.getElementById("endereco")?.value || "-";
         const voo = document.getElementById("voo")?.value || "-";
         const ciaAerea = document.getElementById("ciaAerea")?.value || "-";
@@ -1281,8 +1354,10 @@
         mensagem += `Madrugada: ${madrugada}\n\n`;
         mensagem += `Data: ${data}\n`;
         mensagem += `Horário: ${hora}\n`;
-        mensagem += `Endereço: ${endereco}\n`;
-        mensagem += `Voo: ${voo} - ${ciaAerea}\n\n`;
+        mensagem += `Local de partida: ${localPartida}\n`;
+        mensagem += `Destino: ${endereco}\n`;
+        if (voo && voo !== "-") mensagem += `Voo: ${voo} - ${ciaAerea}\n`;
+        mensagem += `\n`;
         mensagem += `Pagamento: ${pagamento}\n`;
         mensagem += `Observações: ${obs}\n`;
         mensagem += `Cliente concordou com as políticas: Sim\n`;
@@ -1363,9 +1438,9 @@
 
     function montarRevisao() {
         const L = {
-            pt: { rev: 'Confira seus dados', sub: 'Revise antes de enviar.', voltar: 'Voltar e editar', reserva: 'Reserva/Quarto', contato: 'Contato', sentido: 'Sentido', data: 'Data', hora: 'Horário', local: 'Local/Destino', voo: 'Voo', cia: 'Cia aérea', veic: 'Veículo', pax: 'Passageiros', ad: 'adultos', cr: 'crianças', malas: 'Malas', valor: 'Valor total', nome: 'Nome' },
-            en: { rev: 'Review your details', sub: 'Please review before sending.', voltar: 'Back to edit', reserva: 'Reservation/Room', contato: 'Contact', sentido: 'Direction', data: 'Date', hora: 'Time', local: 'Location', voo: 'Flight', cia: 'Airline', veic: 'Vehicle', pax: 'Passengers', ad: 'adults', cr: 'children', malas: 'Luggage', valor: 'Total', nome: 'Name' },
-            es: { rev: 'Revise sus datos', sub: 'Revise antes de enviar.', voltar: 'Volver y editar', reserva: 'Reserva/Habitación', contato: 'Contacto', sentido: 'Sentido', data: 'Fecha', hora: 'Hora', local: 'Ubicación', voo: 'Vuelo', cia: 'Aerolínea', veic: 'Vehículo', pax: 'Pasajeros', ad: 'adultos', cr: 'niños', malas: 'Equipaje', valor: 'Total', nome: 'Nombre' }
+            pt: { rev: 'Confira seus dados', sub: 'Revise antes de enviar.', voltar: 'Voltar e editar', reserva: 'Reserva/Quarto', contato: 'Contato', sentido: 'Sentido', data: 'Data', hora: 'Horário', partida: 'Local de partida', local: 'Destino', voo: 'Voo', cia: 'Cia aérea', veic: 'Veículo', pax: 'Passageiros', ad: 'adultos', cr: 'crianças', malas: 'Malas', valor: 'Valor total', nome: 'Nome' },
+            en: { rev: 'Review your details', sub: 'Please review before sending.', voltar: 'Back to edit', reserva: 'Reservation/Room', contato: 'Contact', sentido: 'Direction', data: 'Date', hora: 'Time', partida: 'Pickup location', local: 'Destination', voo: 'Flight', cia: 'Airline', veic: 'Vehicle', pax: 'Passengers', ad: 'adults', cr: 'children', malas: 'Luggage', valor: 'Total', nome: 'Name' },
+            es: { rev: 'Revise sus datos', sub: 'Revise antes de enviar.', voltar: 'Volver y editar', reserva: 'Reserva/Habitación', contato: 'Contacto', sentido: 'Sentido', data: 'Fecha', hora: 'Hora', partida: 'Lugar de salida', local: 'Destino', voo: 'Vuelo', cia: 'Aerolínea', veic: 'Vehículo', pax: 'Pasajeros', ad: 'adultos', cr: 'niños', malas: 'Equipaje', valor: 'Total', nome: 'Nombre' }
         }[currentLang] || {};
         const t = translations[currentLang];
         const metodo = metodoContato();
@@ -1376,6 +1451,7 @@
         const dv = document.getElementById('dataViagem')?.value || '';
         const dataBR = dv ? dv.split('-').reverse().join('/') : '-';
         const hora = document.getElementById('horaEmbarque')?.value || '-';
+        const localPartida = document.getElementById('localPartida')?.value || '-';
         const local = document.getElementById('endereco')?.value || '-';
         const voo = document.getElementById('voo')?.value || '';
         const cia = document.getElementById('ciaAerea')?.value || '';
@@ -1386,7 +1462,7 @@
         const valor = 'R$ ' + (calcularTotal() || 0).toLocaleString('pt-BR');
         function row(lbl, val) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #eef0e8;"><span style="color:#8a8270;">' + lbl + '</span><b style="text-align:right;">' + (val || '-') + '</b></div>'; }
         let html = row(L.nome, nome) + row(L.reserva, reserva) + row(L.contato, contato) + row(L.sentido, sent) +
-            row(L.data, dataBR) + row(L.hora, hora) + row(L.local, local) +
+            row(L.data, dataBR) + row(L.hora, hora) + row(L.partida, localPartida) + row(L.local, local) +
             (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '') +
             row(L.veic, veic) + row(L.pax, ad + ' ' + L.ad + (cr ? ' + ' + cr + ' ' + L.cr : '')) +
             row(L.malas, malas) + row(L.valor, valor);
@@ -1428,6 +1504,7 @@
             pessoas: (parseInt(document.getElementById("adultos")?.value) || 0) + (parseInt(document.getElementById("criancas")?.value) || 0),
             obs: document.getElementById("obs")?.value || "",
             pagamento: document.getElementById("pagamento")?.value,
+            localPartida: document.getElementById("localPartida")?.value || "",
             endereco: document.getElementById("endereco")?.value || "",
             voo: document.getElementById("voo")?.value || "",
             ciaAerea: document.getElementById("ciaAerea")?.value || "",
@@ -1447,6 +1524,9 @@
             window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
         }
         mostrarSucesso();
+        // Tenta fechar a janela do cliente após enviar (só funciona se a aba foi aberta por script;
+        // caso o navegador bloqueie, permanece a tela de sucesso).
+        setTimeout(() => { try { window.close(); } catch (e) {} }, 1200);
     }
 
     function copiarMensagem() {
@@ -1479,6 +1559,11 @@
         ['nome', 'reserva', 'telefone', 'obs', 'endereco', 'voo', 'ciaAerea'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('input', () => scheduleUpdate());
+        });
+        document.getElementById('reservaNA')?.addEventListener('click', () => {
+            const rv = document.getElementById('reserva');
+            const txt = ({ pt: 'Não se aplica', en: 'Not applicable', es: 'No aplica' })[currentLang] || 'Não se aplica';
+            if (rv) { rv.value = (rv.value.trim() === txt) ? '' : txt; scheduleUpdate(); }
         });
         document.getElementById('ddi')?.addEventListener('change', () => scheduleUpdate());
         document.getElementById('nome')?.addEventListener('input', () => marcarErro('nome', false));
@@ -1599,7 +1684,7 @@
         });
     });
 
-    document.getElementById('enviarBtnBar').addEventListener('click', enviarWhatsApp);
+    document.getElementById('enviarBtnBar')?.addEventListener('click', enviarWhatsApp);
     document.getElementById('novaSolicitacaoBtn').addEventListener('click', () => {
         document.getElementById('sucessoOverlay').classList.remove('show');
         renderForm();
