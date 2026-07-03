@@ -80,6 +80,17 @@
         .wa-link { color: #25D366; text-decoration: none; font-size: 0.75rem; white-space: nowrap; }
         .last-update { font-size: 0.78rem; color: rgba(255,255,255,0.82); }
         .error-message { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; margin-bottom: 16px; display: none; }
+        /* Painel financeiro do Marcelo (dono/motorista) */
+        .fin-marcelo { margin-bottom: 16px; }
+        .fin-marcelo .fin-head { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+        .fin-marcelo h3 { color:#9c7d3f; font-size:0.95rem; margin:0; }
+        .fin-marcelo .fin-nota { font-size:0.72rem; color:#8a8270; }
+        .fin-marcelo .fin-cols { display:flex; gap:14px; flex-wrap:wrap; }
+        .fin-marcelo .fin-box { flex:1; min-width:220px; background:#faf6ee; border:1px solid #ecdfc4; border-radius:12px; padding:14px 16px; }
+        .fin-marcelo .fin-tit { font-size:0.72rem; letter-spacing:1px; color:#9c7d3f; font-weight:700; margin-bottom:8px; text-transform:uppercase; }
+        .fin-marcelo .fin-lin { font-size:0.84rem; color:#5a5446; display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+        .fin-marcelo .fin-lin.desc { color:#b85c5a; }
+        .fin-marcelo .fin-com { font-size:1.15rem; font-weight:700; color:#9c7d3f; margin-top:8px; padding-top:8px; border-top:1px dashed #e2d3ad; display:flex; justify-content:space-between; gap:10px; }
         @media (max-width: 768px) { .motorista-input { width: 110px; } }
     </style>
 </head>
@@ -133,6 +144,8 @@
         </div>
     </div>
 
+    <div id="finMarcelo" class="table-container fin-marcelo" style="display:none;"></div>
+
     <div id="errorDisplay" class="error-message"></div>
 
     <div class="filtros-bar">
@@ -170,6 +183,13 @@
     let transfers = [];
     let quick = 'todos';
 
+    // ===== COMISSÃO (regra única) =====
+    // 15% sobre o valor dos traslados, menos 6% de taxa de cartão sobre a comissão.
+    const PCT_COMISSAO = 0.15;
+    const TAXA_CARTAO = 0.06;
+    function comissaoBruta(total) { return (parseFloat(total) || 0) * PCT_COMISSAO; }
+    function comissaoLiquida(total) { return comissaoBruta(total) * (1 - TAXA_CARTAO); }
+
     // ===== HELPERS =====
     function getHorario(t) {
         let h = t["Horario"] || t["Horário"] || t["horario"] || "";
@@ -190,9 +210,15 @@
     function dateKeyFromDate(d) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
+    function parseLocalData(v) {
+        if (!v) return new Date(NaN);
+        let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+        return new Date(v);
+    }
     function dataKey(t) {
         if (!t || !t["Data Viagem"]) return null;
-        let d = new Date(t["Data Viagem"]);
+        let d = parseLocalData(t["Data Viagem"]);
         return isNaN(d.getTime()) ? null : dateKeyFromDate(d);
     }
     function formatarData(v) {
@@ -230,6 +256,53 @@
         let item = transferPorId(id);
         if (item) item["Motorista"] = nome;
         postUpdate(id, { motorista: nome });
+        renderFinMarcelo();
+    }
+
+    // ===== PAINEL FINANCEIRO DO MARCELO =====
+    // Mostra, na escala, o resumo do Marcelo: nº de traslados e comissão,
+    // no mês atual e no total geral. Só traslados atribuídos a ele; exclui cancelados.
+    // Comissão = 15% sobre o valor, menos 6% de taxa de cartão.
+    function valorTransfer(t) { return parseFloat(t["Valor Total"]) || 0; }
+    function ehMarcelo(t) { return getMotorista(t).trim().toLowerCase() === 'marcelo'; }
+    function moedaBR(n) { return 'R$ ' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function blocoFin(titulo, qtd, total) {
+        const bruta = comissaoBruta(total);
+        const taxa = bruta * TAXA_CARTAO;
+        const liq = bruta - taxa;
+        return '<div class="fin-box">' +
+            '<div class="fin-tit">' + titulo + '</div>' +
+            '<div class="fin-lin"><span>Traslados</span><span>' + qtd + '</span></div>' +
+            '<div class="fin-lin"><span>Total em traslados</span><span>' + moedaBR(total) + '</span></div>' +
+            '<div class="fin-lin"><span>Comissão 15%</span><span>' + moedaBR(bruta) + '</span></div>' +
+            '<div class="fin-lin desc"><span>Taxa cartão 6%</span><span>− ' + moedaBR(taxa) + '</span></div>' +
+            '<div class="fin-com"><span>Comissão líquida</span><span>' + moedaBR(liq) + '</span></div>' +
+        '</div>';
+    }
+    function renderFinMarcelo() {
+        const box = document.getElementById('finMarcelo');
+        if (!box) return;
+        const now = new Date();
+        const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        let mQ = 0, mT = 0, gQ = 0, gT = 0;
+        transfers.forEach(t => {
+            if (!ehMarcelo(t) || isCancelled(t)) return;
+            const v = valorTransfer(t);
+            gQ++; gT += v;
+            const k = dataKey(t);
+            if (k && k.slice(0, 7) === ym) { mQ++; mT += v; }
+        });
+        const mesNome = now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        box.style.display = 'block';
+        box.innerHTML =
+            '<div class="fin-head">' +
+                '<h3>💰 Financeiro — Marcelo</h3>' +
+                '<span class="fin-nota">Comissão 15% − 6% de taxa de cartão · exclui cancelados</span>' +
+            '</div>' +
+            '<div class="fin-cols">' +
+                blocoFin('Este mês · ' + mesNome, mQ, mT) +
+                blocoFin('Total geral', gQ, gT) +
+            '</div>';
     }
 
     // ===== CARREGAR =====
@@ -257,6 +330,7 @@
     }
 
     function render() {
+        renderFinMarcelo();
         const corpo = document.getElementById('corpo');
         if (!transfers.length) { corpo.innerHTML = '<tr><td colspan="11" style="text-align:center;">Nenhum traslado encontrado</td></tr>'; return; }
 
