@@ -284,24 +284,28 @@
         if (!box) return;
         const now = new Date();
         const ym = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-        let mQ = 0, mT = 0, gQ = 0, gT = 0;
+        const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const ymPrev = prev.getFullYear() + '-' + String(prev.getMonth() + 1).padStart(2, '0');
+        let aQ = 0, aT = 0, pQ = 0, pT = 0;
         transfers.forEach(t => {
-            if (!ehMarcelo(t) || isCancelled(t)) return;
+            if (isCancelled(t)) return;                 // geral: todos os motoristas, exclui cancelados
             const v = valorTransfer(t);
-            gQ++; gT += v;
-            const k = dataKey(t);
-            if (k && k.slice(0, 7) === ym) { mQ++; mT += v; }
+            const k = dataKey(t); if (!k) return;
+            const mk = k.slice(0, 7);
+            if (mk === ym) { aQ++; aT += v; }
+            else if (mk === ymPrev) { pQ++; pT += v; }
         });
-        const mesNome = now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        const nomeAtual = now.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        const nomePrev = prev.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
         box.style.display = 'block';
         box.innerHTML =
             '<div class="fin-head">' +
-                '<h3>💰 Financeiro — Marcelo</h3>' +
+                '<h3>💰 Financeiro — Geral</h3>' +
                 '<span class="fin-nota">Comissão 15% − 6% de taxa de cartão · exclui cancelados</span>' +
             '</div>' +
             '<div class="fin-cols">' +
-                blocoFin('Este mês · ' + mesNome, mQ, mT) +
-                blocoFin('Total geral', gQ, gT) +
+                blocoFin('Mês atual · ' + nomeAtual, aQ, aT) +
+                blocoFin('Mês anterior · ' + nomePrev, pQ, pT) +
             '</div>';
     }
 
