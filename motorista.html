@@ -268,15 +268,11 @@
     function moedaBR(n) { return 'R$ ' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function blocoFin(titulo, qtd, total) {
         const bruta = comissaoBruta(total);
-        const taxa = bruta * TAXA_CARTAO;
-        const liq = bruta - taxa;
         return '<div class="fin-box">' +
             '<div class="fin-tit">' + titulo + '</div>' +
             '<div class="fin-lin"><span>Traslados</span><span>' + qtd + '</span></div>' +
             '<div class="fin-lin"><span>Total em traslados</span><span>' + moedaBR(total) + '</span></div>' +
-            '<div class="fin-lin"><span>Comissão 15%</span><span>' + moedaBR(bruta) + '</span></div>' +
-            '<div class="fin-lin desc"><span>Taxa cartão 6%</span><span>− ' + moedaBR(taxa) + '</span></div>' +
-            '<div class="fin-com"><span>Comissão líquida</span><span>' + moedaBR(liq) + '</span></div>' +
+            '<div class="fin-com"><span>Comissão (15%)</span><span>' + moedaBR(bruta) + '</span></div>' +
         '</div>';
     }
     function renderFinMarcelo() {
@@ -301,7 +297,7 @@
         box.innerHTML =
             '<div class="fin-head">' +
                 '<h3>💰 Financeiro — Geral</h3>' +
-                '<span class="fin-nota">Comissão 15% − 6% de taxa de cartão · exclui cancelados</span>' +
+                '<span class="fin-nota">Comissão 15% (bruta) · exclui cancelados</span>' +
             '</div>' +
             '<div class="fin-cols">' +
                 blocoFin('Mês atual · ' + nomeAtual, aQ, aT) +
