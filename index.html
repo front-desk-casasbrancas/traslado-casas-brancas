@@ -1371,6 +1371,7 @@
             await fetch(WEBAPP_URL, {
                 method: 'POST',
                 mode: 'no-cors',
+                keepalive: true,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dados)
             });
@@ -1473,7 +1474,12 @@
         document.getElementById('revisaoConfirmar').innerText = (metodo === 'Email') ? t.enviarEmail : t.enviar;
     }
 
+    let _enviandoForm = false;
     async function confirmarEnvioFinal() {
+        if (_enviandoForm) return;              // trava reenvio, mesmo com vários cliques
+        _enviandoForm = true;
+        const _bc = document.getElementById('revisaoConfirmar');
+        if (_bc) { _bc.disabled = true; _bc.style.opacity = '0.6'; _bc.style.pointerEvents = 'none'; }
         const t = translations[currentLang];
         const veiculo = document.getElementById("veiculoSelecionado")?.value;
         const nome = (document.getElementById("nome")?.value || "").trim();
@@ -1513,8 +1519,9 @@
         };
 
         document.getElementById('revisaoOverlay').classList.remove('show');
-        mostrarFeedback(t.enviando, "success");
-        await enviarParaGoogleSheets(dadosPlanilha);
+        // Grava na planilha sem travar a tela (keepalive garante que a requisição
+        // termina mesmo se a página fechar). Assim sucesso/WhatsApp aparecem na hora.
+        enviarParaGoogleSheets(dadosPlanilha);
 
         const mensagem = montarMensagem();
         if (metodo === 'Email') {
@@ -1524,9 +1531,11 @@
             window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
         }
         mostrarSucesso();
-        // Tenta fechar a janela do cliente após enviar (só funciona se a aba foi aberta por script;
-        // caso o navegador bloqueie, permanece a tela de sucesso).
-        setTimeout(() => { try { window.close(); } catch (e) {} }, 1200);
+        // Fecha a aba do formulário imediatamente. Funciona quando a aba foi aberta pelo
+        // app/menu (window.open); se o cliente abriu o link manualmente, o navegador bloqueia
+        // o fechamento automático e permanece a tela de sucesso.
+        try { window.close(); } catch (e) {}
+        try { window.open('', '_self'); window.close(); } catch (e) {}
     }
 
     function copiarMensagem() {
@@ -1686,6 +1695,7 @@
 
     document.getElementById('enviarBtnBar')?.addEventListener('click', enviarWhatsApp);
     document.getElementById('novaSolicitacaoBtn').addEventListener('click', () => {
+        _enviandoForm = false;                  // libera novo envio
         document.getElementById('sucessoOverlay').classList.remove('show');
         renderForm();
         translatePage();
