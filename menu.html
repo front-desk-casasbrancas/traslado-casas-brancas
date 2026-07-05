@@ -484,6 +484,16 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     if (!('Notification' in window) || !('serviceWorker' in navigator) || typeof firebase === 'undefined') return;
     try { firebase.initializeApp(CFG); } catch (e) {}
 
+    // Mensagem recebida com o app ABERTO (primeiro plano) — mostra a notificação também
+    try {
+        firebase.messaging().onMessage(function (payload) {
+            var d = payload.data || {}, n = payload.notification || {};
+            var titulo = d.titulo || n.title || 'Casas Brancas';
+            var corpo = d.corpo || n.body || '';
+            try { navigator.serviceWorker.ready.then(function (reg) { reg.showNotification(titulo, { body: corpo, icon: 'icon-192-v4.png', vibrate: [120, 60, 120] }); }); } catch (e) {}
+        });
+    } catch (e) {}
+
     function registrar() {
         return navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm-push/' })
             .then(function (reg) { return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg }); })
