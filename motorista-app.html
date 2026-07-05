@@ -70,7 +70,10 @@
             <div class="sub">TRASLADOS · MOTORISTA</div>
             <div class="ola" id="ola">Olá!</div>
         </div>
-        <button class="sair" id="sairBtn">Sair</button>
+        <div style="display:flex; gap:8px; flex-direction:column;">
+            <button class="sair" id="sairBtn">Sair</button>
+            <button class="sair" id="senhaBtn">🔑 Senha</button>
+        </div>
     </div>
     <div class="filtros">
         <div class="fbtn on" data-f="proximos">Próximos</div>
@@ -81,6 +84,19 @@
     <div class="upd" id="upd"></div>
 </div>
 <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none">
+
+<div class="gate" id="senhaOverlay" style="display:none;">
+    <div class="gate-card">
+        <div class="tt">Trocar senha</div>
+        <div class="ds">Só você fica sabendo a nova senha</div>
+        <input type="password" id="sAtual" placeholder="Senha atual" autocomplete="off" data-lpignore="true">
+        <input type="password" id="sNova" placeholder="Nova senha (mínimo 8)" autocomplete="off" data-lpignore="true">
+        <input type="password" id="sNova2" placeholder="Repita a nova senha" autocomplete="off" data-lpignore="true">
+        <button id="sTrocar">Salvar nova senha</button>
+        <button id="sCancelar" style="background:none;color:#8a7a55;margin-top:8px;box-shadow:none;">Cancelar</button>
+        <div class="gate-erro" id="sErro"></div>
+    </div>
+</div>
 
 
 <script>
@@ -239,21 +255,52 @@
             let cv=document.createElement('canvas'); cv.width=w; cv.height=h;
             cv.getContext('2d').drawImage(img,0,0,w,h);
             let b64=cv.toDataURL('image/jpeg',0.7);
-            let t=transfers.find(function(x){ return idOf(x)===fotoAlvo; });
-            try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update',id:fotoAlvo,fotoBase64:b64,fotoTipo:'image/jpeg'})}); }catch(e){}
-            alert('Foto enviada ✓');
+            fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'update',id:fotoAlvo,fotoBase64:b64,fotoTipo:'image/jpeg',authNome:motorista,authChave:chave})})
+                .then(function(r){return r.json();})
+                .then(function(d){ if(d&&d.error) alert('Erro ao enviar a foto: '+d.error); else alert('Foto enviada ✓'); })
+                .catch(function(){ alert('Falha ao enviar a foto. Tente novamente.'); });
         }; img.src=rd.result; };
         rd.readAsDataURL(f);
     });
 
     function mudarStatus(t, st, obs){
         t["Status"]=st;
-        var corpo={action:'update', id:idOf(t), status:st};
+        // authNome/authChave: o servidor confere que é ESTE motorista antes de gravar
+        var corpo={action:'update', id:idOf(t), status:st, authNome:motorista, authChave:chave};
         if(typeof obs==='string' && obs.trim()){ corpo.obsMotorista=obs.trim(); t["ObsMotorista"]=obs.trim(); }
-        try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}); }catch(e){}
+        fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(corpo)})
+            .then(function(r){return r.json();})
+            .then(function(d){ if(d&&d.error) alert('Erro ao gravar: '+d.error); })
+            .catch(function(e){ console.error(e); });
         render();
         setTimeout(carregar,1500);
     }
+
+    // ===== Troca de senha (validada e gravada no servidor; ninguém mais vê) =====
+    document.getElementById('senhaBtn').addEventListener('click',function(){
+        ['sAtual','sNova','sNova2'].forEach(function(i){ document.getElementById(i).value=''; });
+        document.getElementById('sErro').style.display='none';
+        document.getElementById('senhaOverlay').style.display='flex';
+    });
+    document.getElementById('sCancelar').addEventListener('click',function(){
+        document.getElementById('senhaOverlay').style.display='none';
+    });
+    document.getElementById('sTrocar').addEventListener('click',async function(){
+        var atual=document.getElementById('sAtual').value, nova=document.getElementById('sNova').value, nova2=document.getElementById('sNova2').value;
+        var err=document.getElementById('sErro'); err.style.display='none';
+        function falha(m){ err.innerText=m; err.style.display='block'; }
+        if(!atual||!nova){ falha('Preencha todos os campos.'); return; }
+        if(nova.length<8){ falha('A nova senha precisa ter pelo menos 8 caracteres.'); return; }
+        if(nova!==nova2){ falha('As senhas novas não conferem.'); return; }
+        var b=document.getElementById('sTrocar'); b.disabled=true; b.innerText='Salvando...';
+        try{
+            var d=await (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+                body:JSON.stringify({action:'trocarSenhaMotorista',nome:motorista,senhaAtual:atual,senhaNova:nova})})).json();
+            if(d&&d.ok){ chave=nova; document.getElementById('senhaOverlay').style.display='none'; alert('Senha alterada com sucesso ✓'); }
+            else falha((d&&d.erro)||'Não foi possível trocar a senha.');
+        }catch(e){ falha('Falha de conexão. Tente novamente.'); }
+        b.disabled=false; b.innerText='Salvar nova senha';
+    });
 
     // ===== PWA: app instalável próprio (id distinto) + service worker + auto-update =====
     try{

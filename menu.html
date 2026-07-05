@@ -84,20 +84,38 @@
     </div>
 </div>
 <script>
+// A senha NÃO fica mais no código: ela é a CHAVE_RECEPCAO validada pelo SERVIDOR
+// (Apps Script). O que a recepção digita é enviado como ?k= e o servidor confere.
+window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
 (function () {
-    var USER = "casasbrancas", SENHA = "Cb1974", JANELA = 30 * 60 * 1000; // 30 min
+    var USER = "casasbrancas", JANELA = 30 * 60 * 1000; // 30 min
     var g = document.getElementById('authGate');
     function marcar() { try { localStorage.setItem('cb_menu_login_ts', String(Date.now())); } catch (e) {} }
     function liberar() { if (g) g.style.display = 'none'; }
-    // Janela de 30 min: se logou recentemente, não pede de novo (e renova o tempo)
+    // Janela de 30 min: se logou recentemente NESTA aba, não pede de novo (e renova o tempo)
     try {
         var ts = parseInt(localStorage.getItem('cb_menu_login_ts') || '0', 10);
-        if (ts && (Date.now() - ts) < JANELA) { marcar(); liberar(); return; }
+        var kSess = sessionStorage.getItem('cb_k') || '';
+        if (ts && (Date.now() - ts) < JANELA && kSess) { window.CHAVE = kSess; marcar(); liberar(); return; }
     } catch (e) {}
     var b = document.getElementById('authBtn'), u = document.getElementById('authUser'), i = document.getElementById('authInput');
+    function erro() { document.getElementById('authErro').style.display = 'block'; i.value = ''; b.disabled = false; b.innerText = 'Entrar'; }
     function tentar() {
-        if ((u.value || '').trim().toLowerCase() === USER && i.value === SENHA) { marcar(); liberar(); }
-        else { document.getElementById('authErro').style.display = 'block'; i.value = ''; }
+        var user = (u.value || '').trim().toLowerCase(), senha = i.value || '';
+        if (user !== USER || !senha) { erro(); return; }
+        b.disabled = true; b.innerText = 'Verificando...';
+        fetch(window.WEBAPP_URL + '?k=' + encodeURIComponent(senha) + '&t=' + Date.now())
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (Array.isArray(d)) {
+                    window.CHAVE = senha;
+                    try { sessionStorage.setItem('cb_k', senha); } catch (e) {}
+                    marcar(); liberar();
+                    b.disabled = false; b.innerText = 'Entrar';
+                    if (typeof carregar === 'function') carregar();
+                } else { erro(); }
+            })
+            .catch(function () { erro(); });
     }
     b.addEventListener('click', tentar);
     [u, i].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); }); });
@@ -183,7 +201,7 @@
 </div>
 
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    const WEBAPP_URL = window.WEBAPP_URL;
     let chLinha, chDonut;
 
     const agora = new Date();
@@ -331,8 +349,9 @@
     }
 
     async function carregar() {
+        if (!window.CHAVE) return; // aguarda o login validar a chave no servidor
         try {
-            const dados = await (await fetch(WEBAPP_URL)).json();
+            const dados = await (await fetch(WEBAPP_URL + '?k=' + encodeURIComponent(window.CHAVE))).json();
             try { detectarNovas(dados); } catch (e) {}
             const ativos = (Array.isArray(dados) ? dados : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
             const hojeKey = dKey(agora);

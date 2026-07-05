@@ -73,7 +73,8 @@
 
 <script>
   const WEBAPP_URL="https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
-  const SENHA="Casas1974";
+  // A senha NÃO fica mais no código: é a CHAVE_RECEPCAO conferida pelo SERVIDOR.
+  function _k(){ return encodeURIComponent(window.CHAVE||''); }
   function chaveMot(s){ let t=(s||'').toString().trim(); return t? t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '__sem__'; }
   function nomeDisp(s){ let t=(s||'').toString().trim(); if(!t) return '(sem motorista)'; return t.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()); }
   function estrelas(n){ n=parseInt(n,10)||0; return '★★★★★'.slice(0,n)+'<span style="color:#e3d8c2;">'+'★★★★★'.slice(0,5-n)+'</span>'; }
@@ -82,14 +83,25 @@
   document.getElementById('gBtn').addEventListener('click',entrar);
   document.getElementById('gSenha').addEventListener('keydown',e=>{ if(e.key==='Enter')entrar(); });
   document.getElementById('gSenha').focus();
-  function entrar(){
-    if(document.getElementById('gSenha').value===SENHA){ document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block'; carregar(); carregarEnvio(); }
-    else { document.getElementById('gErro').style.display='block'; document.getElementById('gSenha').value=''; }
+  async function entrar(){
+    const b=document.getElementById('gBtn'), senha=document.getElementById('gSenha').value||'';
+    function erro(){ document.getElementById('gErro').style.display='block'; document.getElementById('gSenha').value=''; b.disabled=false; b.innerText='Entrar'; }
+    if(!senha){ erro(); return; }
+    b.disabled=true; b.innerText='Verificando...';
+    try{
+      const d=await (await fetch(WEBAPP_URL+'?k='+encodeURIComponent(senha)+'&t='+Date.now())).json();
+      if(Array.isArray(d)){
+        window.CHAVE=senha;
+        document.getElementById('gate').style.display='none'; document.getElementById('app').style.display='block';
+        b.disabled=false; b.innerText='Entrar';
+        carregar(); carregarEnvio();
+      } else erro();
+    }catch(e){ erro(); }
   }
 
   async function carregar(){
     try{
-      const d=await (await fetch(WEBAPP_URL+'?action=avaliacoes')).json();
+      const d=await (await fetch(WEBAPP_URL+'?action=avaliacoes&k='+_k())).json();
       render(Array.isArray(d)?d:[]);
       document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleString('pt-BR');
     }catch(e){ document.getElementById('lista').innerHTML='<div class="vazio">Erro ao carregar.</div>'; }
@@ -133,7 +145,7 @@
   async function carregarEnvio(){
     const box=document.getElementById('enviar');
     try{
-      const arr=await (await fetch(WEBAPP_URL)).json();
+      const arr=await (await fetch(WEBAPP_URL+'?k='+_k())).json();
       renderEnvio(Array.isArray(arr)?arr:[]);
     }catch(e){ box.innerHTML='<div class="vazio">Erro ao carregar transfers.</div>'; }
   }
@@ -171,13 +183,17 @@
     if(canal==='email'){
       if(!email){ alert('Este hóspede não tem e-mail cadastrado. Envie por WhatsApp.'); return; }
       if(!confirm('Enviar avaliação por e-mail para '+email+'?')) return;
-      try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enviarAvaliacao',id:id,metodo:'Email',email:email})}); }catch(e){}
+      fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'Email',email:email})})
+        .then(r=>r.json()).then(d=>{ if(d&&(d.error||d.ok===false)) alert('Erro ao enviar: '+(d.error||d.erro)); })
+        .catch(e=>console.error(e));
       alert('Avaliação enviada por e-mail (front@casasbrancas.com.br).');
     } else {
       const tel=waPhone(t["Telefone"]);
       if(!tel){ alert('Sem telefone válido para WhatsApp.'); return; }
       window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt+url),'_blank');
-      try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'enviarAvaliacao',id:id,metodo:'WhatsApp',telefone:t["Telefone"]})}); }catch(e){}
+      fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'WhatsApp',telefone:t["Telefone"]})})
+        .then(r=>r.json()).then(d=>{ if(d&&(d.error||d.ok===false)) alert('Erro ao registrar o envio: '+(d.error||d.erro)); })
+        .catch(e=>console.error(e));
     }
     t["AvaliacaoConviteEm"]=new Date().toISOString();
     carregarEnvio();

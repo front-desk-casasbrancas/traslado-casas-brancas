@@ -54,8 +54,17 @@
   document.getElementById('enviar').addEventListener('click',function(){
     if(!nota||!ID)return;
     let btn=this; btn.disabled=true; btn.innerText='Enviando…';
-    try{ fetch(WEBAPP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'avaliacao',id:ID,nota:nota,comentario:document.getElementById('coment').value})}); }catch(e){}
-    setTimeout(function(){ document.getElementById('form').style.display='none'; document.getElementById('obrigado').style.display='block'; }, 700);
+    // text/plain: o servidor responde e conseguimos confirmar que a nota foi gravada
+    fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'avaliacao',id:ID,nota:nota,comentario:document.getElementById('coment').value})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d&&d.ok){ document.getElementById('form').style.display='none'; document.getElementById('obrigado').style.display='block'; }
+        else { btn.disabled=false; btn.innerText='Enviar avaliação'; alert('Não foi possível registrar. Tente novamente.'); }
+      })
+      .catch(function(){
+        // Sem conexão/leitura: assume enviado (comportamento antigo) para não travar o hóspede
+        document.getElementById('form').style.display='none'; document.getElementById('obrigado').style.display='block';
+      });
   });
 </script>
 </body>

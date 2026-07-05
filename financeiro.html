@@ -70,11 +70,28 @@
     </div>
 </div>
 <script>
+// A senha NÃO fica mais no código: é a CHAVE_FINANCEIRO conferida pelo SERVIDOR (Apps Script).
+window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
 (function () {
-    var SENHA = "Casas1458";
     function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
     var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
-    function tentar() { if (i.value === SENHA) { liberar(); } else { document.getElementById('authErro').style.display = 'block'; i.value = ''; } }
+    function erro() { document.getElementById('authErro').style.display = 'block'; i.value = ''; b.disabled = false; b.innerText = 'Entrar'; }
+    function tentar() {
+        var senha = i.value || '';
+        if (!senha) { erro(); return; }
+        b.disabled = true; b.innerText = 'Verificando...';
+        fetch(window.WEBAPP_URL + '?k=' + encodeURIComponent(senha) + '&t=' + Date.now())
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (Array.isArray(d)) {
+                    window.CHAVE = senha;
+                    liberar();
+                    b.disabled = false; b.innerText = 'Entrar';
+                    if (typeof carregarDados === 'function') carregarDados();
+                } else { erro(); }
+            })
+            .catch(function () { erro(); });
+    }
     b.addEventListener('click', tentar);
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
     i.focus();
@@ -187,7 +204,8 @@
 </div>
 
 <script>
-    const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    const WEBAPP_URL = window.WEBAPP_URL;
+    function _k() { return encodeURIComponent(window.CHAVE || ''); }
     const AUTO_REFRESH_MIN = 5;
     let transfers = [];
     let pagamentos = [];
@@ -221,8 +239,9 @@
 
     // ===== CARREGAR =====
     async function carregarDados() {
+        if (!window.CHAVE) return; // aguarda o login validar a chave no servidor
         try {
-            const r = await fetch(WEBAPP_URL);
+            const r = await fetch(WEBAPP_URL + '?k=' + _k());
             const d = await r.json();
             transfers = Array.isArray(d) ? d : [];
             document.getElementById('lastUpdate').innerHTML = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' (' + transfers.length + ' traslados)';
@@ -236,7 +255,7 @@
         }
     }
     async function carregarPagamentos() {
-        try { const r = await fetch(WEBAPP_URL + '?action=pagamentos'); const d = await r.json(); pagamentos = Array.isArray(d) ? d : []; }
+        try { const r = await fetch(WEBAPP_URL + '?action=pagamentos&k=' + _k()); const d = await r.json(); pagamentos = Array.isArray(d) ? d : []; }
         catch (e) { if (!Array.isArray(pagamentos)) pagamentos = []; }
         renderPagamento();
     }
@@ -368,7 +387,10 @@
         let registro = { Mes: mes, Total: tt.total, Comissao: tt.comissao, Forma: forma, Data: dataBR, Qtd: tt.qtd };
         let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
         if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
-        try { fetch(WEBAPP_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pagamentoComissao', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) }); } catch (e) { console.error(e); }
+        fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'pagamentoComissao', k: window.CHAVE || '', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) })
+            .then(function (r) { return r.json(); })
+            .then(function (d) { if (d && d.error) alert('Erro ao registrar na planilha: ' + d.error); })
+            .catch(function (e) { console.error(e); });
         renderPagamento(); alert('Pagamento registrado.');
     }
     function gerarReciboPDF() {

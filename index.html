@@ -1368,13 +1368,16 @@
 
     async function enviarParaGoogleSheets(dados) {
         try {
-            await fetch(WEBAPP_URL, {
+            // Content-Type text/plain = requisição "simples": o Apps Script responde com
+            // CORS aberto e conseguimos LER a resposta (antes, com no-cors, erros passavam despercebidos)
+            const r = await fetch(WEBAPP_URL, {
                 method: 'POST',
-                mode: 'no-cors',
                 keepalive: true,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(dados)
             });
+            const d = await r.json();
+            if (d && d.error) { console.error("Servidor recusou:", d.error); return false; }
             return true;
         } catch (erro) {
             console.error("Erro ao enviar:", erro);
@@ -1486,8 +1489,11 @@
         const tel = getTelefone();
         const metodo = metodoContato();
         const email = getEmail();
+        // ID aleatório (não adivinhável) — antes era Date.now(), previsível por enumeração
+        const novoId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+            : (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
         const dadosPlanilha = {
-            id: Date.now(),
+            id: novoId,
             nome: nome,
             reserva: document.getElementById("reserva")?.value || "",
             telefone: metodo === 'WhatsApp' ? tel.sheet : "",
