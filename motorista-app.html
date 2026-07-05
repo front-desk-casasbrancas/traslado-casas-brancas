@@ -156,6 +156,7 @@
     function iniciar(jaTemDados){
         document.getElementById('app').style.display='block';
         document.getElementById('ola').innerText='Olá, '+motorista+'!';
+        try { if (window.cbRegistrarPushMotorista) window.cbRegistrarPushMotorista(motorista); } catch(e){}
         if(jaTemDados){ document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleTimeString('pt-BR'); render(); }
         else { carregar(); }
         if(timer)clearInterval(timer);
@@ -316,6 +317,50 @@
         var _rl=false; navigator.serviceWorker.addEventListener('controllerchange', function(){ if(_rl)return; _rl=true; location.reload(); });
         document.addEventListener('visibilitychange', function(){ if(!document.hidden && navigator.serviceWorker.controller){ navigator.serviceWorker.getRegistration().then(function(r){ if(r)r.update(); }); } });
     }
+</script>
+<!-- ===== Notificações push (Firebase Cloud Messaging) — Motorista ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+(function () {
+    var VAPID = "BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus";
+    var CFG = { apiKey: "AIzaSyA_J5kmYRoJ2buFwmLdzh7xEtmz_VUIHqQ", authDomain: "traslados-a06ef.firebaseapp.com", projectId: "traslados-a06ef", storageBucket: "traslados-a06ef.firebasestorage.app", messagingSenderId: "973014023548", appId: "1:973014023548:web:78985913ed135bd10038f9" };
+    var URL_BACK = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || typeof firebase === 'undefined') return;
+    try { firebase.initializeApp(CFG); } catch (e) {}
+    try {
+        firebase.messaging().onMessage(function (p) {
+            var d = p.data || {}, n = p.notification || {};
+            var t = d.titulo || n.title || 'Casas Brancas', c = d.corpo || n.body || '';
+            try { navigator.serviceWorker.ready.then(function (r) { r.showNotification(t, { body: c, icon: 'icon-192-v4.png', vibrate: [120, 60, 120] }); }); } catch (e) {}
+        });
+    } catch (e) {}
+    var nomeAtual = '', btn = null;
+    function doReg(nome) {
+        return navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm-push/' })
+            .then(function (reg) { return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg }); })
+            .then(function (token) { if (!token) return; try { fetch(URL_BACK, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'registrarPush', token: token, tipo: 'motorista', nome: nome || '' }) }); } catch (e) {} });
+    }
+    function mostrarBotao() {
+        if (btn) { btn.style.display = 'block'; return; }
+        btn = document.createElement('button');
+        btn.innerHTML = '🔔 Ativar notificações';
+        btn.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:10001; background:#9c7d3f; color:#fff; border:none; padding:12px 18px; border-radius:40px; font-size:0.9rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.25); cursor:pointer;';
+        btn.addEventListener('click', function () {
+            btn.disabled = true; btn.innerHTML = 'Ativando...';
+            Notification.requestPermission().then(function (p) {
+                if (p !== 'granted') { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; alert('Permissão negada. Libere as notificações deste site nas configurações do navegador.'); return; }
+                doReg(nomeAtual).then(function () { btn.style.background = '#2f7d8c'; btn.innerHTML = '✓ Notificações ativadas'; setTimeout(function () { btn.style.display = 'none'; }, 4000); }).catch(function () { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; });
+            });
+        });
+        document.body.appendChild(btn);
+    }
+    window.cbRegistrarPushMotorista = function (nome) {
+        nomeAtual = nome || nomeAtual || '';
+        if (Notification.permission === 'granted') { doReg(nomeAtual).catch(function () {}); if (btn) btn.style.display = 'none'; }
+        else { mostrarBotao(); }
+    };
+})();
 </script>
 </body>
 </html>
