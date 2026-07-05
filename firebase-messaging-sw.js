@@ -16,6 +16,8 @@ const messaging = firebase.messaging();
 
 // Mensagem recebida com o app fechado / em segundo plano
 messaging.onBackgroundMessage(function (payload) {
+  // Se vier um bloco "notification", o navegador já exibe sozinho — não duplicar.
+  if (payload.notification) return;
   var d = payload.data || {};
   var n = payload.notification || {};
   var titulo = d.titulo || n.title || 'Casas Brancas';

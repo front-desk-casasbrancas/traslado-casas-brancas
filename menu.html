@@ -505,27 +505,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             });
     }
 
-    function mostrarTokenBox(token) {
-        var old = document.getElementById('cbTokenBox'); if (old) old.remove();
-        var box = document.createElement('div');
-        box.id = 'cbTokenBox';
-        box.style.cssText = 'position:fixed; left:16px; right:16px; bottom:16px; z-index:10002; background:#fff; border:2px solid #2c5f2d; border-radius:14px; padding:14px 16px; box-shadow:0 10px 30px rgba(0,0,0,0.3); max-width:620px; margin:0 auto; font-family:Arial,sans-serif;';
-        box.innerHTML =
-            '<div style="font-weight:700; color:#2c5f2d; margin-bottom:6px;">✓ Notificações ativadas neste aparelho</div>' +
-            '<div style="font-size:0.8rem; color:#555; margin-bottom:8px;">Copie o código abaixo e cole no chat do assistente para ele disparar um teste:</div>' +
-            '<textarea readonly style="width:100%; height:54px; font-size:0.72rem; border:1px solid #cfc4a8; border-radius:8px; padding:8px; resize:none;">' + token + '</textarea>' +
-            '<div style="display:flex; gap:8px; margin-top:8px; justify-content:flex-end;">' +
-            '<button id="cbCopiar" style="background:#2c5f2d; color:#fff; border:none; padding:8px 14px; border-radius:8px; cursor:pointer;">Copiar código</button>' +
-            '<button id="cbFechar" style="background:#eee; color:#333; border:none; padding:8px 14px; border-radius:8px; cursor:pointer;">Fechar</button>' +
-            '</div>';
-        document.body.appendChild(box);
-        var ta = box.querySelector('textarea');
-        box.querySelector('#cbCopiar').addEventListener('click', function () { ta.select(); try { document.execCommand('copy'); } catch (e) {} try { navigator.clipboard.writeText(token); } catch (e) {} this.innerText = 'Copiado ✓'; });
-        box.querySelector('#cbFechar').addEventListener('click', function () { box.remove(); });
-    }
-
     function criarBotao() {
-        if (Notification.permission === 'granted') { registrar().then(function (token) { try { mostrarTokenBox(token); } catch (e) {} }).catch(function () {}); return; }
+        if (Notification.permission === 'granted') { registrar().catch(function () {}); return; }
         var b = document.createElement('button');
         b.innerHTML = '🔔 Ativar notificações';
         b.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:10001; background:#2c5f2d; color:#fff; border:none; padding:12px 18px; border-radius:40px; font-size:0.9rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.25); cursor:pointer;';
@@ -533,9 +514,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             b.disabled = true; b.innerHTML = 'Ativando...';
             Notification.requestPermission().then(function (p) {
                 if (p !== 'granted') { b.disabled = false; b.innerHTML = '🔔 Ativar notificações'; alert('Permissão negada. Para ativar, libere as notificações deste site nas configurações do navegador.'); return; }
-                registrar().then(function (token) {
+                registrar().then(function () {
                     b.style.background = '#2f7d8c'; b.innerHTML = '✓ Notificações ativadas';
-                    try { mostrarTokenBox(token); } catch (e) {}
+                    setTimeout(function () { b.style.display = 'none'; }, 4000);
                 }).catch(function (err) { b.disabled = false; b.innerHTML = '🔔 Ativar notificações'; alert('Não consegui ativar agora. Tente de novo. (' + (err && err.message || err) + ')'); });
             });
         });
