@@ -480,6 +480,8 @@
             mainTitle: "Solicitação de Traslado",
             parceiro: "Serviço realizado pelo parceiro Casas Brancas: MF Transporte Executivo",
             aceite: "Li e concordo com as políticas",
+            privTitulo: "Como usamos seus dados (Privacidade / LGPD)",
+            privTexto: "Usamos seus dados (nome, contato e informações da viagem) somente para organizar e realizar o seu traslado: compartilhamos com o motorista designado e enviamos confirmações e lembretes pelo canal que você escolher. Não usamos para nenhuma outra finalidade. Após o período de guarda, os dados pessoais são apagados automaticamente. Para corrigir ou excluir seus dados, fale com a recepção: front@casasbrancas.com.br.",
             erroAceite: "Você precisa concordar com as políticas para enviar.",
             recomendacao6h: "Recomendamos considerar uma antecedência mínima de 6h em relação ao voo.",
             subTitle: "Casas Brancas Boutique Hotel · Transporte privativo Rio ↔ Búzios",
@@ -570,6 +572,8 @@
             mainTitle: "Transfer Request",
             parceiro: "Service provided by Casas Brancas partner: MF Transporte Executivo",
             aceite: "I have read and agree to the policies",
+            privTitulo: "How we use your data (Privacy)",
+            privTexto: "We use your data (name, contact and trip details) only to arrange and operate your transfer: we share it with the assigned driver and send confirmations and reminders through the channel you choose. It is not used for any other purpose. Personal data is automatically deleted after the retention period. To correct or delete your data, contact the front desk: front@casasbrancas.com.br.",
             erroAceite: "You must agree to the policies to submit.",
             recomendacao6h: "We recommend allowing at least 6h before the flight.",
             subTitle: "Casas Brancas Boutique Hotel · Private transfer Rio ↔ Búzios",
@@ -660,6 +664,8 @@
             mainTitle: "Solicitud de Traslado",
             parceiro: "Servicio realizado por el socio Casas Brancas: MF Transporte Executivo",
             aceite: "He leído y acepto las políticas",
+            privTitulo: "Cómo usamos sus datos (Privacidad)",
+            privTexto: "Usamos sus datos (nombre, contacto y detalles del viaje) solo para organizar y realizar su traslado: los compartimos con el conductor designado y enviamos confirmaciones y recordatorios por el canal que elija. No se usan para ningún otro fin. Los datos personales se eliminan automáticamente tras el período de retención. Para corregir o eliminar sus datos, contacte a la recepción: front@casasbrancas.com.br.",
             erroAceite: "Debes aceptar las políticas para enviar.",
             recomendacao6h: "Recomendamos considerar una antelación mínima de 6h respecto al vuelo.",
             subTitle: "Casas Brancas Boutique Hotel · Transporte privado Rio ↔ Búzios",
@@ -1219,7 +1225,13 @@
                 </div>
             </div>
             <div class="resumo-area" id="resumoPreview"></div>
-            <div class="form-row" style="margin-bottom:18px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="aceitePoliticas" style="width:auto;"> <span id="aceiteText">${t.aceite}</span></label></div>
+            <div class="form-row" style="margin-bottom:6px;"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="aceitePoliticas" style="width:auto;"> <span id="aceiteText">${t.aceite}</span></label></div>
+            <div class="form-row" style="margin-bottom:18px;">
+                <details style="font-size:0.78rem;color:#8a8270;">
+                    <summary id="privTitulo" style="cursor:pointer;color:#8a7a55;">${t.privTitulo}</summary>
+                    <p id="privTexto" style="margin-top:6px;line-height:1.5;">${t.privTexto}</p>
+                </details>
+            </div>
             <div class="btn-group">
                 <button type="button" class="btn-submit" id="enviarBtn">${t.enviar}</button>
                 <button type="button" class="btn-copy" id="copiarBtn">${t.copiar}</button>
@@ -1602,6 +1614,10 @@
         if (partnerText) partnerText.innerText = t.parceiro;
         const aceiteText = document.getElementById('aceiteText');
         if (aceiteText) aceiteText.innerHTML = t.aceite;
+        const privT = document.getElementById('privTitulo');
+        if (privT) privT.innerText = t.privTitulo;
+        const privX = document.getElementById('privTexto');
+        if (privX) privX.innerText = t.privTexto;
         const rec6hText = document.getElementById('rec6hText');
         if (rec6hText) rec6hText.innerHTML = t.recomendacao6h;
         document.getElementById('infoTitle').innerHTML = t.infoTitle;
