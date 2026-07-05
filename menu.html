@@ -473,5 +473,47 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
     }
 </script>
+<!-- ===== Notificações push (Firebase Cloud Messaging) — Recepção ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+(function () {
+    var VAPID = "BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus";
+    var CFG = { apiKey: "AIzaSyA_J5kmYRoJ2buFwmLdzh7xEtmz_VUIHqQ", authDomain: "traslados-a06ef.firebaseapp.com", projectId: "traslados-a06ef", storageBucket: "traslados-a06ef.firebasestorage.app", messagingSenderId: "973014023548", appId: "1:973014023548:web:78985913ed135bd10038f9" };
+    var TIPO = 'recepcao';
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || typeof firebase === 'undefined') return;
+    try { firebase.initializeApp(CFG); } catch (e) {}
+
+    function registrar() {
+        return navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm-push/' })
+            .then(function (reg) { return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg }); })
+            .then(function (token) {
+                if (!token) throw new Error('sem token');
+                try { localStorage.setItem('cb_fcm_token', token); } catch (e) {}
+                try { fetch(window.WEBAPP_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'registrarPush', token: token, tipo: TIPO, nome: '' }) }); } catch (e) {}
+                return token;
+            });
+    }
+
+    function criarBotao() {
+        if (Notification.permission === 'granted') { registrar().catch(function () {}); return; }
+        var b = document.createElement('button');
+        b.innerHTML = '🔔 Ativar notificações';
+        b.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:9998; background:#2c5f2d; color:#fff; border:none; padding:12px 18px; border-radius:40px; font-size:0.9rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.25); cursor:pointer;';
+        b.addEventListener('click', function () {
+            b.disabled = true; b.innerHTML = 'Ativando...';
+            Notification.requestPermission().then(function (p) {
+                if (p !== 'granted') { b.disabled = false; b.innerHTML = '🔔 Ativar notificações'; alert('Permissão negada. Para ativar, libere as notificações deste site nas configurações do navegador.'); return; }
+                registrar().then(function () {
+                    b.style.background = '#2f7d8c'; b.innerHTML = '✓ Notificações ativadas';
+                    setTimeout(function () { b.style.display = 'none'; }, 4000);
+                }).catch(function (err) { b.disabled = false; b.innerHTML = '🔔 Ativar notificações'; alert('Não consegui ativar agora. Tente de novo. (' + (err && err.message || err) + ')'); });
+            });
+        });
+        document.body.appendChild(b);
+    }
+    if (document.readyState === 'complete') criarBotao(); else window.addEventListener('load', criarBotao);
+})();
+</script>
 </body>
 </html>
