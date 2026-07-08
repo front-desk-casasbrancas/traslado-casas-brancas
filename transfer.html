@@ -32,21 +32,43 @@
         .linha .val { font-weight: 500; text-align: right; }
         .destaque { font-size: 1.6rem; font-weight: 700; color: var(--gold-d); }
         .wa { color: #25D366; text-decoration: none; font-weight: 600; }
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 40px; font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 22px; }
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 40px; font-size: 1.05rem; font-weight: 600; cursor: pointer; margin-top: 14px; }
         .btn-iniciar { background: linear-gradient(135deg, var(--gold), var(--gold-d)); color: #fff; }
         .btn-iniciar:active { background: var(--gold-d); }
+        .btn-fim { background: #2f7d8c; color: #fff; }
         .btn[disabled] { opacity: .55; cursor: default; }
+        .btn-sec { display:block; text-align:center; text-decoration:none; padding:14px; border-radius:40px; font-weight:600; margin-top:12px; }
         .aviso { background: #faecec; color: #b85c5a; padding: 14px; border-radius: 12px; text-align: center; }
         .obs-mod { background: #fff8e6; border-left: 3px solid #e0c060; padding: 10px 14px; border-radius: 8px; font-size: .8rem; color: #8a6d1b; margin-top: 14px; }
         .loading { text-align: center; color: #8a8270; padding: 40px 0; }
+        /* GATE (login do motorista) */
+        .gate { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background-image:linear-gradient(rgba(30,28,23,0.72),rgba(30,28,23,0.72)), url('fundo-hotel.jpg'); background-size:cover; background-position:center; }
+        .gate-card { background:#fff; padding:32px 28px; border-radius:18px; max-width:340px; width:100%; text-align:center; box-shadow:0 18px 50px rgba(0,0,0,0.35); }
+        .gate-card .tt { font-family:'Georgia',serif; font-style:italic; color:var(--gold-d); font-size:1.5rem; }
+        .gate-card .ds { font-size:0.8rem; color:#8a8270; margin:4px 0 18px; }
+        .gate-card input { width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:10px; text-align:center; }
+        .gate-card button { width:100%; padding:12px; background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; }
+        .gate-erro { color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none; }
     </style>
 </head>
 <body>
-<div class="appnav">
-    <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
-    <a href="menu.html">⌂ Início</a>
+<!-- Login do motorista (mesmo padrão do app; nada de senha no código, validação no servidor) -->
+<div class="gate" id="gate">
+    <div class="gate-card">
+        <div class="tt">Casas Brancas</div>
+        <div class="ds">Área do motorista</div>
+        <input type="text" id="gNome" placeholder="Nome" autocomplete="off" autocapitalize="none" data-lpignore="true">
+        <input type="password" id="gSenha" placeholder="Senha" autocomplete="off" data-lpignore="true">
+        <button id="gBtn">Entrar</button>
+        <div class="gate-erro" id="gErro">Nome ou senha incorretos</div>
+    </div>
 </div>
-<div class="card">
+
+<div class="appnav" id="nav" style="display:none;">
+    <button type="button" onclick="if(history.length>1){history.back()}else{location.href='menu.html'}">‹ Voltar</button>
+    <a href="motorista-app.html">⌂ Minhas corridas</a>
+</div>
+<div class="card" id="cartao" style="display:none;">
     <div class="head">
         <div class="brand">CASAS BRANCAS · MF TRANSPORTE</div>
         <h1>Transfer</h1>
@@ -60,7 +82,11 @@
     const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
     const params = new URLSearchParams(location.search);
     const ID = params.get('id') || '';
-    let atual = null;
+    let motorista = "", chave = "", atual = null;
+
+    function urlMotorista(){ return WEBAPP_URL + '?action=motorista&nome=' + encodeURIComponent(motorista) + '&chave=' + encodeURIComponent(chave); }
+    function idOf(t){ return (t["ID"]||t["Id"]||t["id"]||'').toString(); }
+    function getStatus(t) { return (t["Status"]||"active").toString().toLowerCase() || "active"; }
 
     function getHorario(t) {
         let h = t["Horario"] || t["Horário"] || t["horario"] || "";
@@ -74,7 +100,8 @@
     }
     function formatarData(v) {
         if (!v) return "-";
-        let d = new Date(v);
+        let m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        let d = m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(v);
         if (isNaN(d.getTime())) return "-";
         return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     }
@@ -84,19 +111,49 @@
         if (!(d.startsWith("55") && d.length>=12) && (d.length===10||d.length===11)) d = "55"+d;
         return `https://wa.me/${d}`;
     }
-    function getStatus(t) { return (t["Status"]||"active").toString().toLowerCase() || "active"; }
 
-    async function carregar() {
-        const cont = document.getElementById('conteudo');
-        if (!ID) { cont.innerHTML = '<div class="aviso">Link inválido (sem ID do transfer).</div>'; return; }
-        try {
-            const dados = await (await fetch(WEBAPP_URL)).json();
-            atual = dados.find(x => (x["ID"]||"").toString() === ID.toString());
-            if (!atual) { cont.innerHTML = '<div class="aviso">Transfer não encontrado.</div>'; return; }
-            render();
-        } catch (e) {
-            cont.innerHTML = '<div class="aviso">Erro ao carregar: ' + e.message + '</div>';
+    // ===== LOGIN (validado no servidor) =====
+    async function entrar(){
+        let nome = document.getElementById('gNome').value.trim();
+        let senha = document.getElementById('gSenha').value;
+        let btn = document.getElementById('gBtn');
+        if(!nome || !senha) return;
+        btn.disabled=true; btn.innerText='Entrando...';
+        document.getElementById('gErro').style.display='none';
+        try{
+            motorista = nome; chave = senha;
+            let d = await (await fetch(urlMotorista())).json();
+            if(Array.isArray(d)){
+                atual = d.find(x => idOf(x) === ID.toString()) || null;
+                document.getElementById('gate').style.display='none';
+                document.getElementById('nav').style.display='flex';
+                document.getElementById('cartao').style.display='block';
+                if(!ID){ document.getElementById('conteudo').innerHTML='<div class="aviso">Link inválido (sem ID do transfer).</div>'; }
+                else if(!atual){ document.getElementById('conteudo').innerHTML='<div class="aviso">Este transfer não está entre as suas corridas.<br>Confira em <a href="motorista-app.html">Minhas corridas</a>.</div>'; }
+                else { render(); }
+            } else {
+                motorista=''; chave='';
+                document.getElementById('gErro').style.display='block';
+                document.getElementById('gSenha').value='';
+            }
+        }catch(e){
+            motorista=''; chave='';
+            document.getElementById('gErro').style.display='block';
         }
+        btn.disabled=false; btn.innerText='Entrar';
+    }
+    document.getElementById('gBtn').addEventListener('click', entrar);
+    ['gNome','gSenha'].forEach(function(id){ document.getElementById(id).addEventListener('keydown',function(e){ if(e.key==='Enter')entrar(); }); });
+    document.getElementById('gNome').focus();
+
+    // ===== Fluxo da corrida: (a iniciar) -> a_caminho -> cheguei -> embarcou -> completed =====
+    function emCurso(s){ return s==='a_caminho'||s==='cheguei'||s==='embarcou'||s==='em_andamento'; }
+    function proximoPasso(s){
+        if(s==='completed') return null;
+        if(s==='embarcou')  return {st:'completed',  label:'✓ Finalizar transfer', cls:'btn-fim'};
+        if(s==='cheguei')   return {st:'embarcou',   label:'Hóspede embarcou', cls:'btn-iniciar'};
+        if(s==='a_caminho'||s==='em_andamento') return {st:'cheguei', label:'Cheguei ao local', cls:'btn-iniciar'};
+        return {st:'a_caminho', label:'▶ Iniciar transfer', cls:'btn-iniciar'};
     }
 
     function render() {
@@ -106,63 +163,65 @@
         const wa = waLink(t["Telefone"]);
         const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
         const endereco = t["Endereço"] || t["Endereco"] || '';
-        const mapsBtn = endereco ? `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}" target="_blank" style="display:block;text-align:center;margin-top:14px;padding:14px;border-radius:40px;background:#2f7d8c;color:#fff;text-decoration:none;font-weight:600;">📍 Abrir no Maps</a>` : '';
+        const mapsBtn = endereco ? `<a class="btn-sec" style="background:#2f7d8c;color:#fff;" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco + ', Búzios RJ')}" target="_blank">📍 Abrir no Maps</a>` : '';
+        const zapBtn = wa ? `<a class="btn-sec" style="background:#25d366;color:#fff;" href="${wa}?text=${encodeURIComponent('Olá ' + (t["Nome"]||'') + ', aqui é o seu motorista da Casas Brancas.')}" target="_blank">💬 WhatsApp do hóspede</a>` : '';
 
         const badges = {
-            active: '<span class="badge b-active">Aguardando início</span>',
-            confirmed: '<span class="badge b-active">Confirmado</span>',
+            active: '<span class="badge b-active">A iniciar</span>',
+            confirmed: '<span class="badge b-active">A iniciar</span>',
             a_caminho: '<span class="badge b-andamento">A caminho</span>',
             cheguei: '<span class="badge b-andamento">No local</span>',
             embarcou: '<span class="badge b-andamento">Embarcou</span>',
-            em_andamento: '<span class="badge b-andamento">Em andamento</span>',
+            em_andamento: '<span class="badge b-andamento">A caminho</span>',
             completed: '<span class="badge b-completed">Finalizado</span>',
             cancelled: '<span class="badge b-cancelled">Cancelado</span>'
         };
 
-        const naoIniciado = (st === 'active' || st === 'confirmed');
-        const emCurso = (['em_andamento', 'a_caminho', 'cheguei', 'embarcou'].indexOf(st) > -1);
         let botao = '';
-        if (naoIniciado) botao = `<button class="btn btn-iniciar" id="btnIniciar">▶ Iniciar transfer</button>`;
-        else if (emCurso) botao = `<button class="btn btn-iniciar" disabled>Em andamento</button>`;
-        else if (st === 'completed') botao = `<button class="btn btn-iniciar" disabled>Finalizado</button>`;
-        else if (st === 'cancelled') botao = `<div class="aviso">Este transfer foi cancelado.</div>`;
+        if (st === 'cancelled') { botao = '<div class="aviso">Este transfer foi cancelado.</div>'; }
+        else if (st === 'completed') { botao = '<button class="btn btn-iniciar" disabled>Transfer finalizado ✓</button>'; }
+        else { const pp = proximoPasso(st); if (pp) botao = `<button class="btn ${pp.cls}" id="btnPasso" data-st="${pp.st}">${pp.label}</button>`; }
 
         const linha = (rot, val) => `<div class="linha"><span class="rot">${rot}</span><span class="val">${val}</span></div>`;
 
-        const cont = document.getElementById('conteudo');
-        cont.innerHTML =
+        document.getElementById('conteudo').innerHTML =
             (badges[st] || '') +
             `<div class="linha"><span class="rot">Data e horário</span><span class="val destaque">${formatarData(t["Data Viagem"])} ${getHorario(t)}</span></div>` +
             linha('Hóspede', t["Nome"] || '-') +
             linha('Reserva', t["Reserva"] || '-') +
             linha('Telefone', (t["Telefone"] || '-') + (wa ? ` &nbsp;<a class="wa" href="${wa}" target="_blank">WhatsApp</a>` : '')) +
             linha('Sentido', sentido) +
-            linha('Endereço / Local', t["Endereço"] || t["Endereco"] || '-') +
+            linha('Endereço / Local', endereco || '-') +
             linha('Voo', voo) +
             linha('Veículo', t["Veículo"] || '-') +
-            linha('Valor', 'R$ ' + (parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')) +
             linha('Motorista', t["Motorista"] || '(a definir)') +
             linha('Observações', t["Observações"] || t["Observacoes"] || '-') +
             (t["Modificacao"] ? `<div class="obs-mod">⚠️ ${t["Modificacao"]}</div>` : '') +
-            mapsBtn +
+            zapBtn + mapsBtn +
             botao;
 
-        const bi = document.getElementById('btnIniciar');
-        if (bi) bi.addEventListener('click', iniciar);
+        const bp = document.getElementById('btnPasso');
+        if (bp) bp.addEventListener('click', function(){ passo(bp.dataset.st); });
     }
 
-    async function iniciar() {
-        const bi = document.getElementById('btnIniciar');
-        if (bi) { bi.disabled = true; bi.innerText = 'Iniciando...'; }
-        try {
-            await fetch(WEBAPP_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ action:'update', id: ID, status:'em_andamento' }) });
-        } catch (e) {}
-        atual["Status"] = 'em_andamento';
-        render();
+    function passo(st) {
+        const rotulo = {a_caminho:'sair a caminho', cheguei:'avisar que chegou', embarcou:'confirmar que o hóspede embarcou', completed:'finalizar'}[st] || 'atualizar';
+        if (!confirm('Deseja ' + rotulo + '?')) return;
+        let obs = '';
+        if (st === 'completed') { obs = prompt('Observações da corrida (opcional): km, intercorrências, etc.', '') || ''; }
+        const bp = document.getElementById('btnPasso');
+        if (bp) { bp.disabled = true; bp.innerText = 'Enviando...'; }
+        const corpo = { action:'update', id: ID, status: st, authNome: motorista, authChave: chave };
+        if (obs.trim()) corpo.obsMotorista = obs.trim();
+        fetch(WEBAPP_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(corpo) })
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                if (d && d.error) { alert('Erro ao gravar: ' + d.error); if(bp){bp.disabled=false;} return; }
+                atual["Status"] = st; if (obs.trim()) atual["ObsMotorista"] = obs.trim();
+                render();
+            })
+            .catch(function(){ atual["Status"] = st; render(); });
     }
-
-    carregar();
 </script>
 </body>
 </html>
