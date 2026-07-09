@@ -100,22 +100,23 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     } catch (e) {}
     var b = document.getElementById('authBtn'), u = document.getElementById('authUser'), i = document.getElementById('authInput');
     function erro() { document.getElementById('authErro').style.display = 'block'; i.value = ''; b.disabled = false; b.innerText = 'Entrar'; }
+    // Reaberto quando o servidor recusa a chave (chamado pelo carregar()).
+    window.reabrirLogin = function () {
+        window.CHAVE = null;
+        try { sessionStorage.removeItem('cb_k'); localStorage.removeItem('cb_menu_login_ts'); } catch (e) {}
+        if (g) g.style.display = 'flex';
+        erro(); try { u.focus(); } catch (e) {}
+    };
     function tentar() {
         var user = (u.value || '').trim().toLowerCase(), senha = i.value || '';
         if (user !== USER || !senha) { erro(); return; }
-        b.disabled = true; b.innerText = 'Verificando...';
-        fetch(window.WEBAPP_URL + '?k=' + encodeURIComponent(senha) + '&t=' + Date.now())
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                if (Array.isArray(d)) {
-                    window.CHAVE = senha;
-                    try { sessionStorage.setItem('cb_k', senha); } catch (e) {}
-                    marcar(); liberar();
-                    b.disabled = false; b.innerText = 'Entrar';
-                    if (typeof carregar === 'function') carregar();
-                } else { erro(); }
-            })
-            .catch(function () { erro(); });
+        document.getElementById('authErro').style.display = 'none';
+        // Login otimista: NÃO baixa a base só para conferir a senha. A própria carga
+        // dos dados confirma a chave — uma requisição em vez de duas (bem mais rápido).
+        window.CHAVE = senha;
+        try { sessionStorage.setItem('cb_k', senha); } catch (e) {}
+        marcar(); liberar();
+        if (typeof carregar === 'function') carregar();
     }
     b.addEventListener('click', tentar);
     [u, i].forEach(function (el) { el.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); }); });
@@ -352,8 +353,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (!window.CHAVE) return; // aguarda o login validar a chave no servidor
         try {
             const dados = await (await fetch(WEBAPP_URL + '?k=' + encodeURIComponent(window.CHAVE))).json();
+            if (!Array.isArray(dados)) { if (dados && dados.error === 'acesso negado' && window.reabrirLogin) window.reabrirLogin(); return; }
             try { detectarNovas(dados); } catch (e) {}
-            const ativos = (Array.isArray(dados) ? dados : []).filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
+            const ativos = dados.filter(t => (t["Status"] || 'active').toString().toLowerCase() !== 'cancelled');
             const hojeKey = dKey(agora);
             const mesAtual = agora.getMonth(), anoAtual = agora.getFullYear();
             const hoje = ativos.filter(t => dKey(t["Data Viagem"]) === hojeKey).sort((a, b) => getHorario(a).localeCompare(getHorario(b)));

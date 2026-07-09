@@ -230,21 +230,21 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     function liberar() { var g = document.getElementById('authGate'); if (g) g.style.display = 'none'; }
     var b = document.getElementById('authBtn'), i = document.getElementById('authInput');
     function erro() { document.getElementById('authErro').style.display = 'block'; i.value = ''; b.disabled = false; b.innerText = 'Entrar'; }
+    // Reaberto quando o servidor recusa a chave (chamado pelo carregarDados).
+    window.reabrirLogin = function () {
+        window.CHAVE = null;
+        var g = document.getElementById('authGate'); if (g) g.style.display = 'flex';
+        erro(); try { i.focus(); } catch (e) {}
+    };
     function tentar() {
         var senha = i.value || '';
         if (!senha) { erro(); return; }
-        b.disabled = true; b.innerText = 'Verificando...';
-        fetch(window.WEBAPP_URL + '?k=' + encodeURIComponent(senha) + '&t=' + Date.now())
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-                if (Array.isArray(d)) {
-                    window.CHAVE = senha;
-                    liberar();
-                    b.disabled = false; b.innerText = 'Entrar';
-                    if (typeof carregarDados === 'function') carregarDados();
-                } else { erro(); }
-            })
-            .catch(function () { erro(); });
+        document.getElementById('authErro').style.display = 'none';
+        // Login otimista: NÃO baixa a base só para conferir a senha. A própria carga
+        // dos dados confirma a chave — uma requisição em vez de duas (bem mais rápido).
+        window.CHAVE = senha;
+        liberar();
+        if (typeof carregarDados === 'function') carregarDados();
     }
     b.addEventListener('click', tentar);
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
@@ -620,7 +620,11 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         try {
             const response = await fetch(WEBAPP_URL + '?k=' + _k());
             const dados = await response.json();
-            transfers = Array.isArray(dados) ? dados : [];
+            if (!Array.isArray(dados)) {
+                if (dados && dados.error === 'acesso negado') { if (window.reabrirLogin) window.reabrirLogin(); return; }
+                throw new Error((dados && dados.error) || 'resposta inválida do servidor');
+            }
+            transfers = dados;
             document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
             updateDashboard();
             renderProximos();
