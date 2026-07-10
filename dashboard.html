@@ -9,6 +9,8 @@
     <link rel="apple-touch-icon" href="icon-192-v4.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
@@ -280,6 +282,11 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     <div id="errorDisplay" class="error-message"></div>
 
     <div id="tab-dashboard" class="tab-content active">
+        <div id="liveWrap" class="table-container" style="display:none; margin-bottom:20px;">
+            <h3 style="display:flex; align-items:center; gap:8px;">📍 Carros ao vivo <span id="liveCount" style="font-size:0.8rem; color:#8a8270; font-weight:400;"></span></h3>
+            <div id="liveMapa" style="width:100%; height:320px; border-radius:12px; overflow:hidden; margin-top:12px;"></div>
+            <div id="liveLista" style="margin-top:10px; font-size:0.85rem; color:#5a5446;"></div>
+        </div>
         <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
         <div class="table-container">
             <h3>Próximos traslados</h3>
@@ -633,11 +640,45 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             updateComissaoTab(currentPeriodo);
             carregarPagamentos();
             verificarAvaliacoesPendentes();
+            carregarPosicoesAtivas();
         } catch(e) {
             console.error(e);
             document.getElementById('errorDisplay').style.display = 'block';
             document.getElementById('errorDisplay').innerHTML = 'Erro ao carregar dados: ' + e.message;
         }
+    }
+
+    // ===== Carros ao vivo (posições dos motoristas em corrida) =====
+    let _liveMap = null, _liveMarkers = {}, _liveTimer = null;
+    async function carregarPosicoesAtivas() {
+        if (!window.CHAVE) return;
+        if (!_liveTimer) { _liveTimer = setInterval(carregarPosicoesAtivas, 25 * 1000); }
+        try {
+            const r = await fetch(WEBAPP_URL + '?action=posicoesAtivas&k=' + _k() + '&t=' + Date.now());
+            const d = await r.json();
+            const arr = Array.isArray(d) ? d.filter(x => x.lat && x.lng && !isNaN(parseFloat(x.lat)) && !isNaN(parseFloat(x.lng))) : [];
+            const wrap = document.getElementById('liveWrap');
+            if (!arr.length) { if (wrap) wrap.style.display = 'none'; return; }
+            if (wrap) wrap.style.display = 'block';
+            document.getElementById('liveCount').innerText = '(' + arr.length + ')';
+            if (typeof L === 'undefined') return;
+            if (!_liveMap) {
+                _liveMap = L.map('liveMapa', { zoomControl: true, attributionControl: false }).setView([parseFloat(arr[0].lat), parseFloat(arr[0].lng)], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_liveMap);
+                setTimeout(function () { try { _liveMap.invalidateSize(); } catch (e) {} }, 200);
+            }
+            const vistos = {}, bounds = [];
+            arr.forEach(function (c) {
+                const lat = parseFloat(c.lat), lng = parseFloat(c.lng); vistos[c.id] = true; bounds.push([lat, lng]);
+                const label = (c.motorista || 'Motorista') + ' · ' + (c.veiculo || '') + ' — ' + (c.nome || '');
+                if (_liveMarkers[c.id]) { _liveMarkers[c.id].setLatLng([lat, lng]).setPopupContent(label); }
+                else { _liveMarkers[c.id] = L.marker([lat, lng]).addTo(_liveMap).bindPopup(label); }
+            });
+            Object.keys(_liveMarkers).forEach(function (id) { if (!vistos[id]) { _liveMap.removeLayer(_liveMarkers[id]); delete _liveMarkers[id]; } });
+            if (bounds.length === 1) { _liveMap.setView(bounds[0], 14); }
+            else if (bounds.length > 1) { try { _liveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }
+            document.getElementById('liveLista').innerHTML = arr.map(function (c) { return '🚗 <b>' + (c.motorista || '—') + '</b> · ' + (c.veiculo || '') + ' — ' + (c.nome || ''); }).join('<br>');
+        } catch (e) {}
     }
 
     async function carregarPagamentos() {

@@ -242,6 +242,7 @@
         cont.querySelectorAll('button[data-act="foto"]').forEach(function(b){
             b.addEventListener('click',function(){ fotoAlvo=b.dataset.id; fotoInput.value=''; fotoInput.click(); });
         });
+        try { if (window._sincronizarGps) window._sincronizarGps(); } catch(e){}
     }
 
     // ===== Foto da corrida (comprime e envia ao Drive via backend) =====
@@ -317,6 +318,55 @@
         var _rl=false; navigator.serviceWorker.addEventListener('controllerchange', function(){ if(_rl)return; _rl=true; location.reload(); });
         document.addEventListener('visibilitychange', function(){ if(!document.hidden && navigator.serviceWorker.controller){ navigator.serviceWorker.getRegistration().then(function(r){ if(r)r.update(); }); } });
     }
+</script>
+<!-- ===== GPS ao vivo (só com o app aberto; Android e iPhone) ===== -->
+<script>
+(function () {
+    // Envia a posição do motorista enquanto houver uma corrida EM CURSO.
+    // Funciona com o app na tela (limitação da web). Wake Lock evita a tela apagar.
+    var watchId = null, wake = null, lastSend = 0, curId = null;
+    var INTERVALO = 12000; // ms entre envios
+
+    function envia(lat, lng) {
+        var now = Date.now();
+        if (now - lastSend < INTERVALO) return;
+        lastSend = now;
+        try {
+            fetch(WEBAPP_URL, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'posicao', id: curId, lat: lat, lng: lng, authNome: motorista, authChave: chave }) });
+        } catch (e) {}
+    }
+    async function lockTela() {
+        try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', function () { wake = null; }); } } catch (e) {}
+    }
+    window.cbGpsStart = function (id) {
+        if (!('geolocation' in navigator) || !id) return;
+        if (curId === id && watchId != null) return; // já rastreando essa corrida
+        curId = id; lastSend = 0; lockTela();
+        if (watchId != null) navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(
+            function (p) { envia(p.coords.latitude, p.coords.longitude); },
+            function () {},
+            { enableHighAccuracy: true, maximumAge: 8000, timeout: 20000 });
+    };
+    window.cbGpsStop = function () {
+        if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+        curId = null;
+        try { if (wake) { wake.release(); wake = null; } } catch (e) {}
+    };
+    // Chamado pelo render(): liga se houver corrida em curso, desliga se não houver.
+    window._sincronizarGps = function () {
+        try {
+            var ativo = (transfers || []).find(function (t) { return emCurso(getStatus(t)); });
+            if (ativo && window.cbGpsStart) window.cbGpsStart(idOf(ativo));
+            else if (window.cbGpsStop) window.cbGpsStop();
+        } catch (e) {}
+    };
+    // Reativa o Wake Lock ao voltar para o app (o navegador solta ao sair da tela)
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && curId) lockTela();
+    });
+})();
 </script>
 <!-- ===== Notificações push (Firebase Cloud Messaging) — Motorista ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>

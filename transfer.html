@@ -202,7 +202,27 @@
 
         const bp = document.getElementById('btnPasso');
         if (bp) bp.addEventListener('click', function(){ passo(bp.dataset.st); });
+        // GPS ao vivo enquanto a corrida está em curso (app aberto)
+        if (['a_caminho','cheguei','embarcou','em_andamento'].indexOf(st) > -1) gpsStart(); else gpsStop();
     }
+
+    // ===== GPS ao vivo (só com o app aberto; Android e iPhone) =====
+    var _watchId = null, _wake = null, _lastSend = 0;
+    function _envia(lat, lng) {
+        var now = Date.now(); if (now - _lastSend < 12000) return; _lastSend = now;
+        try { fetch(WEBAPP_URL, { method:'POST', keepalive:true, headers:{'Content-Type':'text/plain;charset=utf-8'},
+            body: JSON.stringify({ action:'posicao', id: ID, lat: lat, lng: lng, authNome: motorista, authChave: chave }) }); } catch(e){}
+    }
+    async function _lockTela(){ try{ if('wakeLock' in navigator && !_wake){ _wake = await navigator.wakeLock.request('screen'); _wake.addEventListener('release', function(){ _wake=null; }); } }catch(e){} }
+    function gpsStart(){
+        if (!('geolocation' in navigator) || _watchId != null) return;
+        _lastSend = 0; _lockTela();
+        _watchId = navigator.geolocation.watchPosition(
+            function(p){ _envia(p.coords.latitude, p.coords.longitude); }, function(){},
+            { enableHighAccuracy:true, maximumAge:8000, timeout:20000 });
+    }
+    function gpsStop(){ if (_watchId != null){ navigator.geolocation.clearWatch(_watchId); _watchId = null; } try{ if(_wake){ _wake.release(); _wake=null; } }catch(e){} }
+    document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'visible' && _watchId != null) _lockTela(); });
 
     function passo(st) {
         const rotulo = {a_caminho:'sair a caminho', cheguei:'avisar que chegou', embarcou:'confirmar que o hóspede embarcou', completed:'finalizar'}[st] || 'atualizar';
