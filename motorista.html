@@ -124,6 +124,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     liberar();
                     b.disabled = false; b.innerText = 'Entrar';
                     if (typeof carregar === 'function') carregar();
+                    if (window.cbRegistrarPushEmpresa) { try { window.cbRegistrarPushEmpresa(); } catch (e) {} }
                 } else { erro(); }
             })
             .catch(function () { erro(); });
@@ -275,6 +276,19 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         renderFinMarcelo();
     }
 
+    // ===== ACEITE DA EMPRESA (Marcelo confirma a corrida) =====
+    function aceitarCorrida(id, btn) {
+        if (btn) { btn.disabled = true; btn.innerText = 'Aceitando...'; }
+        fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'confirmarEmpresa', id: id, k: window.CHAVE || '' }) })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d && d.ok) { let it = transferPorId(id); if (it) it["ConfirmadoEmpresa"] = d.quando; render(); }
+                else { alert('Erro ao aceitar: ' + ((d && d.error) || '')); if (btn) { btn.disabled = false; btn.innerText = 'Aceitar'; } }
+            })
+            .catch(function () { if (btn) { btn.disabled = false; btn.innerText = 'Aceitar'; } });
+    }
+
     // ===== PAINEL FINANCEIRO DO MARCELO =====
     // Mostra, na escala, o resumo do Marcelo: nº de traslados e comissão,
     // no mês atual e no total geral. Só traslados atribuídos a ele; exclui cancelados.
@@ -284,11 +298,14 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     function moedaBR(n) { return 'R$ ' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
     function blocoFin(titulo, qtd, total) {
         const bruta = comissaoBruta(total);
+        const liq = comissaoLiquida(total);
         return '<div class="fin-box">' +
             '<div class="fin-tit">' + titulo + '</div>' +
             '<div class="fin-lin"><span>Traslados</span><span>' + qtd + '</span></div>' +
             '<div class="fin-lin"><span>Total em traslados</span><span>' + moedaBR(total) + '</span></div>' +
-            '<div class="fin-com"><span>Comissão (15%)</span><span>' + moedaBR(bruta) + '</span></div>' +
+            '<div class="fin-lin"><span>Comissão (15%)</span><span>' + moedaBR(bruta) + '</span></div>' +
+            '<div class="fin-lin desc"><span>Taxa de cartão (−6%)</span><span>− ' + moedaBR(bruta - liq) + '</span></div>' +
+            '<div class="fin-com"><span>Comissão líquida</span><span>' + moedaBR(liq) + '</span></div>' +
         '</div>';
     }
     function renderFinMarcelo() {
@@ -313,7 +330,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         box.innerHTML =
             '<div class="fin-head">' +
                 '<h3>💰 Financeiro — Geral</h3>' +
-                '<span class="fin-nota">Comissão 15% (bruta) · exclui cancelados</span>' +
+                '<span class="fin-nota">Comissão 15% − 6% cartão · exclui cancelados</span>' +
             '</div>' +
             '<div class="fin-cols">' +
                 blocoFin('Mês atual · ' + nomeAtual, aQ, aT) +
@@ -394,6 +411,11 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 const vooNum = (t["Voo"] || '').toString().replace(/\s+/g, '').toUpperCase();
                 const ehHoje = dataKey(t) === dateKeyFromDate(new Date());
                 const mot = getMotorista(t).replace(/"/g, '&quot;');
+                const conf = (t["ConfirmadoEmpresa"] || '').toString();
+                const aceiteHtml = (st === 'cancelled' || st === 'completed') ? ''
+                    : (conf
+                        ? '<div style="font-size:0.68rem;color:#2f7d8c;margin-top:4px;font-weight:600;">✓ Aceita ' + conf + '</div>'
+                        : '<button class="btn-aceitar" data-id="' + id + '" style="margin-top:4px;padding:5px 12px;border:none;border-radius:40px;background:#2f7d8c;color:#fff;font-size:0.72rem;font-weight:600;cursor:pointer;">Aceitar</button>');
                 const stLabel = st === 'completed' ? 'Finalizado' : (st === 'cancelled' ? 'Cancelado' : (st === 'em_andamento' ? 'Em andamento' : 'Ativo'));
                 const stStyle = st === 'completed' ? 'color:#2f7d8c;background:#e6f0f2' : (st === 'cancelled' ? 'color:#b85c5a;background:#faecec' : (st === 'em_andamento' ? 'color:#8a6d1b;background:#fff3cd' : 'color:#9c7d3f;background:#f3ecdd'));
                 html += `<tr class="${rowClass}">
@@ -407,7 +429,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td>${t["Veículo"] || '-'}</td>
                     <td>${t["Observações"] || t["Observacoes"] || '-'}</td>
                     <td><span style="padding:3px 10px;border-radius:40px;font-size:0.72rem;font-weight:600;${stStyle}">${stLabel}</span><br><a href="transfer.html?id=${encodeURIComponent(id)}" target="_blank" style="font-size:0.7rem;color:#9c7d3f;">Abrir</a></td>
-                    <td><input class="motorista-input ${mot ? 'preenchido' : ''}" list="motoristasLista" data-id="${id}" value="${mot}" placeholder="Nome do motorista"></td>
+                    <td><input class="motorista-input ${mot ? 'preenchido' : ''}" list="motoristasLista" data-id="${id}" value="${mot}" placeholder="Nome do motorista">${aceiteHtml}</td>
                 </tr>`;
             });
         }
@@ -418,6 +440,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 setMotorista(inp.getAttribute('data-id'), inp.value.trim());
                 inp.classList.toggle('preenchido', !!inp.value.trim());
             });
+        });
+        document.querySelectorAll('.btn-aceitar').forEach(b => {
+            b.addEventListener('click', () => aceitarCorrida(b.getAttribute('data-id'), b));
         });
         atualizarStatusVoos();
     }
@@ -484,6 +509,49 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('motorista-input')) return;
         carregar();
     }, 60000);
+</script>
+<!-- ===== Notificações push (Firebase) — Empresa (Marcelo aceita corridas) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+(function () {
+    var VAPID = "BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus";
+    var CFG = { apiKey: "AIzaSyA_J5kmYRoJ2buFwmLdzh7xEtmz_VUIHqQ", authDomain: "traslados-a06ef.firebaseapp.com", projectId: "traslados-a06ef", storageBucket: "traslados-a06ef.firebasestorage.app", messagingSenderId: "973014023548", appId: "1:973014023548:web:78985913ed135bd10038f9" };
+    var URL_BACK = window.WEBAPP_URL;
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || typeof firebase === 'undefined') return;
+    try { firebase.initializeApp(CFG); } catch (e) {}
+    try {
+        firebase.messaging().onMessage(function (p) {
+            var d = p.data || {}, n = p.notification || {};
+            var t = d.titulo || n.title || 'Casas Brancas', c = d.corpo || n.body || '';
+            try { navigator.serviceWorker.ready.then(function (r) { r.showNotification(t, { body: c, icon: 'icon-192-v4.png', vibrate: [120, 60, 120] }); }); } catch (e) {}
+        });
+    } catch (e) {}
+    var btn = null;
+    function doReg() {
+        return navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm-push/' })
+            .then(function (reg) { return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg }); })
+            .then(function (token) { if (!token) return; try { fetch(URL_BACK, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'registrarPush', token: token, tipo: 'empresa', nome: 'Marcelo' }) }); } catch (e) {} });
+    }
+    function mostrarBotao() {
+        if (btn) { btn.style.display = 'block'; return; }
+        btn = document.createElement('button');
+        btn.innerHTML = '🔔 Ativar notificações';
+        btn.style.cssText = 'position:fixed; right:16px; bottom:16px; z-index:10001; background:#9c7d3f; color:#fff; border:none; padding:12px 18px; border-radius:40px; font-size:0.9rem; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.25); cursor:pointer;';
+        btn.addEventListener('click', function () {
+            btn.disabled = true; btn.innerHTML = 'Ativando...';
+            Notification.requestPermission().then(function (p) {
+                if (p !== 'granted') { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; alert('Permissão negada. Libere as notificações deste site nas configurações do navegador.'); return; }
+                doReg().then(function () { btn.style.background = '#2f7d8c'; btn.innerHTML = '✓ Notificações ativadas'; setTimeout(function () { btn.style.display = 'none'; }, 4000); }).catch(function () { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; });
+            });
+        });
+        document.body.appendChild(btn);
+    }
+    window.cbRegistrarPushEmpresa = function () {
+        if (Notification.permission === 'granted') { doReg().catch(function () {}); if (btn) btn.style.display = 'none'; }
+        else { mostrarBotao(); }
+    };
+})();
 </script>
 </body>
 </html>
