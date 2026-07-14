@@ -1,3 +1,9 @@
+/*
+  Sistema de Traslados — aplicativo web (PWA)
+  Autor: Renato Rios (renatorios1611@gmail.com)
+  Criacao: 2025-2026. Desenvolvido para a operacao de traslados.
+  Aviso de autoria: este arquivo integra obra de software de autoria do autor acima.
+*/
 /* Service worker dedicado ao Firebase Cloud Messaging (push com o app fechado).
    Fica em escopo próprio para não conflitar com o sw.js (cache/offline). */
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
