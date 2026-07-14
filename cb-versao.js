@@ -3,7 +3,7 @@
   Autor: Renato Rios (renatorios1611@gmail.com)
 */
 (function () {
-  var VERSAO = "2026.07.15-2"; // <- bump a cada publicacao (igual ao versao.json)
+  var VERSAO = "2026.07.15-3"; // <- bump a cada publicacao (igual ao versao.json)
   function selo() {
     if (document.getElementById('cbVersao')) return;
     var el = document.createElement('div');
@@ -35,27 +35,4 @@
   if (document.readyState !== 'loading') selo(); else document.addEventListener('DOMContentLoaded', selo);
   setTimeout(checar, 3000);
   setInterval(checar, 5 * 60 * 1000);
-})();
-
-/* Window Controls Overlay: janela só com os 3 botões nativos + faixa de arrastar */
-(function () {
-  try {
-    if (!('windowControlsOverlay' in navigator)) return;
-    function aplicar() {
-      var vis = navigator.windowControlsOverlay.visible;
-      var st = document.getElementById('cbWcoStyle');
-      if (vis && !st) {
-        st = document.createElement('style'); st.id = 'cbWcoStyle';
-        st.textContent = 'body{padding-top:env(titlebar-area-height,0)!important;}' +
-          '#cbDragBar{position:fixed;top:0;left:env(titlebar-area-x,0);width:env(titlebar-area-width,100%);height:env(titlebar-area-height,0);-webkit-app-region:drag;app-region:drag;z-index:100000;}';
-        document.head.appendChild(st);
-        var bar = document.createElement('div'); bar.id = 'cbDragBar';
-        (document.body || document.documentElement).appendChild(bar);
-      } else if (!vis && st) {
-        st.remove(); var b = document.getElementById('cbDragBar'); if (b) b.remove();
-      }
-    }
-    aplicar();
-    navigator.windowControlsOverlay.addEventListener('geometrychange', aplicar);
-  } catch (e) {}
 })();

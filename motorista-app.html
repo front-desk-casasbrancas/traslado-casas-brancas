@@ -313,7 +313,7 @@
     // ===== PWA: app instalável próprio (id distinto) + service worker + auto-update =====
     try{
         var _m={ id:'casasbrancas-motorista', name:'Casas Brancas Motorista', short_name:'CB Motorista',
-            start_url:'motorista-app.html?from=app', scope:'./', display:'standalone', display_override:['window-controls-overlay'], orientation:'portrait',
+            start_url:'motorista-app.html?from=app', scope:'./', display:'standalone', orientation:'portrait',
             background_color:'#f6f2eb', theme_color:'#2b2a26',
             icons:[{src:'icon-192-v4.png',sizes:'192x192',type:'image/png'},{src:'icon-512-v4.png',sizes:'512x512',type:'image/png'}] };
         var _b=new Blob([JSON.stringify(_m)],{type:'application/manifest+json'});
