@@ -497,6 +497,12 @@
             step2: "2. Dados do hóspede",
             step3: "3. Bagagens",
             step4: "4. Local e horário",
+            idaVolta: "Quero agendar também a volta",
+            idaVoltaHint: "Preencha uma vez só. O hotel recebe os dois traslados separadamente.",
+            voltaTitulo: "Dados da volta",
+            labelIda: "Ida",
+            labelVolta: "Volta",
+            totalTrechos: "Total (2 trechos)",
             step5: "5. Região no Rio de Janeiro",
             step6: "6. Selecione o veículo",
             step7: "7. Extras",
@@ -519,6 +525,7 @@
             bagMao: "Mão",
             regiaoCentro: "Centro / Zona Sul (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeroportos GIG/SDU)",
             regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
+            regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
             madrugada: "Transfer na madrugada (00h às 06h) - + R$ 100",
             parada: "Parada para almoço/compras - R$ 100/hora",
             horasParada: "Número de horas de parada",
@@ -589,6 +596,12 @@
             step2: "2. Guest information",
             step3: "3. Luggage",
             step4: "4. Location and time",
+            idaVolta: "I also want to book the return trip",
+            idaVoltaHint: "Fill in once. The hotel receives both transfers separately.",
+            voltaTitulo: "Return trip details",
+            labelIda: "Outbound",
+            labelVolta: "Return",
+            totalTrechos: "Total (2 legs)",
             step5: "5. Region in Rio de Janeiro",
             step6: "6. Select vehicle",
             step7: "7. Extras",
@@ -611,6 +624,7 @@
             bagMao: "Carry-on",
             regiaoCentro: "Downtown / South Zone (Leblon, Ipanema, Copacabana, Lapa, Gávea, GIG/SDU airports)",
             regiaoOeste: "West Zone (Barra da Tijuca, Recreio)",
+            regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
             madrugada: "Night transfer (00h to 06h) - + R$ 100",
             parada: "Stop for lunch/shopping - R$ 100/hour",
             horasParada: "Number of stop hours",
@@ -681,6 +695,12 @@
             step2: "2. Datos del huésped",
             step3: "3. Equipaje",
             step4: "4. Ubicación y horario",
+            idaVolta: "También quiero reservar la vuelta",
+            idaVoltaHint: "Complete una sola vez. El hotel recibe los dos traslados por separado.",
+            voltaTitulo: "Datos de la vuelta",
+            labelIda: "Ida",
+            labelVolta: "Vuelta",
+            totalTrechos: "Total (2 tramos)",
             step5: "5. Región en Rio de Janeiro",
             step6: "6. Seleccione el vehículo",
             step7: "7. Extras",
@@ -703,6 +723,7 @@
             bagMao: "Mano",
             regiaoCentro: "Centro / Zona Sur (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeropuertos GIG/SDU)",
             regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
+            regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
             madrugada: "Traslado de madrugada (00h a 06h) - + R$ 100",
             parada: "Parada para almuerzo/compras - R$ 100/hora",
             horasParada: "Número de horas de parada",
@@ -871,7 +892,26 @@
         }
     };
 
-    let veiculosCache = { "centro-sul": null, "zona-oeste": null };
+    // Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty):
+    // mesma tabela do Centro/Zona Sul + R$ 800 em TODOS os veículos, nas 3 categorias.
+    // Derivado em tempo de execução — se um preço-base mudar, esta região acompanha.
+    const ACRESCIMO_COSTA_VERDE = 800;
+    precosVeiculos["costa-verde"] = {};
+    Object.keys(precosVeiculos["centro-sul"]).forEach(function (categoria) {
+        precosVeiculos["costa-verde"][categoria] = precosVeiculos["centro-sul"][categoria].map(function (v) {
+            return Object.assign({}, v, { preco: v.preco + ACRESCIMO_COSTA_VERDE });
+        });
+    });
+
+    let veiculosCache = { "centro-sul": null, "zona-oeste": null, "costa-verde": null };
+
+    // Rótulo da região gravado na planilha / mensagens
+    function regiaoLabel() {
+        const r = document.querySelector('input[name="regiao"]:checked')?.value;
+        if (r === "zona-oeste") return "Zona Oeste";
+        if (r === "costa-verde") return "Costa Verde";
+        return "Centro/Sul";
+    }
 
     // ==================== TELEFONE ====================
     function getTelefone() {
@@ -958,16 +998,26 @@
             paradaTexto = `<br>${t.stopExtra} (${horas}h): R$ ${paradaExtra.toLocaleString('pt-BR')}`;
         }
         const total = precoBase + madrugadaExtra + paradaExtra;
-        const regiao = document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste";
+        const regiao = regiaoLabel();
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
         const bagagemTexto = getBagagemTexto();
+        // Trecho de volta (quando marcado)
+        const temVolta = idaVoltaAtivo();
+        const totalVolta = calcularTotalVolta();
+        const totalGeral = total + totalVolta;
+        const sentidoV = sentidoVolta() === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const dataV = document.getElementById("dataViagemV")?.value || "-";
+        const horaV = document.getElementById("horaEmbarqueV")?.value || "-";
+        const blocoVolta = temVolta
+            ? `<br><span style="color:#8a7a55;font-weight:600;">${t.labelVolta}: ${sentidoV}</span><br>${t.date}: ${dataV} às ${horaV}<br>${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}${madrugadaVolta() ? `<br>${t.nightExtra}: R$ 100` : ''}`
+            : '';
 
         const resumoDiv = document.getElementById("resumoPreview");
         if (resumoDiv) {
             resumoDiv.innerHTML = `
                 <strong>${t.summary}</strong><br>
-                ${t.direction}: ${sentido}<br>
+                ${temVolta ? `<span style="color:#8a7a55;font-weight:600;">${t.labelIda}: ${sentido}</span>` : `${t.direction}: ${sentido}`}<br>
                 ${t.guest}: ${nome} (Reserva: ${reserva})<br>
                 ${t.region}: ${regiao}<br>
                 ${t.vehicle}: ${veiculo}<br>
@@ -975,8 +1025,11 @@
                 ${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}<br>
                 ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
                 ${paradaExtra > 0 ? paradaTexto + "<br>" : ""}
-                <strong>${t.totalValue}: R$ ${total.toLocaleString('pt-BR')}</strong><br>
-                ${t.date}: ${data} às ${hora}<br>
+                ${temVolta ? `${t.date}: ${data} às ${hora}<br>` : ""}
+                ${blocoVolta}
+                ${temVolta ? "<br>" : ""}
+                <strong>${temVolta ? t.totalTrechos : t.totalValue}: R$ ${totalGeral.toLocaleString('pt-BR')}</strong><br>
+                ${temVolta ? "" : `${t.date}: ${data} às ${hora}<br>`}
                 ${t.payment}: ${document.getElementById("pagamento")?.options[document.getElementById("pagamento")?.selectedIndex]?.text || "-"}
             `;
         }
@@ -985,8 +1038,8 @@
         let pbLabel = document.getElementById("priceBarLabel");
         let pbValue = document.getElementById("priceBarValue");
         let veicSel = document.getElementById("veiculoSelecionado")?.value;
-        if (pbLabel) pbLabel.innerText = t.total;
-        if (pbValue) pbValue.innerHTML = veicSel ? `R$ ${total.toLocaleString('pt-BR')}` : "—";
+        if (pbLabel) pbLabel.innerText = temVolta ? t.totalTrechos : t.total;
+        if (pbValue) pbValue.innerHTML = veicSel ? `R$ ${totalGeral.toLocaleString('pt-BR')}` : "—";
     }
 
     // ==================== VEÍCULOS ====================
@@ -1206,12 +1259,21 @@
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div>
+                <div class="form-row" style="margin-top:16px;padding-top:14px;border-top:1px dashed #d4cbb8;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="idaVolta" style="width:auto;"> <span id="idaVoltaText">${t.idaVolta}</span></label>
+                    <div style="font-size:0.7rem;color:#8a8270;margin-top:5px;margin-left:24px;" id="idaVoltaHintText">${t.idaVoltaHint}</div>
+                </div>
+                <div id="voltaWrap" style="display:none;margin-top:10px;padding:14px;background:#fafaf7;border:1px solid #e6ddc8;border-radius:10px;">
+                    <div style="font-weight:600;font-size:0.82rem;color:#8a7a55;margin-bottom:10px;" id="voltaTituloText">${t.voltaTitulo}</div>
+                    <div id="voltaFields"></div>
+                </div>
                 <div id="rec6h" style="margin-top:14px;padding:10px 14px;background:#fafaf7;border-left:3px solid #c8b88a;border-radius:8px;font-size:0.72rem;color:#6a7e5a;"><span id="rec6hText">${t.recomendacao6h}</span></div>
             </div>
             <div class="step-section"><div class="step-title">${t.step5}</div>
                 <div class="radio-group" id="regiaoGroup">
                     <label><input type="radio" name="regiao" value="centro-sul" checked> ${t.regiaoCentro}</label>
                     <label><input type="radio" name="regiao" value="zona-oeste"> ${t.regiaoOeste}</label>
+                    <label><input type="radio" name="regiao" value="costa-verde"> ${t.regiaoCostaVerde}</label>
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step6}</div>
@@ -1257,9 +1319,17 @@
         scheduleUpdate();
     }
 
-    function renderLocalFields() {
-        const sentido = document.querySelector('input[name="sentido"]:checked').value;
-        const container = document.getElementById("localFields");
+    // Sentido oposto ao da ida — usado no trecho de volta
+    function sentidoIda() { return document.querySelector('input[name="sentido"]:checked').value; }
+    function sentidoVolta() { return sentidoIda() === "IN" ? "OUT" : "IN"; }
+    function idaVoltaAtivo() { return !!document.getElementById("idaVolta")?.checked; }
+
+    // sfx = "" para a ida, "V" para a volta. Os ids da ida continuam iguais aos de antes.
+    function renderLocalFields(sfx) {
+        sfx = sfx || "";
+        const sentido = sfx === "V" ? sentidoVolta() : sentidoIda();
+        const container = document.getElementById(sfx === "V" ? "voltaFields" : "localFields");
+        if (!container) return;
         const t = translations[currentLang];
         const hoje = new Date().toISOString().slice(0, 10);
         const LL = {
@@ -1271,32 +1341,44 @@
         const labelHora = sentido === "IN" ? t.labelHoraEmbarque : t.labelHoraSaida;
         const horaDefault = sentido === "IN" ? "05:30" : "10:00";
 
+        // Na volta, a data mínima é a data da ida (não faz sentido voltar antes de ir)
+        const minData = sfx === "V" ? (document.getElementById("dataViagem")?.value || hoje) : hoje;
         container.innerHTML = `
-            <div class="form-row"><label>${labelData}</label><input type="date" id="dataViagem" min="${hoje}" value="${hoje}"></div>
-            <div class="form-row"><label>${labelHora}</label><input type="time" id="horaEmbarque" value="${horaDefault}"></div>
-            <div class="form-row"><label>${LL.partida}</label><input type="text" id="localPartida" placeholder="${LL.partidaPh}"></div>
+            <div class="form-row"><label>${labelData}</label><input type="date" id="dataViagem${sfx}" min="${minData}" value="${minData}"></div>
+            <div class="form-row"><label>${labelHora}</label><input type="time" id="horaEmbarque${sfx}" value="${horaDefault}"></div>
+            <div class="form-row"><label>${LL.partida}</label><input type="text" id="localPartida${sfx}" placeholder="${LL.partidaPh}"></div>
             <div class="form-row"><label>${LL.destino}</label>
-                <select id="destinoTipo">
+                <select id="destinoTipo${sfx}">
                     <option value="aeroporto">${LL.tAero}</option>
                     <option value="cidade">${LL.tCidade}</option>
                 </select>
             </div>
-            <div id="destinoDetalhe"></div>
+            <div id="destinoDetalhe${sfx}"></div>
         `;
-        renderDestinoDetalhe();
-        document.getElementById("destinoTipo")?.addEventListener("change", renderDestinoDetalhe);
-        document.getElementById("localPartida")?.addEventListener("input", () => scheduleUpdate());
-        let he = document.getElementById("horaEmbarque");
-        if (he) he.addEventListener("change", () => { autoMadrugada(); scheduleUpdate(); });
-        autoMadrugada();
+        renderDestinoDetalhe(sfx);
+        document.getElementById("destinoTipo" + sfx)?.addEventListener("change", () => renderDestinoDetalhe(sfx));
+        document.getElementById("localPartida" + sfx)?.addEventListener("input", () => scheduleUpdate());
+        let he = document.getElementById("horaEmbarque" + sfx);
+        if (he) he.addEventListener("change", () => { if (sfx === "") autoMadrugada(); scheduleUpdate(); });
+        if (sfx === "") {
+            autoMadrugada();
+            // Mudou a data da ida → a volta não pode ficar anterior a ela
+            document.getElementById("dataViagem")?.addEventListener("change", () => {
+                const dv = document.getElementById("dataViagemV");
+                const di = document.getElementById("dataViagem")?.value;
+                if (dv && di) { dv.min = di; if (dv.value < di) dv.value = di; }
+                scheduleUpdate();
+            });
+        }
     }
 
     // Destino dinâmico: Aeroporto (GIG/SDU) mostra voo+cia; Cidade do Rio mostra endereço livre e oculta voo/cia.
-    function renderDestinoDetalhe() {
+    function renderDestinoDetalhe(sfx) {
+        sfx = sfx || "";
         const t = translations[currentLang];
-        const cont = document.getElementById("destinoDetalhe");
+        const cont = document.getElementById("destinoDetalhe" + sfx);
         if (!cont) return;
-        const tipo = document.getElementById("destinoTipo")?.value || "aeroporto";
+        const tipo = document.getElementById("destinoTipo" + sfx)?.value || "aeroporto";
         const LL = {
             pt: { aeroLabel: 'Aeroporto', cidadeLabel: 'Endereço no Rio de Janeiro', cidadePh: 'Bairro, rua e número' },
             en: { aeroLabel: 'Airport', cidadeLabel: 'Address in Rio de Janeiro', cidadePh: 'Area, street and number' },
@@ -1305,23 +1387,48 @@
         if (tipo === "aeroporto") {
             cont.innerHTML = `
                 <div class="form-row"><label>${LL.aeroLabel}</label>
-                    <select id="endereco">
+                    <select id="endereco${sfx}">
                         <option value="Aeroporto Galeão (GIG)">Galeão (GIG)</option>
                         <option value="Aeroporto Santos Dumont (SDU)">Santos Dumont (SDU)</option>
                     </select>
                 </div>
-                <div class="form-row"><label>${t.labelVoo}</label><input type="text" id="voo" placeholder="${t.placeholderVoo}"></div>
-                <div class="form-row"><label>${t.labelCia}</label><input type="text" id="ciaAerea" placeholder="${t.placeholderCia}"></div>
+                <div class="form-row"><label>${t.labelVoo}</label><input type="text" id="voo${sfx}" placeholder="${t.placeholderVoo}"></div>
+                <div class="form-row"><label>${t.labelCia}</label><input type="text" id="ciaAerea${sfx}" placeholder="${t.placeholderCia}"></div>
             `;
         } else {
             cont.innerHTML = `
-                <div class="form-row"><label>${LL.cidadeLabel}</label><input type="text" id="endereco" placeholder="${LL.cidadePh}"></div>
+                <div class="form-row"><label>${LL.cidadeLabel}</label><input type="text" id="endereco${sfx}" placeholder="${LL.cidadePh}"></div>
             `;
         }
         ['endereco', 'voo', 'ciaAerea'].forEach(id => {
-            const el = document.getElementById(id);
+            const el = document.getElementById(id + sfx);
             if (el) { el.addEventListener('input', () => scheduleUpdate()); el.addEventListener('change', () => scheduleUpdate()); }
         });
+        scheduleUpdate();
+    }
+
+    // ---- Trecho de volta: helpers ----
+    function madrugadaVolta() {
+        const h = document.getElementById("horaEmbarqueV")?.value;
+        if (!h) return false;
+        const hh = parseInt(h.split(":")[0]);
+        return (hh >= 0 && hh < 6);
+    }
+    // A volta cobra o mesmo preço-base do veículo. Parada só se aplica à ida.
+    function calcularTotalVolta() {
+        if (!idaVoltaAtivo()) return 0;
+        const precoBase = parseFloat(document.getElementById("precoBase")?.value) || 0;
+        return precoBase + (madrugadaVolta() ? 100 : 0);
+    }
+    function calcularTotalGeral() { return calcularTotal() + calcularTotalVolta(); }
+    function toggleIdaVolta() {
+        const on = idaVoltaAtivo();
+        const wrap = document.getElementById("voltaWrap");
+        if (wrap) wrap.style.display = on ? "block" : "none";
+        // Só monta os campos na primeira vez: se o hóspede desmarcar e marcar de novo,
+        // o que ele já digitou continua lá.
+        const jaMontado = document.getElementById("voltaFields")?.children.length > 0;
+        if (on && !jaMontado) renderLocalFields("V");
         scheduleUpdate();
     }
 
@@ -1348,7 +1455,7 @@
         const bagagemTexto = getBagagemTexto();
         const veiculo = document.getElementById("veiculoSelecionado")?.value || t.noVehicle;
         const total = calcularTotal();
-        const regiao = document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste";
+        const regiao = regiaoLabel();
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
         const localPartida = document.getElementById("localPartida")?.value || "-";
@@ -1370,12 +1477,29 @@
         mensagem += `Veículo: ${veiculo}\n`;
         mensagem += `Valor total: R$ ${total.toLocaleString('pt-BR')}\n`;
         mensagem += `Madrugada: ${madrugada}\n\n`;
+        if (idaVoltaAtivo()) mensagem += `>>> TRECHO 1 - IDA\n`;
         mensagem += `Data: ${data}\n`;
         mensagem += `Horário: ${hora}\n`;
         mensagem += `Local de partida: ${localPartida}\n`;
         mensagem += `Destino: ${endereco}\n`;
         if (voo && voo !== "-") mensagem += `Voo: ${voo} - ${ciaAerea}\n`;
         mensagem += `\n`;
+        // Segundo trecho (ida e volta) — vira um traslado separado na planilha
+        if (idaVoltaAtivo()) {
+            const sentidoV = sentidoVolta() === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
+            const vooV = document.getElementById("vooV")?.value || "-";
+            const ciaV = document.getElementById("ciaAereaV")?.value || "-";
+            mensagem += `>>> TRECHO 2 - VOLTA\n`;
+            mensagem += `Direção: ${sentidoV}\n`;
+            mensagem += `Data: ${document.getElementById("dataViagemV")?.value || "-"}\n`;
+            mensagem += `Horário: ${document.getElementById("horaEmbarqueV")?.value || "-"}\n`;
+            mensagem += `Local de partida: ${document.getElementById("localPartidaV")?.value || "-"}\n`;
+            mensagem += `Destino: ${document.getElementById("enderecoV")?.value || "-"}\n`;
+            if (vooV && vooV !== "-") mensagem += `Voo: ${vooV} - ${ciaV}\n`;
+            mensagem += `Madrugada: ${madrugadaVolta() ? t.madrugadaYes : t.madrugadaNo}\n`;
+            mensagem += `Valor do trecho: R$ ${calcularTotalVolta().toLocaleString('pt-BR')}\n`;
+            mensagem += `\nVALOR TOTAL (2 trechos): R$ ${calcularTotalGeral().toLocaleString('pt-BR')}\n\n`;
+        }
         mensagem += `Pagamento: ${pagamento}\n`;
         mensagem += `Observações: ${obs}\n`;
         mensagem += `Cliente concordou com as políticas: Sim\n`;
@@ -1453,6 +1577,20 @@
             return;
         }
 
+        // Ida e volta: a data da volta não pode ser anterior à da ida
+        if (idaVoltaAtivo()) {
+            const dIda = document.getElementById('dataViagem')?.value || '';
+            const dVolta = document.getElementById('dataViagemV')?.value || '';
+            const msgV = { pt: 'A data da volta não pode ser anterior à data da ida.', en: 'The return date cannot be earlier than the outbound date.', es: 'La fecha de vuelta no puede ser anterior a la de ida.' }[currentLang] || 'A data da volta não pode ser anterior à data da ida.';
+            if (!dVolta || (dIda && dVolta < dIda)) {
+                marcarErro('dataViagemV', true);
+                mostrarFeedback(msgV, 'error');
+                document.getElementById('dataViagemV')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            marcarErro('dataViagemV', false);
+        }
+
         // Passou na validação → mostra a tela de conferência (double check) antes de enviar
         montarRevisao();
         document.getElementById('revisaoOverlay').classList.add('show');
@@ -1481,13 +1619,33 @@
         const ad = parseInt(document.getElementById('adultos')?.value) || 0;
         const cr = parseInt(document.getElementById('criancas')?.value) || 0;
         const malas = (parseInt(document.getElementById('bag23kg')?.value) || 0) + (parseInt(document.getElementById('bag10kg')?.value) || 0) + (parseInt(document.getElementById('bagMao')?.value) || 0);
-        const valor = 'R$ ' + (calcularTotal() || 0).toLocaleString('pt-BR');
+        const temVolta = idaVoltaAtivo();
+        const valor = 'R$ ' + (calcularTotalGeral() || 0).toLocaleString('pt-BR');
         function row(lbl, val) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #eef0e8;"><span style="color:#8a8270;">' + lbl + '</span><b style="text-align:right;">' + (val || '-') + '</b></div>'; }
-        let html = row(L.nome, nome) + row(L.reserva, reserva) + row(L.contato, contato) + row(L.sentido, sent) +
-            row(L.data, dataBR) + row(L.hora, hora) + row(L.partida, localPartida) + row(L.local, local) +
-            (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '') +
+        function tituloTrecho(txt) { return '<div style="margin:12px 0 4px;font-weight:700;font-size:0.78rem;color:#8a7a55;letter-spacing:.4px;">' + txt + '</div>'; }
+        let html = row(L.nome, nome) + row(L.reserva, reserva) + row(L.contato, contato) +
             row(L.veic, veic) + row(L.pax, ad + ' ' + L.ad + (cr ? ' + ' + cr + ' ' + L.cr : '')) +
-            row(L.malas, malas) + row(L.valor, valor);
+            row(L.malas, malas);
+        // Trecho de ida
+        html += (temVolta ? tituloTrecho(t.labelIda.toUpperCase()) : '') +
+            row(L.sentido, sent) + row(L.data, dataBR) + row(L.hora, hora) +
+            row(L.partida, localPartida) + row(L.local, local) +
+            (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '');
+        // Trecho de volta (só quando marcado)
+        if (temVolta) {
+            const sentV = sentidoVolta() === 'IN' ? 'Rio → Búzios' : 'Búzios → Rio';
+            const dvV = document.getElementById('dataViagemV')?.value || '';
+            const vooV = document.getElementById('vooV')?.value || '';
+            const ciaV = document.getElementById('ciaAereaV')?.value || '';
+            html += tituloTrecho(t.labelVolta.toUpperCase()) +
+                row(L.sentido, sentV) +
+                row(L.data, dvV ? dvV.split('-').reverse().join('/') : '-') +
+                row(L.hora, document.getElementById('horaEmbarqueV')?.value || '-') +
+                row(L.partida, document.getElementById('localPartidaV')?.value || '-') +
+                row(L.local, document.getElementById('enderecoV')?.value || '-') +
+                (vooV ? row(L.voo, vooV + (ciaV ? ' / ' + ciaV : '')) : '');
+        }
+        html += row(temVolta ? t.totalTrechos : L.valor, valor);
         document.getElementById('revisaoBody').innerHTML = html;
         document.getElementById('revisaoTitulo').innerText = L.rev;
         document.getElementById('revisaoSub').innerText = L.sub;
@@ -1510,42 +1668,57 @@
         // ID aleatório (não adivinhável) — antes era Date.now(), previsível por enumeração
         const novoId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
             : (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
-        const dadosPlanilha = {
-            id: novoId,
-            nome: nome,
-            reserva: document.getElementById("reserva")?.value || "",
-            telefone: metodo === 'WhatsApp' ? tel.sheet : "",
-            email: metodo === 'Email' ? email : "",
-            contato: metodo,
-            sentido: document.querySelector('input[name="sentido"]:checked').value,
-            dataViagem: document.getElementById("dataViagem")?.value,
-            horario: document.getElementById("horaEmbarque")?.value,
-            regiao: document.querySelector('input[name="regiao"]:checked').value === "centro-sul" ? "Centro/Sul" : "Zona Oeste",
-            veiculo: veiculo,
-            valorTotal: calcularTotal(),
-            madrugada: document.getElementById("madrugada")?.checked,
-            parada: document.getElementById("parada")?.checked,
-            horasParada: document.getElementById("parada")?.checked ? parseInt(document.getElementById("horasParada")?.value) || 1 : 0,
-            bagagem23kg: parseInt(document.getElementById("bag23kg")?.value) || 0,
-            bagagem10kg: parseInt(document.getElementById("bag10kg")?.value) || 0,
-            bagagemMao: parseInt(document.getElementById("bagMao")?.value) || 0,
-            adultos: parseInt(document.getElementById("adultos")?.value) || 0,
-            criancas: parseInt(document.getElementById("criancas")?.value) || 0,
-            pessoas: (parseInt(document.getElementById("adultos")?.value) || 0) + (parseInt(document.getElementById("criancas")?.value) || 0),
-            obs: document.getElementById("obs")?.value || "",
-            pagamento: document.getElementById("pagamento")?.value,
-            localPartida: document.getElementById("localPartida")?.value || "",
-            endereco: document.getElementById("endereco")?.value || "",
-            voo: document.getElementById("voo")?.value || "",
-            ciaAerea: document.getElementById("ciaAerea")?.value || "",
-            idioma: currentLang,
-            aceitePoliticas: true
-        };
+        // Monta o registro de um trecho. sfx = "" (ida) ou "V" (volta).
+        // Cada trecho vira uma LINHA SEPARADA na planilha — dashboard, escala e
+        // financeiro continuam tratando cada traslado individualmente, como hoje.
+        function montarRegistro(sfx, id) {
+            const ehVolta = sfx === "V";
+            return {
+                id: id,
+                nome: nome,
+                reserva: document.getElementById("reserva")?.value || "",
+                telefone: metodo === 'WhatsApp' ? tel.sheet : "",
+                email: metodo === 'Email' ? email : "",
+                contato: metodo,
+                sentido: ehVolta ? sentidoVolta() : sentidoIda(),
+                dataViagem: document.getElementById("dataViagem" + sfx)?.value,
+                horario: document.getElementById("horaEmbarque" + sfx)?.value,
+                regiao: regiaoLabel(),
+                veiculo: veiculo,
+                valorTotal: ehVolta ? calcularTotalVolta() : calcularTotal(),
+                madrugada: ehVolta ? madrugadaVolta() : !!document.getElementById("madrugada")?.checked,
+                // Parada só se aplica ao trecho de ida
+                parada: ehVolta ? false : !!document.getElementById("parada")?.checked,
+                horasParada: (!ehVolta && document.getElementById("parada")?.checked) ? (parseInt(document.getElementById("horasParada")?.value) || 1) : 0,
+                bagagem23kg: parseInt(document.getElementById("bag23kg")?.value) || 0,
+                bagagem10kg: parseInt(document.getElementById("bag10kg")?.value) || 0,
+                bagagemMao: parseInt(document.getElementById("bagMao")?.value) || 0,
+                adultos: parseInt(document.getElementById("adultos")?.value) || 0,
+                criancas: parseInt(document.getElementById("criancas")?.value) || 0,
+                pessoas: (parseInt(document.getElementById("adultos")?.value) || 0) + (parseInt(document.getElementById("criancas")?.value) || 0),
+                obs: document.getElementById("obs")?.value || "",
+                pagamento: document.getElementById("pagamento")?.value,
+                localPartida: document.getElementById("localPartida" + sfx)?.value || "",
+                endereco: document.getElementById("endereco" + sfx)?.value || "",
+                voo: document.getElementById("voo" + sfx)?.value || "",
+                ciaAerea: document.getElementById("ciaAerea" + sfx)?.value || "",
+                idioma: currentLang,
+                aceitePoliticas: true
+            };
+        }
+
+        const temVolta = idaVoltaAtivo();
+        const dadosPlanilha = montarRegistro("", novoId);
 
         document.getElementById('revisaoOverlay').classList.remove('show');
         // Grava na planilha sem travar a tela (keepalive garante que a requisição
         // termina mesmo se a página fechar). Assim sucesso/WhatsApp aparecem na hora.
         enviarParaGoogleSheets(dadosPlanilha);
+        if (temVolta) {
+            const idVolta = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+                : (Date.now().toString(36) + '-v-' + Math.random().toString(36).slice(2, 10));
+            enviarParaGoogleSheets(montarRegistro("V", idVolta));
+        }
 
         const mensagem = montarMensagem();
         if (metodo === 'Email') {
@@ -1581,8 +1754,11 @@
     function bindEvents() {
         document.querySelectorAll('input[name="sentido"]').forEach(r => r.addEventListener('change', () => {
             renderLocalFields();
+            if (idaVoltaAtivo()) renderLocalFields("V");
             scheduleUpdate();
         }));
+
+        document.getElementById('idaVolta')?.addEventListener('change', toggleIdaVolta);
 
         document.querySelectorAll('input[name="regiao"]').forEach(r => r.addEventListener('change', () => trocarRegiao()));
 
@@ -1644,6 +1820,7 @@
             const lr = rg.querySelectorAll('label');
             if (lr[0]) lr[0].childNodes[1].textContent = " " + t.regiaoCentro;
             if (lr[1]) lr[1].childNodes[1].textContent = " " + t.regiaoOeste;
+            if (lr[2]) lr[2].childNodes[1].textContent = " " + t.regiaoCostaVerde;
         }
 
         // Rótulos dos dados do hóspede (step 2) — por ID
@@ -1705,6 +1882,12 @@
 
         const localFields = document.getElementById("localFields");
         if (localFields && localFields.children.length > 0) renderLocalFields();
+        // Ida e volta: traduz os rótulos e re-renderiza o trecho de volta
+        const _t = translations[currentLang];
+        const _ivT = document.getElementById("idaVoltaText"); if (_ivT) _ivT.innerText = _t.idaVolta;
+        const _ivH = document.getElementById("idaVoltaHintText"); if (_ivH) _ivH.innerText = _t.idaVoltaHint;
+        const _vT = document.getElementById("voltaTituloText"); if (_vT) _vT.innerText = _t.voltaTitulo;
+        if (idaVoltaAtivo()) renderLocalFields("V");
 
         atualizarBotaoEnviar();
         aplicarFitVeiculos();

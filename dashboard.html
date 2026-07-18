@@ -123,35 +123,47 @@
             border-radius: 40px;
             cursor: pointer;
         }
+        /* Ações da linha: sempre em UMA linha só (nunca quebra).
+           Se faltar largura, a própria célula rola na horizontal. */
+        .acoes-cell {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        .acoes-cell::-webkit-scrollbar { height: 4px; }
+        .acoes-cell::-webkit-scrollbar-thumb { background: #d8cbb0; border-radius: 4px; }
+        .acoes-cell > * { flex: 0 0 auto; white-space: nowrap; }
+        td.acoes-td { white-space: nowrap; min-width: 0; }
         .confirm-btn {
             background: #25D366;
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 5px 9px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.7rem;
-            margin-right: 5px;
+            font-size: 0.68rem;
         }
         .complete-btn {
             background: #6c757d;
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 5px 9px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.7rem;
-            margin-right: 5px;
+            font-size: 0.68rem;
         }
         .complete-btn.completed { background: var(--sea); cursor: default; opacity: 0.8; }
         .cancel-btn {
             background: #dc3545;
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 5px 9px;
             border-radius: 40px;
             cursor: pointer;
-            font-size: 0.7rem;
+            font-size: 0.68rem;
         }
         .cancel-btn.cancelled { background: #6c757d; cursor: default; opacity: 0.7; }
         .andamento-row td { background: #fff8e6; }
@@ -163,8 +175,8 @@
         .vb-blue { background: #e6f1fb; color: #0c447c; }
         .vb-red { background: #faecec; color: #b85c5a; }
         .vb-gray { background: #f0ede5; color: #8a8270; }
-        .abrir-link { display: inline-block; font-size: 0.7rem; color: var(--gold-d); text-decoration: none; border: 1px solid #d8cbb0; padding: 6px 9px; border-radius: 40px; margin-right: 5px; }
-        .editar-btn { background: var(--gold-l); color: var(--ink); border: none; padding: 6px 10px; border-radius: 40px; cursor: pointer; font-size: 0.7rem; margin-right: 5px; font-weight: 600; }
+        .abrir-link { display: inline-block; font-size: 0.68rem; color: var(--gold-d); text-decoration: none; border: 1px solid #d8cbb0; padding: 5px 9px; border-radius: 40px; }
+        .editar-btn { background: var(--gold-l); color: var(--ink); border: none; padding: 5px 9px; border-radius: 40px; cursor: pointer; font-size: 0.68rem; font-weight: 600; }
         .editar-btn[disabled] { opacity: 0.5; cursor: default; }
         .edit-overlay { position: fixed; inset: 0; background: rgba(30,28,23,0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
         .edit-overlay.show { display: flex; }
@@ -215,7 +227,9 @@
         .filtros-bar input.busca { flex: 1; min-width: 180px; }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
-            .confirm-btn, .complete-btn, .cancel-btn { padding: 4px 6px; font-size: 0.65rem; }
+            .confirm-btn, .complete-btn, .cancel-btn,
+            .abrir-link, .editar-btn { padding: 4px 7px; font-size: 0.64rem; }
+            .acoes-cell { gap: 3px; }
         }
     </style>
 </head>
@@ -1038,12 +1052,14 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${vooNum}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
-                    <td>
+                    <td class="acoes-td">
+                      <div class="acoes-cell">
                         <a class="abrir-link" href="transfer.html?id=${idEnc}" target="_blank">Abrir<\/a>
                         <button class="editar-btn" data-act="edit" data-id="${_id}" ${cancelled ? 'disabled' : ''}>Editar<\/button>
                         <button class="confirm-btn" data-act="confirmar" data-id="${_id}" ${disabled ? 'disabled' : ''}>Confirmar<\/button>
                         <button class="complete-btn ${completed ? 'completed' : ''}" data-act="completed" data-id="${_id}" ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}<\/button>
                         <button class="cancel-btn ${cancelled ? 'cancelled' : ''}" data-act="cancelled" data-id="${_id}" ${cancelled ? 'disabled' : ''}>${cancelled ? '❌ Cancelado' : 'Cancelar'}<\/button>
+                      <\/div>
                     <\/td>
                 <\/tr>`;
             });
