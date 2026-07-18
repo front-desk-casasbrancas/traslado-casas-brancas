@@ -508,6 +508,7 @@
             step7: "7. Extras",
             inOption: "Transfer IN (Rio → Búzios)",
             outOption: "Transfer OUT (Búzios → Rio)",
+            inOutOption: "Transfer IN + Transfer OUT (ida e volta)",
             nome: "Nome completo (titular da reserva)",
             reserva: "Número da reserva ou do quarto",
             telefone: "Telefone celular (WhatsApp)",
@@ -607,6 +608,7 @@
             step7: "7. Extras",
             inOption: "Transfer IN (Rio → Búzios)",
             outOption: "Transfer OUT (Búzios → Rio)",
+            inOutOption: "Transfer IN + Transfer OUT (round trip)",
             nome: "Full name (reservation holder)",
             reserva: "Reservation or room number",
             telefone: "Mobile phone (WhatsApp)",
@@ -706,6 +708,7 @@
             step7: "7. Extras",
             inOption: "Traslado IN (Rio → Búzios)",
             outOption: "Traslado OUT (Búzios → Rio)",
+            inOutOption: "Traslado IN + Traslado OUT (ida y vuelta)",
             nome: "Nombre completo (titular de la reserva)",
             reserva: "Número de reserva o de habitación",
             telefone: "Teléfono celular (WhatsApp)",
@@ -984,7 +987,7 @@
 
     function atualizarResumo() {
         const t = translations[currentLang];
-        const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const sentido = sentidoIda() === "IN" ? "Rio → Búzios" : "Búzios → Rio";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
         const veiculo = document.getElementById("veiculoSelecionado")?.value || t.noVehicle;
@@ -1221,6 +1224,7 @@
                 <div class="radio-group" id="sentidoGroup">
                     <label><input type="radio" name="sentido" value="IN" checked> ${t.inOption}</label>
                     <label><input type="radio" name="sentido" value="OUT"> ${t.outOption}</label>
+                    <label><input type="radio" name="sentido" value="AMBOS"> ${t.inOutOption}</label>
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step2}</div>
@@ -1259,12 +1263,9 @@
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step4}</div><div id="localFields"></div>
-                <div class="form-row" style="margin-top:16px;padding-top:14px;border-top:1px dashed #d4cbb8;">
-                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="idaVolta" style="width:auto;"> <span id="idaVoltaText">${t.idaVolta}</span></label>
-                    <div style="font-size:0.7rem;color:#8a8270;margin-top:5px;margin-left:24px;" id="idaVoltaHintText">${t.idaVoltaHint}</div>
-                </div>
-                <div id="voltaWrap" style="display:none;margin-top:10px;padding:14px;background:#fafaf7;border:1px solid #e6ddc8;border-radius:10px;">
-                    <div style="font-weight:600;font-size:0.82rem;color:#8a7a55;margin-bottom:10px;" id="voltaTituloText">${t.voltaTitulo}</div>
+                <div id="voltaWrap" style="display:none;margin-top:14px;padding:14px;background:#fafaf7;border:1px solid #e6ddc8;border-radius:10px;">
+                    <div style="font-weight:600;font-size:0.82rem;color:#8a7a55;margin-bottom:4px;" id="voltaTituloText">${t.voltaTitulo}</div>
+                    <div style="font-size:0.7rem;color:#8a8270;margin-bottom:10px;" id="idaVoltaHintText">${t.idaVoltaHint}</div>
                     <div id="voltaFields"></div>
                 </div>
                 <div id="rec6h" style="margin-top:14px;padding:10px 14px;background:#fafaf7;border-left:3px solid #c8b88a;border-radius:8px;font-size:0.72rem;color:#6a7e5a;"><span id="rec6hText">${t.recomendacao6h}</span></div>
@@ -1319,10 +1320,12 @@
         scheduleUpdate();
     }
 
-    // Sentido oposto ao da ida — usado no trecho de volta
-    function sentidoIda() { return document.querySelector('input[name="sentido"]:checked').value; }
+    // Cabeçalho: IN, OUT ou AMBOS (ida e volta no mesmo preenchimento).
+    // Em AMBOS o 1º trecho é a chegada (IN) e o 2º a saída (OUT).
+    function sentidoEscolhido() { return document.querySelector('input[name="sentido"]:checked')?.value || "IN"; }
+    function sentidoIda() { const v = sentidoEscolhido(); return v === "AMBOS" ? "IN" : v; }
     function sentidoVolta() { return sentidoIda() === "IN" ? "OUT" : "IN"; }
-    function idaVoltaAtivo() { return !!document.getElementById("idaVolta")?.checked; }
+    function idaVoltaAtivo() { return sentidoEscolhido() === "AMBOS"; }
 
     // sfx = "" para a ida, "V" para a volta. Os ids da ida continuam iguais aos de antes.
     function renderLocalFields(sfx) {
@@ -1445,7 +1448,7 @@
 
     function montarMensagem() {
         const t = translations[currentLang];
-        const sentido = document.querySelector('input[name="sentido"]:checked').value === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
+        const sentido = sentidoIda() === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
         const metodo = metodoContato();
@@ -1607,7 +1610,7 @@
         const nome = (document.getElementById('nome')?.value || '').trim();
         const reserva = document.getElementById('reserva')?.value || '-';
         const contato = metodo === 'Email' ? getEmail() : getTelefone().sheet;
-        const sent = (document.querySelector('input[name="sentido"]:checked')?.value === 'IN') ? 'Rio → Búzios' : 'Búzios → Rio';
+        const sent = (sentidoIda() === 'IN') ? 'Rio → Búzios' : 'Búzios → Rio';
         const dv = document.getElementById('dataViagem')?.value || '';
         const dataBR = dv ? dv.split('-').reverse().join('/') : '-';
         const hora = document.getElementById('horaEmbarque')?.value || '-';
@@ -1754,11 +1757,9 @@
     function bindEvents() {
         document.querySelectorAll('input[name="sentido"]').forEach(r => r.addEventListener('change', () => {
             renderLocalFields();
-            if (idaVoltaAtivo()) renderLocalFields("V");
+            toggleIdaVolta();
             scheduleUpdate();
         }));
-
-        document.getElementById('idaVolta')?.addEventListener('change', toggleIdaVolta);
 
         document.querySelectorAll('input[name="regiao"]').forEach(r => r.addEventListener('change', () => trocarRegiao()));
 
@@ -1814,6 +1815,7 @@
             const ls = sg.querySelectorAll('label');
             if (ls[0]) ls[0].childNodes[1].textContent = " " + t.inOption;
             if (ls[1]) ls[1].childNodes[1].textContent = " " + t.outOption;
+            if (ls[2]) ls[2].childNodes[1].textContent = " " + t.inOutOption;
         }
         const rg = document.getElementById('regiaoGroup');
         if (rg) {
@@ -1884,7 +1886,6 @@
         if (localFields && localFields.children.length > 0) renderLocalFields();
         // Ida e volta: traduz os rótulos e re-renderiza o trecho de volta
         const _t = translations[currentLang];
-        const _ivT = document.getElementById("idaVoltaText"); if (_ivT) _ivT.innerText = _t.idaVolta;
         const _ivH = document.getElementById("idaVoltaHintText"); if (_ivH) _ivH.innerText = _t.idaVoltaHint;
         const _vT = document.getElementById("voltaTituloText"); if (_vT) _vT.innerText = _t.voltaTitulo;
         if (idaVoltaAtivo()) renderLocalFields("V");

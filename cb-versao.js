@@ -3,7 +3,7 @@
   Autor: Renato Rios (renatorios1611@gmail.com)
 */
 (function () {
-  var VERSAO = "2026.07.18-1"; // <- bump a cada publicacao (igual ao versao.json)
+  var VERSAO = "2026.07.18-2"; // <- bump a cada publicacao (igual ao versao.json)
   function selo() {
     if (document.getElementById('cbVersao')) return;
     var el = document.createElement('div');

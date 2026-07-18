@@ -4,7 +4,7 @@
   Criacao: 2025-2026. Desenvolvido para a operacao de traslados.
   Aviso de autoria: este arquivo integra obra de software de autoria do autor acima.
 */
-const CACHE = 'cb-transfers-v12';
+const CACHE = 'cb-transfers-v13';
 const ASSETS = [
   'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'motorista-app.html', 'transfer.html', 'financeiro.html',
   'acompanhamento.html', 'avaliacao.html', 'avaliacoes.html',
