@@ -604,13 +604,26 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         return isNaN(d.getTime()) ? "-" : `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
     }
 
-    // Normaliza o telefone para o WhatsApp (adiciona DDI 55 quando faltar).
+    // Monta o telefone internacional para o WhatsApp RESPEITANDO o DDI escolhido
+    // pelo hóspede. O formulário grava como "DDI numero" (DDI antes do 1º espaço),
+    // então o país que o cliente escolheu (55, 1, 351, 54...) é preservado.
+    // Só adiciona 55 quando o número claramente veio sem DDI (BR digitado solto).
     function formatWhatsAppPhone(tel) {
-        let d = (tel || "").toString().replace(/\D/g, "");
+        let s = (tel || "").toString().trim().replace(/^\+/, "");
+        if (!s) return "";
+        let partes = s.split(/\s+/);
+        // Caso normal: "DDI resto..." → o 1º bloco (1 a 3 dígitos) é o DDI do hóspede
+        if (partes.length >= 2) {
+            let ddi = partes[0].replace(/\D/g, "");
+            let resto = partes.slice(1).join("").replace(/\D/g, "");
+            if (ddi && ddi.length <= 3 && resto) return ddi + resto;
+        }
+        // Sem separador de DDI: só dígitos
+        let d = s.replace(/\D/g, "");
         if (!d) return "";
-        if (d.startsWith("55") && d.length >= 12) return d;   // já tem DDI Brasil
-        if (d.length === 10 || d.length === 11) return "55" + d; // BR sem DDI
-        return d; // outros (ex.: número internacional já com DDI)
+        if (d.startsWith("55") && d.length >= 12) return d;      // já é BR com DDI
+        if (d.length === 10 || d.length === 11) return "55" + d;  // BR digitado sem DDI
+        return d;                                                 // internacional já com DDI
     }
 
     // ==================== STATUS ====================
@@ -865,7 +878,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
         // WhatsApp: abre o NOSSO WhatsApp já com o texto padronizado (no idioma do hóspede)
         let telLimpo = formatWhatsAppPhone(t["Telefone"]);
-        if (!telLimpo || telLimpo.length < 12) { alert("Cliente sem telefone válido!"); return; }
+        if (!telLimpo || telLimpo.length < 10) { alert("Cliente sem telefone válido!"); return; }
         let win = window.open('', '_blank'); // abre já (preserva o gesto do clique) e preenche depois
         try {
             let r = await (await fetch(WEBAPP_URL + '?action=confirmacaoTexto&id=' + encodeURIComponent(id) + '&k=' + _k())).json();
@@ -911,7 +924,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             alert('Avaliação enviada por e-mail ao hóspede (pela front@casasbrancas.com.br).');
         } else {
             let tel = formatWhatsAppPhone(contato);
-            if (!tel || tel.length < 12) { alert('Telefone inválido!'); return; }
+            if (!tel || tel.length < 10) { alert('Telefone inválido!'); return; }
             let lang = (avalAlvo["Idioma"] || 'pt').toString().toLowerCase();
             let msg = (lang === 'en' ? 'We hope you had a wonderful trip.\nCould you share with us how your experience was?\nHere is our review link:\n' : (lang === 'es' ? 'Esperamos que haya tenido un excelente viaje.\n¿Podría compartirnos cómo fue su experiencia?\nAquí está nuestro enlace de evaluación:\n' : 'Esperamos que tenha tido uma ótima viagem.\nPoderia nos compartilhar como foi sua experiência?\nSegue nosso link de avaliação:\n')) + AVALIACAO_URL + encodeURIComponent(id);
             window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
