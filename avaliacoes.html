@@ -164,7 +164,7 @@
                  .sort((a,b)=>diaTransfer(b)-diaTransfer(a));
     if(!lista.length){ box.innerHTML='<div class="vazio">Nenhum transfer nos últimos 3 dias.</div>'; return; }
     box.innerHTML=lista.map((t,i)=>{
-      let sentido=(t["Sentido"]==='IN')?'Rio → Búzios':'Búzios → Rio';
+      let sentido=(t["Sentido"]==='IN')?'Chegada':'Saída';
       let destino=(t["Endereço"]||t["Endereco"]||'').toString().trim();
       let ja=t["AvaliacaoConviteEm"]?'<div class="env-ok">✓ avaliação já enviada</div>':'';
       let hora=getHorarioT(t); let dataStr=fData(t["Data Viagem"])+(hora?(' '+hora):'');

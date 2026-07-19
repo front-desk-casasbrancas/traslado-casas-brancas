@@ -165,7 +165,7 @@
     function render() {
         const t = atual;
         const st = getStatus(t);
-        const sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const sentido = t["Sentido"] === "IN" ? "Chegada" : "Saída";
         const wa = waLink(t["Telefone"]);
         const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
         const endereco = t["Endereço"] || t["Endereco"] || '';

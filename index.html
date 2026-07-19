@@ -506,9 +506,9 @@
             step5: "5. Região no Rio de Janeiro",
             step6: "6. Selecione o veículo",
             step7: "7. Extras",
-            inOption: "Transfer IN (Rio → Búzios)",
-            outOption: "Transfer OUT (Búzios → Rio)",
-            inOutOption: "Transfer IN + Transfer OUT (ida e volta)",
+            inOption: "Transfer de chegada",
+            outOption: "Transfer de saída",
+            inOutOption: "Transfer de chegada + saída (ida e volta)",
             nome: "Nome completo (titular da reserva)",
             reserva: "Número da reserva ou do quarto",
             telefone: "Telefone celular (WhatsApp)",
@@ -606,9 +606,9 @@
             step5: "5. Region in Rio de Janeiro",
             step6: "6. Select vehicle",
             step7: "7. Extras",
-            inOption: "Transfer IN (Rio → Búzios)",
-            outOption: "Transfer OUT (Búzios → Rio)",
-            inOutOption: "Transfer IN + Transfer OUT (round trip)",
+            inOption: "Arrival transfer",
+            outOption: "Departure transfer",
+            inOutOption: "Arrival + Departure (round trip)",
             nome: "Full name (reservation holder)",
             reserva: "Reservation or room number",
             telefone: "Mobile phone (WhatsApp)",
@@ -706,9 +706,9 @@
             step5: "5. Región en Rio de Janeiro",
             step6: "6. Seleccione el vehículo",
             step7: "7. Extras",
-            inOption: "Traslado IN (Rio → Búzios)",
-            outOption: "Traslado OUT (Búzios → Rio)",
-            inOutOption: "Traslado IN + Traslado OUT (ida y vuelta)",
+            inOption: "Traslado de llegada",
+            outOption: "Traslado de salida",
+            inOutOption: "Traslado de llegada + salida (ida y vuelta)",
             nome: "Nombre completo (titular de la reserva)",
             reserva: "Número de reserva o de habitación",
             telefone: "Teléfono celular (WhatsApp)",
@@ -987,7 +987,7 @@
 
     function atualizarResumo() {
         const t = translations[currentLang];
-        const sentido = sentidoIda() === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const sentido = sentidoIda() === "IN" ? "Chegada" : "Saída";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
         const veiculo = document.getElementById("veiculoSelecionado")?.value || t.noVehicle;
@@ -1009,7 +1009,7 @@
         const temVolta = idaVoltaAtivo();
         const totalVolta = calcularTotalVolta();
         const totalGeral = total + totalVolta;
-        const sentidoV = sentidoVolta() === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+        const sentidoV = sentidoVolta() === "IN" ? "Chegada" : "Saída";
         const dataV = document.getElementById("dataViagemV")?.value || "-";
         const horaV = document.getElementById("horaEmbarqueV")?.value || "-";
         const blocoVolta = temVolta
@@ -1448,7 +1448,7 @@
 
     function montarMensagem() {
         const t = translations[currentLang];
-        const sentido = sentidoIda() === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
+        const sentido = sentidoIda() === "IN" ? "Chegada" : "Saída";
         const nome = document.getElementById("nome")?.value || t.notInformed;
         const reserva = document.getElementById("reserva")?.value || "-";
         const metodo = metodoContato();
@@ -1489,7 +1489,7 @@
         mensagem += `\n`;
         // Segundo trecho (ida e volta) — vira um traslado separado na planilha
         if (idaVoltaAtivo()) {
-            const sentidoV = sentidoVolta() === "IN" ? "IN (Rio → Búzios)" : "OUT (Búzios → Rio)";
+            const sentidoV = sentidoVolta() === "IN" ? "Chegada" : "Saída";
             const vooV = document.getElementById("vooV")?.value || "-";
             const ciaV = document.getElementById("ciaAereaV")?.value || "-";
             mensagem += `>>> TRECHO 2 - VOLTA\n`;
@@ -1610,7 +1610,7 @@
         const nome = (document.getElementById('nome')?.value || '').trim();
         const reserva = document.getElementById('reserva')?.value || '-';
         const contato = metodo === 'Email' ? getEmail() : getTelefone().sheet;
-        const sent = (sentidoIda() === 'IN') ? 'Rio → Búzios' : 'Búzios → Rio';
+        const sent = (sentidoIda() === 'IN') ? 'Chegada' : 'Saída';
         const dv = document.getElementById('dataViagem')?.value || '';
         const dataBR = dv ? dv.split('-').reverse().join('/') : '-';
         const hora = document.getElementById('horaEmbarque')?.value || '-';
@@ -1636,7 +1636,7 @@
             (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '');
         // Trecho de volta (só quando marcado)
         if (temVolta) {
-            const sentV = sentidoVolta() === 'IN' ? 'Rio → Búzios' : 'Búzios → Rio';
+            const sentV = sentidoVolta() === 'IN' ? 'Chegada' : 'Saída';
             const dvV = document.getElementById('dataViagemV')?.value || '';
             const vooV = document.getElementById('vooV')?.value || '';
             const ciaV = document.getElementById('ciaAereaV')?.value || '';

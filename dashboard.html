@@ -378,8 +378,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 </select>
                 <select id="filtroSentido" title="Filtrar por sentido">
                     <option value="todos">Ambos os sentidos</option>
-                    <option value="IN">Rio → Búzios</option>
-                    <option value="OUT">Búzios → Rio</option>
+                    <option value="IN">Chegada</option>
+                    <option value="OUT">Saída</option>
                 </select>
                 <button class="refresh-btn" id="limparFiltros" style="background:#8b7a5c;">Limpar</button>
             </div>
@@ -424,7 +424,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <label>E-mail</label>
         <input type="text" id="editEmail" placeholder="nome@email.com">
         <label>Sentido</label>
-        <select id="editSentido"><option value="IN">Chegada (Rio → Búzios)</option><option value="OUT">Saída (Búzios → Rio)</option></select>
+        <select id="editSentido"><option value="IN">Chegada</option><option value="OUT">Saída</option></select>
         <label>Data</label>
         <input type="date" id="editData">
         <label>Horário</label>
@@ -781,7 +781,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             .sort((a, b) => getHorario(a).localeCompare(getHorario(b)));
 
         let itemHtml = (t) => {
-            let sentido = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+            let sentido = t["Sentido"] === "IN" ? "Chegada" : "Saída";
             let _id = (t["ID"] || '').toString();
             let rsv = t["Reserva"] ? ` · Reserva ${t["Reserva"]}` : '';
             return `<div class="proximo-item">
@@ -1060,7 +1060,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td>${horario}<\/td>
                     <td>${t["Nome"] || '-'}${rsv}${pm}${avalNota}<\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
-                    <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}<\/td>
+                    <td>${t["Sentido"] === "IN" ? "Chegada" : "Saída"}<\/td>
                     <td>${endereco}<\/td>
                     <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${vooNum}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
@@ -1308,7 +1308,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 <td>${formatarData(t["Data Viagem"])}</td>
                 <td>${getHorario(t)}</td>
                 <td>${t["Nome"] || '-'}</td>
-                <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
+                <td>${t["Sentido"] === "IN" ? "Chegada" : "Saída"}</td>
                 <td>${t["Veículo"] || '-'}</td>
                 <td style="text-align:right;">R$ ${v.toLocaleString('pt-BR')}</td>
                 <td style="text-align:right;">R$ ${(v*0.15*0.94).toLocaleString('pt-BR')}</td>

@@ -84,7 +84,7 @@
     }catch(e){ document.getElementById('conteudo').innerHTML='<div class="vazio">Não foi possível carregar agora.</div>'; }
   }
   function render(d){
-    let sent=d.sentido==='IN'?'Rio → Búzios':'Búzios → Rio';
+    let sent=d.sentido==='IN'?'Chegada':'Saída';
     let cur=idxStatus(d.status);
     let steps=PASSOS.map(function(p,i){ let cls=i<cur?'done':(i===cur?'on':''); let ic=i<cur?'✓':(i===cur?'●':(i+1)); return '<div class="step '+cls+'"><div class="dot">'+ic+'</div><div class="lab">'+p[1]+'</div></div>'; }).join('');
     let mot=d.motorista?('<div class="linha">🧑‍✈️ Motorista: <b>'+d.motorista+'</b></div>'):'<div class="linha" style="color:#8a8270;">Motorista a definir</div>';

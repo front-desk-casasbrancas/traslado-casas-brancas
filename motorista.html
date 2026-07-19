@@ -177,8 +177,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <input type="date" id="filtroData" title="Filtrar por data">
         <select id="filtroSentido">
             <option value="todos">Ambos os sentidos</option>
-            <option value="IN">Rio → Búzios</option>
-            <option value="OUT">Búzios → Rio</option>
+            <option value="IN">Chegada</option>
+            <option value="OUT">Saída</option>
         </select>
         <button class="chip" id="limparFiltros">Limpar</button>
     </div>
@@ -429,7 +429,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td><strong>${getHorario(t)}</strong></td>
                     <td>${t["Nome"] || '-'}${t["Reserva"] ? '<br><span style="font-size:0.7rem;color:#8a8270;">Reserva: ' + t["Reserva"] + '</span>' : ''}</td>
                     <td>${tel}${wa ? ` <br><a class="wa-link" href="${wa}" target="_blank">WhatsApp</a>` : ''}</td>
-                    <td>${t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio"}</td>
+                    <td>${t["Sentido"] === "IN" ? "Chegada" : "Saída"}</td>
                     <td>${endereco}</td>
                     <td>${voo}${ehHoje && vooNum ? ` <span class="voo-status" data-voo="${vooNum}">…</span>` : ''}</td>
                     <td>${t["Veículo"] || '-'}</td>

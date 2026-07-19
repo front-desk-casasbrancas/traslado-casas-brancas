@@ -190,8 +190,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 </select>
                 <select id="filtroSentido" title="Filtrar por sentido">
                     <option value="todos">Ambos os sentidos</option>
-                    <option value="IN">Rio → Búzios</option>
-                    <option value="OUT">Búzios → Rio</option>
+                    <option value="IN">Chegada</option>
+                    <option value="OUT">Saída</option>
                 </select>
                 <button class="refresh-btn" id="limparFiltros" style="background:#8b7a5c;">Limpar</button>
             </div>
@@ -339,7 +339,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let lista = [...transfersDoPeriodo(currentPeriodo)].sort((a, b) => new Date(a["Data Viagem"]) - new Date(b["Data Viagem"]));
         let totalTraslados = lista.reduce((s, t) => s + (parseFloat(t["Valor Total"]) || 0), 0);
         let totalComissao = comissao(totalTraslados);
-        let linhas = lista.map(t => { let v = parseFloat(t["Valor Total"]) || 0; return '<tr><td>' + formatarData(t["Data Viagem"]) + '</td><td>' + getHorario(t) + '</td><td>' + (t["Nome"] || '-') + '</td><td>' + (t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio") + '</td><td>' + (t["Veículo"] || '-') + '</td><td style="text-align:right;">R$ ' + v.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + comissao(v).toLocaleString('pt-BR') + '</td></tr>'; }).join('');
+        let linhas = lista.map(t => { let v = parseFloat(t["Valor Total"]) || 0; return '<tr><td>' + formatarData(t["Data Viagem"]) + '</td><td>' + getHorario(t) + '</td><td>' + (t["Nome"] || '-') + '</td><td>' + (t["Sentido"] === "IN" ? "Chegada" : "Saída") + '</td><td>' + (t["Veículo"] || '-') + '</td><td style="text-align:right;">R$ ' + v.toLocaleString('pt-BR') + '</td><td style="text-align:right;">R$ ' + comissao(v).toLocaleString('pt-BR') + '</td></tr>'; }).join('');
         let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Comissões - Casas Brancas</title><style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{font-size:1.25rem;color:#9c7d3f;margin-bottom:4px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:18px;}.tot{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap;}.tot div{background:#f3ecdd;border:1px solid #e0d4b5;border-radius:8px;padding:12px 18px;}.tot strong{font-size:1.2rem;color:#9c7d3f;}table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82rem;}th,td{border-bottom:1px solid #ddd;padding:7px 8px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}tfoot td{font-weight:bold;border-top:2px solid #9c7d3f;}@media print{.noprint{display:none;}}</style></head><body>' +
             '<h1>Relatório de Comissões — Casas Brancas</h1><div class="sub">Período: ' + (labels[currentPeriodo] || 'Todos') + ' · Gerado em ' + new Date().toLocaleString('pt-BR') + ' · ' + lista.length + ' traslados</div>' +
             '<div class="tot"><div>Total em traslados<br><strong>R$ ' + totalTraslados.toLocaleString('pt-BR') + '</strong></div><div>Comissão líq. (15% − 6% cartão)<br><strong>R$ ' + totalComissao.toLocaleString('pt-BR') + '</strong></div></div>' +
@@ -464,7 +464,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     '<td>' + getHorario(t) + '</td>' +
                     '<td>' + (t["Nome"] || '-') + (t["Reserva"] ? '<br><span style="font-size:0.72rem;color:#8a8270;">Reserva: ' + t["Reserva"] + '</span>' : '') + '</td>' +
                     '<td>' + contato + '</td>' +
-                    '<td>' + (t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio") + '</td>' +
+                    '<td>' + (t["Sentido"] === "IN" ? "Chegada" : "Saída") + '</td>' +
                     '<td>' + endereco + '</td>' +
                     '<td>' + voo + (ehHoje && vooNum ? ' <span class="voo-status" data-voo="' + vooNum + '">…</span>' : '') + '</td>' +
                     '<td>' + (t["Veículo"] || '-') + '</td>' +

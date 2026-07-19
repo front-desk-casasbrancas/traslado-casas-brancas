@@ -208,7 +208,7 @@
 
         cont.innerHTML=lista.map(function(t){
             let s=getStatus(t);
-            let sent = t["Sentido"]==="IN" ? "Rio → Búzios" : "Búzios → Rio";
+            let sent = t["Sentido"]==="IN" ? "Chegada" : "Saída";
             let end = (t["Endereço"]||t["Endereco"]||'').toString().trim();
             let voo = [t["Voo"], t["Cia Aérea"]||t["Cia Aerea"]].filter(function(x){return x && x!=='-';}).join(' / ');
             let _id=idOf(t);

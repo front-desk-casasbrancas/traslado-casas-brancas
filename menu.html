@@ -412,7 +412,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             function renderLista(arr){
                 if(!arr.length) return '<div class="vazio">Nenhum traslado.</div>';
                 return arr.map(t => {
-                    const sent = t["Sentido"] === "IN" ? "Rio → Búzios" : "Búzios → Rio";
+                    const sent = t["Sentido"] === "IN" ? "Chegada" : "Saída";
                     const st = (t["Status"] || 'active').toString().toLowerCase();
                     const tag = st === 'completed' ? ' · Finalizado' : (st === 'em_andamento' ? ' · Em andamento' : '');
                     const rsv = t["Reserva"] ? (' · Reserva ' + t["Reserva"]) : '';
