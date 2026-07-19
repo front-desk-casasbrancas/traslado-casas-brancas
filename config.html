@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<!--
+  Sistema de Traslados — aplicativo web (PWA)
+  Autor: Renato Rios (renatorios1611@gmail.com)
+  Criacao: 2025-2026. Desenvolvido para a operacao de traslados.
+  Aviso de autoria: este arquivo integra obra de software de autoria do autor acima.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurações — Preços · Casas Brancas</title>
+<meta name="theme-color" content="#2b2a26">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--gold:#b8995a;--gold-d:#9c7d3f;--ink:#2b2a26;--sea:#2f7d8c;--cream:#f8f5ef;--line:#e2dac8;}
+  body{font-family:'Segoe UI',-apple-system,Arial,sans-serif;color:#34322c;background:#f3efe7;min-height:100vh;padding:0 0 60px;}
+  .topo{background:linear-gradient(100deg,#2b2a26,#3a382f);color:#fff;padding:20px 22px;position:relative;}
+  .topo .nome{font-family:'Georgia',serif;font-style:italic;font-size:1.4rem;}
+  .topo .sub{font-size:0.72rem;letter-spacing:2px;color:#cbb27a;margin-top:3px;font-weight:600;text-transform:uppercase;}
+  .topo a.voltar{position:absolute;right:20px;top:22px;color:#cbb27a;text-decoration:none;font-size:0.82rem;font-weight:600;border:1px solid rgba(203,178,122,.4);padding:6px 14px;border-radius:40px;}
+  .wrap{max-width:1080px;margin:18px auto;padding:0 16px;}
+  .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  select,input{font-family:inherit;font-size:0.9rem;padding:8px 10px;border:1px solid #d8cbb0;border-radius:8px;background:#fff;color:#34322c;}
+  .btn{border:none;border-radius:40px;padding:10px 18px;font-weight:600;font-size:0.85rem;cursor:pointer;}
+  .btn-add{background:#e8dec6;color:#7a6a3f;}
+  .btn-save{background:var(--gold);color:#fff;}
+  .btn-save:disabled{opacity:.5;cursor:default;}
+  .btn-del{background:#faecec;color:#b85c5a;border:1px solid #f0d5d5;border-radius:8px;padding:6px 10px;font-size:0.75rem;cursor:pointer;}
+  .cat{margin:18px 0 6px;font-size:0.9rem;font-weight:700;color:var(--gold-d);}
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  th{background:var(--ink);color:#fff;font-size:0.72rem;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:8px 8px;font-weight:600;}
+  td{border-bottom:1px solid #eee6d5;padding:5px 8px;vertical-align:middle;}
+  td input[type=text]{width:100%;}
+  td.prc input{width:96px;text-align:right;}
+  td.cap input{width:150px;}
+  tr.inativo{opacity:.45;}
+  .msg{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#2b2a26;color:#fff;padding:10px 18px;border-radius:40px;font-size:0.85rem;box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;transition:.25s;pointer-events:none;z-index:50;}
+  .msg.show{opacity:1;}
+  .vazio{padding:26px;text-align:center;color:#8a8270;}
+  /* gate */
+  #gate{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background-image:linear-gradient(rgba(30,28,23,.72),rgba(30,28,23,.72)),url('fundo-hotel.jpg');background-size:cover;background-position:center;}
+  #gate .box{background:#fff;border-radius:16px;padding:26px;width:300px;text-align:center;box-shadow:0 16px 40px rgba(0,0,0,.3);}
+  #gate h2{font-family:Georgia,serif;color:var(--gold-d);font-size:1.2rem;margin-bottom:14px;}
+  #gate input{width:100%;margin-bottom:12px;}
+  #gate button{width:100%;background:var(--gold);color:#fff;border:none;border-radius:10px;padding:12px;font-weight:600;cursor:pointer;}
+  #gate .err{color:#b85c5a;font-size:0.78rem;margin-top:8px;display:none;}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="box">
+    <h2>Configurações</h2>
+    <input type="password" id="senha" placeholder="Senha da recepção" autocomplete="off" data-1p-ignore>
+    <button id="entrar">Entrar</button>
+    <div class="err" id="gateErr">Senha incorreta</div>
+  </div>
+</div>
+
+<div class="topo">
+  <div class="nome">Casas Brancas</div>
+  <div class="sub">Configurações · Preços dos traslados</div>
+  <a class="voltar" href="menu.html">‹ Menu</a>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+  <div class="barra">
+    <label style="font-size:.82rem;color:#6a6558;">Região:</label>
+    <select id="filtroRegiao">
+      <option value="centro-sul">Centro / Zona Sul</option>
+      <option value="zona-oeste">Zona Oeste</option>
+      <option value="costa-verde">Costa Verde</option>
+    </select>
+    <button class="btn btn-add" id="btnAdd">+ Adicionar veículo</button>
+    <div style="flex:1;"></div>
+    <button class="btn btn-save" id="btnSave">Salvar alterações</button>
+  </div>
+  <div id="tabelas"><div class="vazio">Carregando…</div></div>
+  <p style="font-size:.75rem;color:#8a8270;margin-top:14px;">
+    As alterações só valem depois de <b>Salvar</b>. O formulário do hóspede passará a usar estes preços
+    quando a integração for ativada (após a validação técnica).
+  </p>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<script>
+window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
+const REGIOES = { "centro-sul":"Centro / Zona Sul", "zona-oeste":"Zona Oeste", "costa-verde":"Costa Verde" };
+const CATEGORIAS = ["Transporte Privativo","Carro Executivo","Carro Executivo Especial"];
+let ITENS = [];          // {regiao,categoria,veiculo,capacidade,preco,obs,ativo}
+let CHAVE = "";
+
+function msg(t){ const m=document.getElementById('msg'); m.textContent=t; m.classList.add('show'); setTimeout(()=>m.classList.remove('show'),2600); }
+
+// ---- Login: valida a chave num endpoint protegido leve ----
+document.getElementById('entrar').addEventListener('click', entrar);
+document.getElementById('senha').addEventListener('keydown', e=>{ if(e.key==='Enter') entrar(); });
+async function entrar(){
+  const s = document.getElementById('senha').value.trim();
+  if(!s) return;
+  try{
+    const r = await (await fetch(WEBAPP_URL + '?action=posicoesAtivas&k=' + encodeURIComponent(s))).json();
+    if(r && r.error){ document.getElementById('gateErr').style.display='block'; return; }
+    CHAVE = s;
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
+    carregar();
+  }catch(e){ document.getElementById('gateErr').style.display='block'; }
+}
+
+async function carregar(){
+  try{
+    const d = await (await fetch(WEBAPP_URL + '?action=precos&t=' + Date.now())).json();
+    ITENS = (Array.isArray(d)?d:[]).map(o=>({
+      regiao:o.Regiao||"", categoria:o.Categoria||"", veiculo:o.Veiculo||"",
+      capacidade:o.Capacidade||"", preco:parseFloat(o.Preco)||0, obs:o.Obs||"",
+      ativo: String(o.Ativo||"Sim").toLowerCase()!=="nao"
+    }));
+    render();
+  }catch(e){ document.getElementById('tabelas').innerHTML='<div class="vazio">Não foi possível carregar.</div>'; }
+}
+
+function render(){
+  const reg = document.getElementById('filtroRegiao').value;
+  const cont = document.getElementById('tabelas');
+  const doReg = ITENS.map((it,idx)=>({it,idx})).filter(x=>x.it.regiao===reg);
+  let html = "";
+  CATEGORIAS.forEach(cat=>{
+    const linhas = doReg.filter(x=>x.it.categoria===cat);
+    html += '<div class="cat">'+cat+'</div>';
+    html += '<table><thead><tr><th>Veículo</th><th>Capacidade</th><th style="text-align:right;">Preço (R$)</th><th>Observação</th><th style="text-align:center;">Ativo</th><th></th></tr></thead><tbody>';
+    if(!linhas.length){ html += '<tr><td colspan="6" style="color:#9a917c;padding:12px;">Nenhum veículo nesta categoria.</td></tr>'; }
+    linhas.forEach(({idx})=>{
+      const it = ITENS[idx];
+      html += '<tr class="'+(it.ativo?'':'inativo')+'" data-idx="'+idx+'">'
+        + '<td><input type="text" data-f="veiculo" value="'+esc(it.veiculo)+'"></td>'
+        + '<td class="cap"><input type="text" data-f="capacidade" value="'+esc(it.capacidade)+'"></td>'
+        + '<td class="prc"><input type="number" data-f="preco" value="'+(it.preco||0)+'" min="0" step="10"></td>'
+        + '<td><input type="text" data-f="obs" value="'+esc(it.obs)+'"></td>'
+        + '<td style="text-align:center;"><input type="checkbox" data-f="ativo" '+(it.ativo?'checked':'')+'></td>'
+        + '<td><button class="btn-del" data-del="'+idx+'">remover</button></td>'
+        + '</tr>';
+    });
+    html += '</tbody></table>';
+  });
+  cont.innerHTML = html;
+  // liga eventos
+  cont.querySelectorAll('input[data-f]').forEach(el=>{
+    el.addEventListener('change', ()=>{
+      const idx = +el.closest('tr').dataset.idx; const f = el.dataset.f;
+      if(f==='ativo'){ ITENS[idx].ativo = el.checked; el.closest('tr').classList.toggle('inativo',!el.checked); }
+      else if(f==='preco'){ ITENS[idx].preco = parseFloat(el.value)||0; }
+      else { ITENS[idx][f] = el.value; }
+    });
+  });
+  cont.querySelectorAll('button[data-del]').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const idx=+b.dataset.del;
+      if(confirm('Remover "'+(ITENS[idx].veiculo||'este veículo')+'"?')){ ITENS.splice(idx,1); render(); }
+    });
+  });
+}
+
+document.getElementById('filtroRegiao').addEventListener('change', render);
+
+document.getElementById('btnAdd').addEventListener('click', ()=>{
+  const reg = document.getElementById('filtroRegiao').value;
+  ITENS.push({ regiao:reg, categoria:CATEGORIAS[0], veiculo:"", capacidade:"", preco:0, obs:"", ativo:true });
+  render();
+  // rola até o fim
+  window.scrollTo(0, document.body.scrollHeight);
+});
+
+document.getElementById('btnSave').addEventListener('click', async ()=>{
+  // valida: veículo não vazio
+  const invalidos = ITENS.filter(it=>!String(it.veiculo).trim());
+  if(invalidos.length){ msg('Há veículo(s) sem nome. Preencha ou remova.'); return; }
+  const btn = document.getElementById('btnSave'); btn.disabled=true; btn.textContent='Salvando…';
+  try{
+    const r = await (await fetch(WEBAPP_URL, {
+      method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'salvarPrecos', k:CHAVE, itens:ITENS })
+    })).json();
+    if(r && r.ok){ msg('Salvo! ('+r.total+' veículos)'); }
+    else { msg('Erro ao salvar: ' + ((r&&r.error)||'desconhecido')); }
+  }catch(e){ msg('Falha de conexão ao salvar.'); }
+  finally{ btn.disabled=false; btn.textContent='Salvar alterações'; }
+});
+
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+<script src="cb-versao.js"></script>
+</body>
+</html>
