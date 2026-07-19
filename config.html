@@ -73,6 +73,7 @@
     </select>
     <button class="btn btn-add" id="btnAdd">+ Adicionar veículo</button>
     <div style="flex:1;"></div>
+    <input type="text" id="quem" placeholder="Seu nome (para o registro)" style="width:180px;">
     <button class="btn btn-save" id="btnSave">Salvar alterações</button>
   </div>
   <div id="tabelas"><div class="vazio">Carregando…</div></div>
@@ -180,7 +181,7 @@ document.getElementById('btnSave').addEventListener('click', async ()=>{
   try{
     const r = await (await fetch(WEBAPP_URL, {
       method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
-      body: JSON.stringify({ action:'salvarPrecos', k:CHAVE, itens:ITENS })
+      body: JSON.stringify({ action:'salvarPrecos', k:CHAVE, quem:(document.getElementById('quem').value||'').trim(), itens:ITENS })
     })).json();
     if(r && r.ok){ msg('Salvo! ('+r.total+' veículos)'); }
     else { msg('Erro ao salvar: ' + ((r&&r.error)||'desconhecido')); }
