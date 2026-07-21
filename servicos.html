@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<!--
+  Sistema de Traslados — aplicativo web (PWA)
+  Autor: Renato Rios (renatorios1611@gmail.com)
+  Landing de serviços do hotel (PT/EN/ES). Conteúdo real dos guias Casas Brancas.
+  Cardápios (74 Restaurant, 74 Osteria e Spa) hospedados localmente em cardapio-*.html.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aproveite sua estada — Casas Brancas</title>
+<meta name="theme-color" content="#2b2a26">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{--gold:#b8995a;--gold-d:#9c7d3f;--gold-l:#cbb27a;--ink:#2b2a26;--sea:#2f7d8c;--cream:#f8f5ef;--line:#e2dac8;}
+  body{font-family:'Segoe UI',-apple-system,Arial,sans-serif;color:#34322c;background:#f4f0e8;}
+  .hero{position:relative;color:#fff;text-align:center;padding:34px 22px 46px;background-image:linear-gradient(rgba(30,28,23,.55),rgba(30,28,23,.72)),url('fundo-hotel.jpg');background-size:cover;background-position:center 42%;}
+  .langbar{display:flex;gap:6px;justify-content:center;margin-bottom:20px;}
+  .langbar button{font-family:inherit;font-size:.72rem;letter-spacing:.04em;padding:5px 12px;border-radius:40px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:#efe7d8;cursor:pointer;}
+  .langbar button.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700;}
+  .hero .marca{font-size:.72rem;letter-spacing:3px;color:var(--gold-l);font-weight:700;}
+  .hero h1{font-family:'Georgia',serif;font-style:italic;font-weight:400;font-size:2rem;margin:10px 0 8px;}
+  .hero p{font-size:.95rem;color:#efe7d8;max-width:460px;margin:0 auto;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 16px 60px;}
+  .sec{margin-top:34px;}
+  .sec-tit{font-family:'Georgia',serif;font-size:1.3rem;color:var(--gold-d);margin:0 0 4px;}
+  .sec-sub{font-size:.82rem;color:#8a8270;margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 6px 18px rgba(40,36,28,.06);display:flex;flex-direction:column;}
+  .card .top{height:6px;background:linear-gradient(90deg,var(--gold),var(--gold-l));}
+  .card .foto{height:160px;background-size:cover;background-position:center;background-color:#efe7d8;}
+  .fotoF{height:190px;border-radius:12px;background-size:cover;background-position:center;background-color:#efe7d8;margin-bottom:12px;}
+  .card .body{padding:16px 16px 14px;display:flex;flex-direction:column;flex:1;}
+  .card h3{font-family:'Georgia',serif;font-size:1.08rem;color:var(--ink);margin-bottom:4px;}
+  .card .desc{font-size:.86rem;color:#5a5446;line-height:1.5;flex:1;}
+  .card .preco{font-size:.92rem;font-weight:700;color:var(--gold-d);margin:10px 0 2px;}
+  .card .mais{background:none;border:none;color:var(--sea);font-size:.8rem;font-weight:600;cursor:pointer;padding:0;margin:6px 0 0;text-align:left;}
+  .det{display:none;font-size:.84rem;color:#5a5446;line-height:1.55;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);}
+  .det.show{display:block;}
+  .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .btn{flex:1;text-align:center;text-decoration:none;border-radius:40px;padding:10px 12px;font-size:.82rem;font-weight:700;cursor:pointer;border:none;white-space:nowrap;}
+  .btn-wa{background:#25D366;color:#fff;}
+  .btn-res{background:var(--gold);color:#fff;}
+  .btn-menu{background:#f0e7d3;color:#7a6a3f;}
+  .featured{background:linear-gradient(180deg,#fffdf8,#fbf6ea);border:1.5px solid var(--gold-l);border-radius:18px;padding:18px;margin-bottom:16px;}
+  .featured .selo{display:inline-block;background:var(--gold);color:#fff;font-size:.66rem;font-weight:700;letter-spacing:.5px;padding:3px 10px;border-radius:40px;text-transform:uppercase;margin-bottom:8px;}
+  .featured h3{font-family:'Georgia',serif;font-size:1.35rem;color:var(--ink);}
+  .featured .end{font-size:.78rem;color:#8a8270;margin-top:8px;}
+  .rod{text-align:center;font-size:.74rem;color:#8a8270;padding:26px 16px;}
+  .voltar{display:inline-block;margin:16px 0 0;color:var(--gold-d);text-decoration:none;font-size:.85rem;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="langbar" id="langbar">
+    <button data-l="pt">Português</button><button data-l="en">English</button><button data-l="es">Español</button>
+  </div>
+  <div class="marca">CASAS BRANCAS · BÚZIOS</div>
+  <h1 data-i18n="h1">Aproveite sua estada</h1>
+  <p data-i18n="heroP">Experiências, gastronomia e passeios selecionados. Toque em "Falar com a recepção" e a gente organiza tudo para você.</p>
+</div>
+
+<div class="wrap">
+  <div class="sec">
+    <div class="sec-tit" data-i18n="secCbTit">Experiências Casas Brancas</div>
+    <div class="sec-sub" data-i18n="secCbSub">Tudo que é da casa: nossos restaurantes, o spa e experiências exclusivas.</div>
+
+    <div class="featured">
+      <div class="fotoF" style="background-image:url('fotos-servicos/74-restaurant.jpg')"></div>
+      <span class="selo" data-i18n="seloRest">Nosso restaurante</span>
+      <h3>74 Restaurant</h3>
+      <div class="desc" data-i18n="r74Desc" style="font-size:.9rem;color:#5a5446;line-height:1.55;margin-top:6px;">No terraço do hotel, com vista irretocável da Baía da Armação através de paredes de vidro. Gastronomia contemporânea que une ingredientes locais frescos a inspirações do mundo. Aberto diariamente para almoço e jantar.</div>
+      <div class="end">Rua Alto do Humaitá, 10 — Centro · Armação dos Búzios</div>
+      <div class="acoes">
+        <a class="btn btn-res" data-i18n="btnReservarOnline" href="https://www.getin.app/armacao-dos-buzios/74-restaurant" target="_blank" rel="noopener">Reservar online</a>
+        <a class="btn btn-menu" data-i18n="btnVerCardapio" href="cardapio-74.html">Ver cardápio</a>
+        <a class="btn btn-wa" data-i18n="btnRecepcao" data-wa="74 Restaurant">Falar com a recepção</a>
+      </div>
+    </div>
+
+    <div class="featured">
+      <div class="fotoF" style="background-image:url('fotos-servicos/74-osteria.jpg')"></div>
+      <span class="selo" data-i18n="seloRest">Nosso restaurante</span>
+      <h3>74 Osteria</h3>
+      <div class="desc" data-i18n="ostDesc" style="font-size:.9rem;color:#5a5446;line-height:1.55;margin-top:6px;">Em frente à Orla Bardot, com o mais bonito pôr do sol da península. Receitas italianas tradicionais com toque regional, harmonizadas por uma seleção de vinhos e drinks autorais.</div>
+      <div class="end">Orla Bardot — Centro · Armação dos Búzios</div>
+      <div class="acoes">
+        <a class="btn btn-menu" data-i18n="btnVerCardapio" href="cardapio-osteria.html">Ver cardápio</a>
+        <a class="btn btn-wa" data-i18n="btnRecepcao" data-wa="74 Osteria">Falar com a recepção</a>
+      </div>
+    </div>
+
+    <div class="featured">
+      <div class="fotoF" style="background-image:url('fotos-servicos/spa.jpg')"></div>
+      <span class="selo" data-i18n="seloSpa">Nosso spa</span>
+      <h3>Casas Brancas Spa</h3>
+      <div class="desc" data-i18n="spaDesc" style="font-size:.9rem;color:#5a5446;line-height:1.55;margin-top:6px;">Rituais e massagens inspirados nos melhores tratamentos do mundo, que reduzem o estresse e proporcionam o máximo descanso físico e mental — em um cenário de rara beleza natural.</div>
+      <div class="acoes">
+        <a class="btn btn-menu" data-i18n="btnVerTratamentos" href="cardapio-spa.html">Ver tratamentos</a>
+        <a class="btn btn-wa" data-i18n="btnRecepcao" data-wa="Casas Brancas Spa">Falar com a recepção</a>
+      </div>
+    </div>
+
+    <div class="sec-sub" data-i18n="expExcl" style="margin-top:4px;">Experiências exclusivas</div>
+    <div class="grid" id="gExpProprias"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit" data-i18n="secGastroTit">Gastronomia em Búzios</div>
+    <div class="sec-sub" data-i18n="secGastroSub">As melhores mesas da região, selecionadas pela nossa equipe.</div>
+    <div class="grid" id="gRestaurantes"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit" data-i18n="secPasseiosTit">Passeios &amp; Aventura</div>
+    <div class="sec-sub" data-i18n="secPasseiosSub">Realizados por parceiros locais selecionados; a recepção organiza.</div>
+    <div class="grid" id="gPasseios"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-tit" data-i18n="secAluguelTit">Aluguel de Veículos</div>
+    <div class="sec-sub" data-i18n="secAluguelSub">Liberdade para explorar a península.</div>
+    <div class="grid" id="gAluguel"></div>
+  </div>
+
+  <a class="voltar" data-i18n="voltar" href="index.html">‹ Voltar ao formulário</a>
+</div>
+
+<div class="rod" data-i18n="rod">Casas Brancas Boutique Hotel &amp; Spa · Búzios<br>Experiências por parceiros são contratadas diretamente com os prestadores; o hotel atua como facilitador.</div>
+
+<script>
+const WA = "5522997909544";
+let LANG = localStorage.getItem('cb_lang');
+if(!['pt','en','es'].includes(LANG)){ LANG=(navigator.language||'pt').slice(0,2).toLowerCase(); if(!['pt','en','es'].includes(LANG)) LANG='pt'; }
+function L(o){ return o ? (o[LANG]||o.en||o.pt) : ''; }
+
+const I18N = {
+  h1:{pt:"Aproveite sua estada",en:"Enjoy your stay",es:"Disfrute su estancia"},
+  heroP:{pt:'Experiências, gastronomia e passeios selecionados. Toque em "Falar com a recepção" e a gente organiza tudo para você.',
+         en:'Curated experiences, dining and tours. Tap "Contact reception" and we arrange everything for you.',
+         es:'Experiencias, gastronomía y paseos seleccionados. Toque en "Hablar con recepción" y organizamos todo para usted.'},
+  secCbTit:{pt:"Experiências Casas Brancas",en:"Casas Brancas Experiences",es:"Experiencias Casas Brancas"},
+  secCbSub:{pt:"Tudo que é da casa: nossos restaurantes, o spa e experiências exclusivas.",
+            en:"Everything in-house: our restaurants, the spa and exclusive experiences.",
+            es:"Todo lo de la casa: nuestros restaurantes, el spa y experiencias exclusivas."},
+  seloRest:{pt:"Nosso restaurante",en:"Our restaurant",es:"Nuestro restaurante"},
+  seloSpa:{pt:"Nosso spa",en:"Our spa",es:"Nuestro spa"},
+  r74Desc:{pt:"No terraço do hotel, com vista irretocável da Baía da Armação através de paredes de vidro. Gastronomia contemporânea que une ingredientes locais frescos a inspirações do mundo. Aberto diariamente para almoço e jantar.",
+           en:"On the hotel terrace, with a flawless view of Armação Bay through glass walls. Contemporary cuisine blending fresh local ingredients with inspirations from around the world. Open daily for lunch and dinner.",
+           es:"En la terraza del hotel, con vista impecable de la Bahía de Armação a través de paredes de vidrio. Gastronomía contemporánea que une ingredientes locales frescos con inspiraciones del mundo. Abierto a diario para almuerzo y cena."},
+  ostDesc:{pt:"Em frente à Orla Bardot, com o mais bonito pôr do sol da península. Receitas italianas tradicionais com toque regional, harmonizadas por uma seleção de vinhos e drinks autorais.",
+           en:"Facing Orla Bardot, with the most beautiful sunset on the peninsula. Traditional Italian recipes with a regional touch, paired with a selection of wines and signature drinks.",
+           es:"Frente a la Orla Bardot, con el atardecer más bonito de la península. Recetas italianas tradicionales con toque regional, armonizadas con una selección de vinos y tragos de autor."},
+  spaDesc:{pt:"Rituais e massagens inspirados nos melhores tratamentos do mundo, que reduzem o estresse e proporcionam o máximo descanso físico e mental — em um cenário de rara beleza natural.",
+           en:"Rituals and massages inspired by the world's finest treatments, reducing stress and providing maximum physical and mental rest — in a setting of rare natural beauty.",
+           es:"Rituales y masajes inspirados en los mejores tratamientos del mundo, que reducen el estrés y brindan el máximo descanso físico y mental — en un entorno de rara belleza natural."},
+  expExcl:{pt:"Experiências exclusivas",en:"Exclusive experiences",es:"Experiencias exclusivas"},
+  secGastroTit:{pt:"Gastronomia em Búzios",en:"Dining in Búzios",es:"Gastronomía en Búzios"},
+  secGastroSub:{pt:"As melhores mesas da região, selecionadas pela nossa equipe.",
+                en:"The best tables in the region, selected by our team.",
+                es:"Las mejores mesas de la región, seleccionadas por nuestro equipo."},
+  secPasseiosTit:{pt:"Passeios & Aventura",en:"Tours & Adventure",es:"Paseos y Aventura"},
+  secPasseiosSub:{pt:"Realizados por parceiros locais selecionados; a recepção organiza.",
+                  en:"Run by selected local partners; reception arranges it.",
+                  es:"Realizados por socios locales seleccionados; la recepción organiza."},
+  secAluguelTit:{pt:"Aluguel de Veículos",en:"Vehicle Rental",es:"Alquiler de Vehículos"},
+  secAluguelSub:{pt:"Liberdade para explorar a península.",en:"Freedom to explore the peninsula.",es:"Libertad para explorar la península."},
+  btnReservarOnline:{pt:"Reservar online",en:"Book online",es:"Reservar online"},
+  btnVerCardapio:{pt:"Ver cardápio",en:"View menu",es:"Ver carta"},
+  btnVerTratamentos:{pt:"Ver tratamentos",en:"View treatments",es:"Ver tratamientos"},
+  btnRecepcao:{pt:"Falar com a recepção",en:"Contact reception",es:"Hablar con recepción"},
+  voltar:{pt:"‹ Voltar ao formulário",en:"‹ Back to the form",es:"‹ Volver al formulario"},
+  rod:{pt:'Casas Brancas Boutique Hotel &amp; Spa · Búzios<br>Experiências por parceiros são contratadas diretamente com os prestadores; o hotel atua como facilitador.',
+       en:'Casas Brancas Boutique Hotel &amp; Spa · Búzios<br>Partner experiences are contracted directly with the providers; the hotel acts as facilitator.',
+       es:'Casas Brancas Boutique Hotel &amp; Spa · Búzios<br>Las experiencias de socios se contratan directamente con los proveedores; el hotel actúa como facilitador.'},
+  saiba:{pt:"Saiba mais ▾",en:"Learn more ▾",es:"Saber más ▾"},
+  ocultar:{pt:"Ocultar ▴",en:"Hide ▴",es:"Ocultar ▴"},
+  recepcao:{pt:"Falar com a recepção",en:"Contact reception",es:"Hablar con recepción"},
+  reservas:{pt:"Falar com Reservas",en:"Contact Reservations",es:"Hablar con Reservas"},
+  interesse:{pt:"Olá! Tenho interesse em: ",en:"Hello! I'm interested in: ",es:"¡Hola! Me interesa: "},
+  ajuda:{pt:". Poderia me ajudar?",en:". Could you help me?",es:". ¿Podría ayudarme?"}
+};
+
+const FOTOS = {
+  "Passeios de Lancha":"fotos-servicos/lancha.jpg","Surf Experience":"fotos-servicos/surf.jpg",
+  "Kitesurf":"fotos-servicos/kitesurf.jpg","Aluguel de Carros":"fotos-servicos/carros.jpg",
+  "Bugres & Buggys":"fotos-servicos/buggy.jpg","Experiência no Mar — Cestas a bordo":"fotos-servicos/cestas.jpg",
+  "Caiaques":"fotos-servicos/caiaques.jpg","Experiência Romântica":"fotos-servicos/romantica.jpg",
+  "Mesa Romântica":"fotos-servicos/mesa-romantica.jpg",
+  "Trilha Pôr do Sol — Serra das Emerências":"fotos-servicos/trilha-porsol.jpg",
+  "Circuito das Piscinas Naturais":"fotos-servicos/circuito-piscinas.jpg",
+  "Circuito Geológico":"fotos-servicos/circuito-geologico.jpg",
+  "Canoa Havaiana à Vela":"fotos-servicos/canoa-vela.jpg",
+  "Remada em Canoa Havaiana":"fotos-servicos/remada-canoa.jpg",
+  "Bar dos Pescadores":"fotos-servicos/pescadores.jpg","Belli Belli Gastrobar":"fotos-servicos/bellibelli.jpg",
+  "Belli Belli Clube de Praia":"fotos-servicos/bellibelli-praia.jpg","Bar do Zé":"fotos-servicos/bardoze.jpg",
+  "Mistico Restaurant":"fotos-servicos/mistico.jpg","Nami Gastrobar":"fotos-servicos/nami.jpg",
+  "Xerelete Bar":"fotos-servicos/xerelete.jpg"
+};
+
+const DADOS = {
+  restaurantes: [
+    { nome:"Bar dos Pescadores",
+      desc:{pt:"Tradição buziana no Porto da Barra; moquecas, ceviches e frutos do mar.",en:"Búzios tradition at Porto da Barra; moquecas, ceviches and seafood.",es:"Tradición buziana en Porto da Barra; moquecas, ceviches y mariscos."},
+      det:{pt:"Cozinha com pescados e frutos do mar frescos, sazonais. Av. José Bento Ribeiro Dantas, 2900, loja 37 — Porto da Barra.",en:"Fresh, seasonal fish and seafood cuisine. Av. José Bento Ribeiro Dantas, 2900, shop 37 — Porto da Barra.",es:"Cocina con pescados y mariscos frescos, de temporada. Av. José Bento Ribeiro Dantas, 2900, local 37 — Porto da Barra."} },
+    { nome:"Belli Belli Gastrobar",
+      desc:{pt:"Happy hour, vinhos e drinks especiais no pôr do sol do Porto da Barra.",en:"Happy hour, wines and special drinks at sunset in Porto da Barra.",es:"Happy hour, vinos y tragos especiales al atardecer en Porto da Barra."},
+      det:{pt:"Saladas, pastas e risotos, além da Forneria Belli (pizzas e massas italianas). Av. José Bento Ribeiro Dantas, 2900 — Porto da Barra.",en:"Salads, pastas and risottos, plus Forneria Belli (Italian pizzas and pastas). Av. José Bento Ribeiro Dantas, 2900 — Porto da Barra.",es:"Ensaladas, pastas y risottos, además de la Forneria Belli (pizzas y pastas italianas). Av. José Bento Ribeiro Dantas, 2900 — Porto da Barra."} },
+    { nome:"Belli Belli Clube de Praia",
+      desc:{pt:"Pé na areia em Manguinhos, com espaço kids e pôr do sol de tirar o fôlego.",en:"Feet in the sand at Manguinhos, with kids' area and a breathtaking sunset.",es:"Pie en la arena en Manguinhos, con zona kids y un atardecer de ensueño."},
+      det:{pt:"Menu inspirado no mar, com destaque para ingredientes locais. Ambiente família. Av. José Bento Ribeiro Dantas, 28 — Vila Luiza.",en:"Sea-inspired menu highlighting local ingredients. Family-friendly. Av. José Bento Ribeiro Dantas, 28 — Vila Luiza.",es:"Menú inspirado en el mar, con foco en ingredientes locales. Ambiente familiar. Av. José Bento Ribeiro Dantas, 28 — Vila Luiza."} },
+    { nome:"Bar do Zé",
+      desc:{pt:"Atmosfera buziana na Orla Bardot; massas, risotos e as famosas lagostas.",en:"Búzios atmosphere on Orla Bardot; pastas, risottos and the famous lobsters.",es:"Atmósfera buziana en la Orla Bardot; pastas, risottos y las famosas langostas."},
+      det:{pt:"Massas e risotos com frutos do mar, filés de peixes e carnes. Orla Bardot, 382 — Centro.",en:"Pastas and risottos with seafood, fish fillets and meats. Orla Bardot, 382 — Centro.",es:"Pastas y risottos con mariscos, filetes de pescado y carnes. Orla Bardot, 382 — Centro."} },
+    { nome:"Mistico Restaurant",
+      desc:{pt:"Mediterrânea contemporânea, com mesas ao ar livre para a Baía da Armação.",en:"Contemporary Mediterranean, with outdoor tables facing Armação Bay.",es:"Mediterránea contemporánea, con mesas al aire libre frente a la Bahía de Armação."},
+      det:{pt:"Cardápio à base de pescados frescos da região; atmosfera intimista. Rua Alto do Humaitá, 13 — Centro.",en:"Menu based on fresh local fish; intimate atmosphere. Rua Alto do Humaitá, 13 — Centro.",es:"Carta a base de pescados frescos de la región; atmósfera íntima. Rua Alto do Humaitá, 13 — Centro."} },
+    { nome:"Nami Gastrobar",
+      desc:{pt:"Culinária asiática, latina e peruana num ambiente descontraído no Porto da Barra.",en:"Asian, Latin and Peruvian cuisine in a relaxed setting at Porto da Barra.",es:"Cocina asiática, latina y peruana en un ambiente relajado en Porto da Barra."},
+      det:{pt:"Boas opções de peixes e frutos do mar. Av. José Bento Ribeiro Dantas, 2900, loja 44 — Porto da Barra.",en:"Great fish and seafood options. Av. José Bento Ribeiro Dantas, 2900, shop 44 — Porto da Barra.",es:"Buenas opciones de pescados y mariscos. Av. José Bento Ribeiro Dantas, 2900, local 44 — Porto da Barra."} },
+    { nome:"Xerelete Bar",
+      desc:{pt:'Antiga casa de pescadores restaurada na Orla Bardot; "do mar ao bar".',en:'A restored old fishermen’s house on Orla Bardot; "from sea to bar".',es:'Antigua casa de pescadores restaurada en la Orla Bardot; "del mar al bar".'},
+      det:{pt:"Vista para as ilhas do Caboclo e Feia; sabores frescos e tradição buziana. Orla Bardot, 514 — Centro.",en:"View of Caboclo and Feia islands; fresh flavors and Búzios tradition. Orla Bardot, 514 — Centro.",es:"Vista a las islas de Caboclo y Feia; sabores frescos y tradición buziana. Orla Bardot, 514 — Centro."} },
+  ],
+  expProprias: [
+    { nome:"Experiência Romântica", resNum:"5522999338862", resKey:"reservas",
+      titulo:{pt:"Experiência Romântica",en:"Romantic Experience",es:"Experiencia Romántica"},
+      preco:{pt:"R$ 1.390 (casal)",en:"R$ 1,390 (couple)",es:"R$ 1.390 (pareja)"},
+      desc:{pt:"Um momento especial a dois durante a hospedagem.",en:"A special moment for two during your stay.",es:"Un momento especial para dos durante la estancia."},
+      det:{pt:"Inclui: cesta de frutas no quarto, espumante Chandon Brut, decoração com pétalas, café da manhã no quarto, massagem para o casal no Casas Brancas Spa e jantar no 74 Restaurant (entrada, principal e sobremesa para duas pessoas; bebidas à parte).",en:"Includes: fruit basket in the room, Chandon Brut sparkling wine, petal decoration, breakfast in the room, a couples' massage at Casas Brancas Spa and dinner at 74 Restaurant (starter, main and dessert for two; drinks not included).",es:"Incluye: cesta de frutas en la habitación, espumante Chandon Brut, decoración con pétalos, desayuno en la habitación, masaje para la pareja en Casas Brancas Spa y cena en 74 Restaurant (entrada, principal y postre para dos; bebidas aparte)."} },
+    { nome:"Mesa Romântica", resNum:"5522999338862", resKey:"reservas",
+      titulo:{pt:"Mesa Romântica",en:"Romantic Table",es:"Mesa Romántica"},
+      preco:{pt:"R$ 190",en:"R$ 190",es:"R$ 190"},
+      desc:{pt:"Ambientação romântica exclusiva no 74 Restaurant, para um jantar a dois.",en:"Exclusive romantic setting at 74 Restaurant, for a dinner for two.",es:"Ambientación romántica exclusiva en 74 Restaurant, para una cena para dos."},
+      det:{pt:"Inclui montagem especial da mesa, decoração com velas, arranjo floral delicado e ambientação romântica preparada para o casal. Mediante reserva e disponibilidade. Observação: é uma experiência de ambientação e não inclui o consumo no restaurante; solicite com antecedência.",en:"Includes a special table setup, candle decoration, a delicate floral arrangement and a romantic ambiance prepared for the couple. Subject to reservation and availability. Note: this is an ambiance experience and does not include dining; please request in advance.",es:"Incluye montaje especial de la mesa, decoración con velas, arreglo floral delicado y ambientación romántica preparada para la pareja. Sujeto a reserva y disponibilidad. Nota: es una experiencia de ambientación y no incluye el consumo en el restaurante; solicítela con antelación."} },
+    { nome:"Experiência no Mar — Cestas a bordo",
+      titulo:{pt:"Experiência no Mar — Cestas a bordo",en:"At Sea — Baskets on Board",es:"En el Mar — Cestas a bordo"},
+      preco:{pt:"Café da manhã R$ 260 · Brunch R$ 360 (2 pessoas)",en:"Breakfast R$ 260 · Brunch R$ 360 (2 people)",es:"Desayuno R$ 260 · Brunch R$ 360 (2 personas)"},
+      desc:{pt:"Cestas preparadas no hotel para o seu passeio de barco.",en:"Baskets prepared at the hotel for your boat trip.",es:"Cestas preparadas en el hotel para su paseo en barco."},
+      det:{pt:"Cesta Café da Manhã: frutas da estação, pães artesanais, doces e salgados, água de coco. Cesta Brunch: pães, queijos e frios, snacks, mimosas engarrafadas e uma garrafa de vinho ou espumante. Solicitações na recepção, conforme disponibilidade.",en:"Breakfast Basket: seasonal fruits, artisan breads, sweet and savory bites, coconut water. Brunch Basket: breads, cheeses and cold cuts, snacks, bottled mimosas and a bottle of wine or sparkling wine. Requests at reception, subject to availability.",es:"Cesta Desayuno: frutas de estación, panes artesanales, dulces y salados, agua de coco. Cesta Brunch: panes, quesos y fiambres, snacks, mimosas embotelladas y una botella de vino o espumante. Solicitudes en recepción, según disponibilidad."} },
+    { nome:"Caiaques",
+      titulo:{pt:"Caiaques",en:"Kayaks",es:"Kayaks"},
+      preco:{pt:"Cortesia",en:"Complimentary",es:"Cortesía"},
+      desc:{pt:"Explore as águas calmas da região com tranquilidade.",en:"Explore the region's calm waters at your own pace.",es:"Explore las aguas tranquilas de la región con calma."},
+      det:{pt:"Dois caiaques disponíveis como cortesia durante a estada. Consulte a disponibilidade na recepção.",en:"Two kayaks available complimentary during your stay. Check availability at reception.",es:"Dos kayaks disponibles como cortesía durante la estancia. Consulte la disponibilidad en recepción."} },
+  ],
+  passeios: [
+    { nome:"Passeios de Lancha",
+      titulo:{pt:"Passeios de Lancha",en:"Boat Trips",es:"Paseos en Lancha"},
+      preco:{pt:"24 pés R$ 1.900 · 26 pés R$ 2.100 (4h)",en:"24 ft R$ 1,900 · 26 ft R$ 2,100 (4h)",es:"24 pies R$ 1.900 · 26 pies R$ 2.100 (4h)"},
+      desc:{pt:"Enseadas preservadas e águas cristalinas, com paradas para banho e snorkel.",en:"Preserved coves and crystal-clear waters, with stops for swimming and snorkeling.",es:"Ensenadas preservadas y aguas cristalinas, con paradas para baño y snorkel."},
+      det:{pt:"Lancha 24 pés: até 8 pessoas, som e água potável a bordo. Lancha 26 pés: até 11 pessoas, com banheiro e chuveiro de água doce. Incluem água mineral e gelo. No Píer do Golfinho pode haver taxa de embarque (R$ 5–10/pessoa).",en:"24 ft boat: up to 8 people, sound system and drinking water on board. 26 ft boat: up to 11 people, with toilet and freshwater shower. Include mineral water and ice. A boarding fee may apply at Píer do Golfinho (R$ 5–10/person).",es:"Lancha 24 pies: hasta 8 personas, sonido y agua potable a bordo. Lancha 26 pies: hasta 11 personas, con baño y ducha de agua dulce. Incluyen agua mineral y hielo. En el Píer do Golfinho puede haber tasa de embarque (R$ 5–10/persona)."} },
+    { nome:"Surf Experience",
+      preco:{pt:"R$ 350 por pessoa",en:"R$ 350 per person",es:"R$ 350 por persona"},
+      desc:{pt:"Aula completa com instrutor, em ambiente descontraído e seguro.",en:"Full lesson with an instructor, in a relaxed and safe setting.",es:"Clase completa con instructor, en un ambiente relajado y seguro."},
+      det:{pt:"Pacote completo: transporte de ida e volta ao hotel, equipamento e instrutor. Duração ~1h. Aulas em português, inglês ou espanhol. Sujeito a condições climáticas; agendar previamente.",en:"Full package: round-trip transport to the hotel, equipment and instructor. Duration ~1h. Lessons in Portuguese, English or Spanish. Subject to weather; book in advance.",es:"Paquete completo: transporte de ida y vuelta al hotel, equipo e instructor. Duración ~1h. Clases en portugués, inglés o español. Sujeto a condiciones climáticas; agendar con antelación."} },
+    { nome:"Kitesurf",
+      preco:{pt:"R$ 400 por hora",en:"R$ 400 per hour",es:"R$ 400 por hora"},
+      desc:{pt:"Bons ventos na Praia Rasa, para todos os níveis.",en:"Great winds at Praia Rasa, for all levels.",es:"Buenos vientos en Praia Rasa, para todos los niveles."},
+      det:{pt:"Aulas e práticas na Praia Rasa, com parceiros especializados — de introdutório a avançado, com acompanhamento e equipamento.",en:"Lessons and practice at Praia Rasa, with specialized partners — from beginner to advanced, with guidance and equipment.",es:"Clases y prácticas en Praia Rasa, con socios especializados — de introductorio a avanzado, con acompañamiento y equipo."} },
+    { nome:"Trilha Pôr do Sol — Serra das Emerências",
+      titulo:{pt:"Trilha Pôr do Sol — Serra das Emerências",en:"Sunset Hike — Serra das Emerências",es:"Sendero del Atardecer — Serra das Emerências"},
+      preco:{pt:"R$ 190 a R$ 300 por pessoa",en:"R$ 190 to R$ 300 per person",es:"R$ 190 a R$ 300 por persona"},
+      desc:{pt:"Trilha leve e contemplativa até o ponto mais alto de Búzios, coroada pelo pôr do sol.",en:"A light, contemplative hike to the highest point of Búzios, crowned by the sunset.",es:"Sendero ligero y contemplativo hasta el punto más alto de Búzios, coronado por el atardecer."},
+      det:{pt:"Duração 3–4h. Paisagens naturais, formações rochosas e vistas panorâmicas da península. Guia bilíngue e Seguro Aventura–Roca. Por pessoa: 1 part. R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120. Pagamento em cartão, Pix ou dinheiro (inclusive dólar e euro).",en:"Duration 3–4h. Natural landscapes, rock formations and panoramic views of the peninsula. Bilingual guide and Adventure Insurance–Roca. Per person: 1 pax R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120. Payment by card, Pix or cash (incl. USD and EUR).",es:"Duración 3–4h. Paisajes naturales, formaciones rocosas y vistas panorámicas de la península. Guía bilingüe y Seguro Aventura–Roca. Por persona: 1 part. R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120. Pago con tarjeta, Pix o efectivo (incl. dólar y euro)."} },
+    { nome:"Circuito das Piscinas Naturais",
+      titulo:{pt:"Circuito das Piscinas Naturais",en:"Natural Pools Circuit",es:"Circuito de las Piscinas Naturales"},
+      preco:{pt:"R$ 190 a R$ 300 por pessoa",en:"R$ 190 to R$ 300 per person",es:"R$ 190 a R$ 300 por persona"},
+      desc:{pt:"Trilha de nível moderado pela Pedra do Guardião, Piscinas Naturais e Praia dos Amores.",en:"Moderate hike through Pedra do Guardião, Natural Pools and Praia dos Amores.",es:"Sendero de nivel moderado por la Pedra do Guardião, Piscinas Naturales y Praia dos Amores."},
+      det:{pt:"Duração 3–4h. Trilhas, mirantes e formações rochosas com contato direto com a natureza e vistas privilegiadas do litoral. Guias credenciados, guia bilíngue e Seguro Aventura–Roca. Por pessoa: 1 part. R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120.",en:"Duration 3–4h. Trails, viewpoints and rock formations with direct contact with nature and privileged coastal views. Accredited guides, bilingual guide and Adventure Insurance–Roca. Per person: 1 pax R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120.",es:"Duración 3–4h. Senderos, miradores y formaciones rocosas en contacto directo con la naturaleza y vistas privilegiadas del litoral. Guías acreditados, guía bilingüe y Seguro Aventura–Roca. Por persona: 1 part. R$ 300 · 2–4 R$ 190 · 5–7 R$ 150 · 8–10 R$ 120."} },
+    { nome:"Circuito Geológico",
+      titulo:{pt:"Circuito Geológico",en:"Geological Circuit",es:"Circuito Geológico"},
+      preco:{pt:"R$ 120 por pessoa",en:"R$ 120 per person",es:"R$ 120 por persona"},
+      desc:{pt:"Praias, mirantes e formações que contam a história natural da península (nível fácil).",en:"Beaches, viewpoints and formations that tell the peninsula's natural history (easy level).",es:"Playas, miradores y formaciones que cuentan la historia natural de la península (nivel fácil)."},
+      det:{pt:"Duração 3–4h. Passa por Praia da Foca, Ponta da Lagoinha, Pedra do Guardião e Saco do Canivete. Formações geológicas únicas, águas cristalinas e vistas panorâmicas. Guias credenciados, guia bilíngue e Seguro Aventura–Roca.",en:"Duration 3–4h. Passes Praia da Foca, Ponta da Lagoinha, Pedra do Guardião and Saco do Canivete. Unique geological formations, crystal-clear waters and panoramic views. Accredited guides, bilingual guide and Adventure Insurance–Roca.",es:"Duración 3–4h. Pasa por Praia da Foca, Ponta da Lagoinha, Pedra do Guardião y Saco do Canivete. Formaciones geológicas únicas, aguas cristalinas y vistas panorámicas. Guías acreditados, guía bilingüe y Seguro Aventura–Roca."} },
+    { nome:"Canoa Havaiana à Vela",
+      titulo:{pt:"Canoa Havaiana à Vela",en:"Sailing Hawaiian Canoe",es:"Canoa Hawaiana a Vela"},
+      preco:{pt:"R$ 195 por pessoa",en:"R$ 195 per person",es:"R$ 195 por persona"},
+      desc:{pt:"Passeio de ~2h em canoa à vela, saindo de Cabo Frio até a Ilha do Japonês.",en:"~2h sailing-canoe trip, departing from Cabo Frio to Ilha do Japonês.",es:"Paseo de ~2h en canoa a vela, saliendo de Cabo Frio hasta la Ilha do Japonês."},
+      det:{pt:"Indicada para iniciantes e experientes, sem necessidade de conhecimento prévio. Roteiro conforme maré, ventos e ondulação. Guia bilíngue e Seguro Aventura–Roca. Atividade realizada em Cabo Frio — consulte a recepção sobre transporte e deslocamento.",en:"Suitable for beginners and experienced alike, no prior knowledge required. Route depends on tide, winds and swell. Bilingual guide and Adventure Insurance–Roca. Activity held in Cabo Frio — check with reception about transport.",es:"Indicada para principiantes y experimentados, sin necesidad de conocimiento previo. Recorrido según marea, vientos y oleaje. Guía bilingüe y Seguro Aventura–Roca. Actividad realizada en Cabo Frio — consulte a recepción sobre el transporte."} },
+    { nome:"Remada em Canoa Havaiana",
+      titulo:{pt:"Remada em Canoa Havaiana",en:"Hawaiian Canoe Paddle",es:"Remada en Canoa Hawaiana"},
+      preco:{pt:"R$ 120 por pessoa",en:"R$ 120 per person",es:"R$ 120 por persona"},
+      desc:{pt:"Remada leve de ~1h30 em canoa polinésia tradicional, para todos os níveis.",en:"A light ~1h30 paddle in a traditional Polynesian canoe, for all levels.",es:"Remada ligera de ~1h30 en canoa polinesia tradicional, para todos los niveles."},
+      det:{pt:"Sem necessidade de experiência prévia. Percurso definido pelas condições do dia (maré, ventos e ondulação). Guia bilíngue e Seguro Aventura–Roca.",en:"No prior experience required. Route set by the day's conditions (tide, winds and swell). Bilingual guide and Adventure Insurance–Roca.",es:"Sin necesidad de experiencia previa. Recorrido definido por las condiciones del día (marea, vientos y oleaje). Guía bilingüe y Seguro Aventura–Roca."} },
+  ],
+  aluguel: [
+    { nome:"Aluguel de Carros",
+      titulo:{pt:"Aluguel de Carros",en:"Car Rental",es:"Alquiler de Coches"},
+      preco:{pt:"de R$ 430 a R$ 530 / dia",en:"from R$ 430 to R$ 530 / day",es:"de R$ 430 a R$ 530 / día"},
+      desc:{pt:"Modelos para diferentes estilos de viagem, por parceiros locais.",en:"Models for different travel styles, via local partners.",es:"Modelos para diferentes estilos de viaje, por socios locales."},
+      det:{pt:"Renault Sandero R$ 430 (econômico) · Hyundai HB20 R$ 440 (econômico) · Fiat Cronos R$ 460 (sedan automático) · Jeep Renegade R$ 530 (SUV automático). Todos com ar-condicionado, 5 passageiros.",en:"Renault Sandero R$ 430 (economy) · Hyundai HB20 R$ 440 (economy) · Fiat Cronos R$ 460 (automatic sedan) · Jeep Renegade R$ 530 (automatic SUV). All with A/C, 5 passengers.",es:"Renault Sandero R$ 430 (económico) · Hyundai HB20 R$ 440 (económico) · Fiat Cronos R$ 460 (sedán automático) · Jeep Renegade R$ 530 (SUV automático). Todos con aire acondicionado, 5 pasajeros."} },
+    { nome:"Bugres & Buggys",
+      titulo:{pt:"Bugres & Buggys",en:"Buggies",es:"Buggies"},
+      preco:{pt:"de R$ 360 a R$ 430 / dia",en:"from R$ 360 to R$ 430 / day",es:"de R$ 360 a R$ 430 / día"},
+      desc:{pt:"Explore praias e mirantes ao ar livre.",en:"Explore beaches and viewpoints in the open air.",es:"Explore playas y miradores al aire libre."},
+      det:{pt:"Buggy Baby R$ 360 (2p) · Bugre R$ 390 (2p) · Buggy Way R$ 410 (4p) · Big Buggy R$ 430 (4p). Todos manuais e abertos.",en:"Buggy Baby R$ 360 (2p) · Bugre R$ 390 (2p) · Buggy Way R$ 410 (4p) · Big Buggy R$ 430 (4p). All manual and open-top.",es:"Buggy Baby R$ 360 (2p) · Bugre R$ 390 (2p) · Buggy Way R$ 410 (4p) · Big Buggy R$ 430 (4p). Todos manuales y descubiertos."} },
+  ],
+};
+
+function card(it){
+  var preco = it.preco ? '<div class="preco">'+L(it.preco)+'</div>' : '';
+  var foto = FOTOS[it.nome] ? '<div class="foto" style="background-image:url(\''+FOTOS[it.nome]+'\')"></div>' : '<div class="top"></div>';
+  var nomeAttr = it.nome.replace(/"/g,'');
+  var lbl = it.resNum ? L(I18N[it.resKey||'reservas']) : L(I18N.recepcao);
+  var numAttr = it.resNum ? ' data-wa-num="'+it.resNum+'"' : '';
+  var contato = '<a class="btn btn-wa" data-wa="'+nomeAttr+'"'+numAttr+'>'+lbl+'</a>';
+  return '<div class="card">'+foto+'<div class="body">'
+    + '<h3>'+(it.titulo?L(it.titulo):it.nome)+'</h3>'
+    + '<div class="desc">'+L(it.desc)+'</div>'
+    + preco
+    + (it.det ? '<button class="mais">'+L(I18N.saiba)+'</button><div class="det">'+L(it.det)+'</div>' : '')
+    + '<div class="acoes">'+contato+'</div>'
+    + '</div></div>';
+}
+function preencher(id, lista){ var el=document.getElementById(id); if(el) el.innerHTML = lista.map(card).join(''); }
+function renderGrids(){
+  preencher('gRestaurantes', DADOS.restaurantes);
+  preencher('gExpProprias', DADOS.expProprias);
+  preencher('gPasseios', DADOS.passeios);
+  preencher('gAluguel', DADOS.aluguel);
+}
+function translateStatic(){
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    var k=el.getAttribute('data-i18n'); if(I18N[k]) el.innerHTML = L(I18N[k]);
+  });
+  document.documentElement.lang = LANG==='pt'?'pt-BR':LANG;
+}
+function setLang(l){ LANG=l; localStorage.setItem('cb_lang',l);
+  document.querySelectorAll('#langbar button').forEach(function(b){ b.classList.toggle('on',b.dataset.l===LANG); });
+  translateStatic(); renderGrids();
+}
+document.querySelectorAll('#langbar button').forEach(function(b){ b.addEventListener('click',function(){ setLang(b.dataset.l); }); });
+
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('mais')){
+    var det = e.target.nextElementSibling;
+    if(det && det.classList.contains('det')){ var open=det.classList.toggle('show'); e.target.innerHTML = open ? L(I18N.ocultar) : L(I18N.saiba); }
+  }
+  var wa = e.target.getAttribute && e.target.getAttribute('data-wa');
+  if(wa){ var num = e.target.getAttribute('data-wa-num') || WA; var msg = L(I18N.interesse)+wa+L(I18N.ajuda); window.open('https://wa.me/'+num+'?text='+encodeURIComponent(msg), '_blank'); }
+});
+
+setLang(LANG);
+</script>
+<script src="cb-versao.js"></script>
+</body>
+</html>
