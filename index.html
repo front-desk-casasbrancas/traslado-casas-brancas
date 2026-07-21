@@ -358,6 +358,7 @@
         <h2 id="sucessoTitulo">Solicitação enviada!</h2>
         <p id="sucessoTexto">Em breve você receberá a confirmação.</p>
         <button type="button" class="btn-submit" id="novaSolicitacaoBtn">Fazer nova solicitação</button>
+        <a href="servicos.html" id="servicosBtn" style="display:block;margin-top:10px;text-decoration:none;text-align:center;padding:12px;border-radius:10px;border:1.5px solid #b8995a;color:#9c7d3f;font-weight:700;font-size:.95rem;">✨ Aproveite sua estada</a>
     </div>
 </div>
 
@@ -565,6 +566,7 @@
             sucessoTitulo: "Solicitação enviada!",
             sucessoTexto: "Em breve você receberá a confirmação.",
             novaSolicitacao: "Fazer nova solicitação",
+            aproveite: "✨ Aproveite sua estada",
             labelDataEmbarque: "Data de embarque (Rio)",
             labelHoraEmbarque: "Horário de chegada",
             labelEndereco: "Endereço de embarque",
@@ -665,6 +667,7 @@
             sucessoTitulo: "Request sent!",
             sucessoTexto: "You will receive the confirmation shortly.",
             novaSolicitacao: "Make a new request",
+            aproveite: "✨ Enjoy your stay",
             labelDataEmbarque: "Departure date (Rio)",
             labelHoraEmbarque: "Arrival time",
             labelEndereco: "Pickup address",
@@ -765,6 +768,7 @@
             sucessoTitulo: "¡Solicitud enviada!",
             sucessoTexto: "Pronto recibirás la confirmación.",
             novaSolicitacao: "Hacer una nueva solicitud",
+            aproveite: "✨ Disfrute su estancia",
             labelDataEmbarque: "Fecha de embarque (Río)",
             labelHoraEmbarque: "Hora de llegada",
             labelEndereco: "Dirección de recogida",
@@ -1542,6 +1546,7 @@
         document.getElementById('sucessoTitulo').innerText = t.sucessoTitulo;
         document.getElementById('sucessoTexto').innerText = t.sucessoTexto;
         document.getElementById('novaSolicitacaoBtn').innerText = t.novaSolicitacao;
+        var _sb = document.getElementById('servicosBtn'); if (_sb) _sb.innerText = t.aproveite;
         document.getElementById('sucessoOverlay').classList.add('show');
     }
 
