@@ -369,6 +369,7 @@
         <p id="revisaoSub" style="text-align:center;font-size:0.82rem;color:#8a8270;margin-bottom:14px;">Revise antes de enviar.</p>
         <div id="revisaoBody" style="font-size:0.92rem;color:#34322c;"></div>
         <button type="button" class="btn-submit" id="revisaoConfirmar" style="margin-top:14px;">Confirmar e enviar</button>
+        <p id="revisaoErro" style="display:none;text-align:center;color:#dc3545;font-size:0.85rem;margin-top:10px;"></p>
         <button type="button" id="revisaoVoltar" style="width:100%;margin-top:8px;background:none;border:none;color:#8a7a55;font-size:0.9rem;cursor:pointer;text-decoration:underline;">Voltar e editar</button>
     </div>
 </div>
@@ -519,7 +520,7 @@
             viaEmail: "E-mail",
             emailLabel: "E-mail",
             erroEmail: "Informe um e-mail válido.",
-            enviarEmail: "Confirmar e enviar via e-mail",
+            enviarEmail: "Confirmar e enviar",
             adultos: "Adultos",
             criancas: "Crianças",
             bag23kg: "23kg",
@@ -536,7 +537,8 @@
             cartao: "Cartão de crédito (diretamente ao motorista)",
             dinheiro: "Dinheiro",
             pix: "PIX",
-            enviar: "Confirmar e enviar via WhatsApp",
+            enviar: "Confirmar e enviar",
+            erroEnvio: "Não foi possível enviar. Verifique sua conexão e tente novamente.",
             copiar: "Copiar resumo",
             footer: "Tempo estimado de viagem: 3h00 a 3h30 (pode variar em alta temporada).\nCancelamentos com mínimo 24h de antecedência. Motorista aguarda com placa do hotel.\nServiço terceirizado – o hotel não se responsabiliza por intercorrências.",
             notInformed: "não informado",
@@ -620,7 +622,7 @@
             viaEmail: "Email",
             emailLabel: "Email",
             erroEmail: "Please enter a valid email.",
-            enviarEmail: "Confirm and send via email",
+            enviarEmail: "Confirm and send",
             adultos: "Adults",
             criancas: "Children",
             bag23kg: "23kg",
@@ -637,7 +639,8 @@
             cartao: "Credit card (directly to driver)",
             dinheiro: "Cash",
             pix: "PIX",
-            enviar: "Confirm and send via WhatsApp",
+            enviar: "Confirm and send",
+            erroEnvio: "Could not send. Please check your connection and try again.",
             copiar: "Copy summary",
             footer: "Estimated travel time: 3h00 to 3h30 (may vary during high season).\nCancellations require 24h notice. Driver waits with hotel sign.\nThird-party service – hotel is not responsible for issues.",
             notInformed: "not informed",
@@ -721,7 +724,7 @@
             viaEmail: "Correo",
             emailLabel: "Correo electrónico",
             erroEmail: "Ingrese un correo válido.",
-            enviarEmail: "Confirmar y enviar por correo",
+            enviarEmail: "Confirmar y enviar",
             adultos: "Adultos",
             criancas: "Niños",
             bag23kg: "23kg",
@@ -738,7 +741,8 @@
             cartao: "Tarjeta de crédito (directamente al conductor)",
             dinheiro: "Efectivo",
             pix: "PIX",
-            enviar: "Confirmar y enviar por WhatsApp",
+            enviar: "Confirmar y enviar",
+            erroEnvio: "No se pudo enviar. Verifique su conexión e inténtelo de nuevo.",
             copiar: "Copiar resumen",
             footer: "Tiempo estimado de viaje: 3h00 a 3h30 (puede variar en temporada alta).\nCancelaciones con mínimo 24h de anticipación. Conductor espera con cartel del hotel.\nServicio tercerizado – el hotel no se responsabiliza por incidentes.",
             notInformed: "no informado",
@@ -1601,6 +1605,7 @@
 
         // Passou na validação → mostra a tela de conferência (double check) antes de enviar
         montarRevisao();
+        const _er0 = document.getElementById('revisaoErro'); if (_er0) _er0.style.display = 'none';
         document.getElementById('revisaoOverlay').classList.add('show');
     }
 
@@ -1718,29 +1723,26 @@
         const temVolta = idaVoltaAtivo();
         const dadosPlanilha = montarRegistro("", novoId);
 
-        document.getElementById('revisaoOverlay').classList.remove('show');
-        // Grava na planilha sem travar a tela (keepalive garante que a requisição
-        // termina mesmo se a página fechar). Assim sucesso/WhatsApp aparecem na hora.
-        enviarParaGoogleSheets(dadosPlanilha);
+        // Grava na planilha e AGUARDA a confirmação do servidor (envio confiável,
+        // sem depender de reenvio manual por WhatsApp/e-mail).
+        const okIda = await enviarParaGoogleSheets(dadosPlanilha);
+        let okVolta = true;
         if (temVolta) {
             const idVolta = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
                 : (Date.now().toString(36) + '-v-' + Math.random().toString(36).slice(2, 10));
-            enviarParaGoogleSheets(montarRegistro("V", idVolta));
+            okVolta = await enviarParaGoogleSheets(montarRegistro("V", idVolta));
         }
 
-        const mensagem = montarMensagem();
-        if (metodo === 'Email') {
-            const assunto = encodeURIComponent("Solicitação de traslado - " + nome);
-            window.location.href = `mailto:${HOTEL_EMAIL}?subject=${assunto}&body=${encodeURIComponent(mensagem)}`;
+        if (okIda && okVolta) {
+            document.getElementById('revisaoOverlay').classList.remove('show');
+            mostrarSucesso();
         } else {
-            window.open(`https://wa.me/${HOTEL_PHONE}?text=${encodeURIComponent(mensagem)}`, '_blank');
+            // Falha no envio — preserva os dados e permite tentar de novo.
+            _enviandoForm = false;
+            if (_bc) { _bc.disabled = false; _bc.style.opacity = ''; _bc.style.pointerEvents = ''; }
+            const _er = document.getElementById('revisaoErro');
+            if (_er) { _er.textContent = t.erroEnvio; _er.style.display = 'block'; }
         }
-        mostrarSucesso();
-        // Fecha a aba do formulário imediatamente. Funciona quando a aba foi aberta pelo
-        // app/menu (window.open); se o cliente abriu o link manualmente, o navegador bloqueia
-        // o fechamento automático e permanece a tela de sucesso.
-        try { window.close(); } catch (e) {}
-        try { window.open('', '_self'); window.close(); } catch (e) {}
     }
 
     function copiarMensagem() {
