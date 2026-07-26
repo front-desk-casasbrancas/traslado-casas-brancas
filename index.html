@@ -964,6 +964,47 @@
         scheduleUpdate();
     }
 
+    // ==================== ALTA TEMPORADA (+R$ 100 por trecho) ====================
+    // Aplica automaticamente quando a data da viagem cai em:
+    //  • 23/12 a 10/01 (fim de ano); ou
+    //  • quinta-feira antes do Carnaval até o domingo pós-Carnaval (Carnaval é móvel).
+    const ACRESCIMO_ALTA = 100;
+    function calcularPascoa(ano) {
+        const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100;
+        const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const mes = Math.floor((h + l - 7 * m + 114) / 31);
+        const dia = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(ano, mes - 1, dia);
+    }
+    function ehAltaTemporada(str) {
+        if (!str) return false;
+        const p = str.split("-").map(Number);
+        if (p.length < 3 || !p[0]) return false;
+        const dt = new Date(p[0], p[1] - 1, p[2]);
+        const mo = dt.getMonth() + 1, dia = dt.getDate();
+        // Fim de ano
+        if ((mo === 12 && dia >= 23) || (mo === 1 && dia <= 10)) return true;
+        // Carnaval: quinta antes (Páscoa - 52) até domingo pós (Páscoa - 42)
+        const pascoa = calcularPascoa(dt.getFullYear());
+        const ini = new Date(pascoa); ini.setDate(ini.getDate() - 52);
+        const fim = new Date(pascoa); fim.setDate(fim.getDate() - 42);
+        const d0 = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+        return d0 >= ini && d0 <= fim;
+    }
+    function altaIda()  { return ehAltaTemporada(document.getElementById("dataViagem")?.value); }
+    function altaVolta(){ return idaVoltaAtivo() && ehAltaTemporada(document.getElementById("dataViagemV")?.value); }
+    function altaTxt() {
+        const L = {
+            pt: { label: "Adicional alta temporada", nota: "Alta temporada (23/12 a 10/01 e Carnaval): +R$ 100 por trecho nesta data." },
+            en: { label: "High season surcharge", nota: "High season (Dec 23–Jan 10 and Carnival): +R$ 100 per leg on this date." },
+            es: { label: "Adicional temporada alta", nota: "Temporada alta (23/12 a 10/01 y Carnaval): +R$ 100 por tramo en esta fecha." }
+        };
+        return L[currentLang] || L.pt;
+    }
+
     function calcularTotal() {
         const precoBase = parseFloat(document.getElementById("precoBase").value) || 0;
         let total = precoBase;
@@ -972,6 +1013,7 @@
             const horas = parseInt(document.getElementById("horasParada")?.value) || 1;
             total += horas * 100;
         }
+        if (altaIda()) total += ACRESCIMO_ALTA;
         return total;
     }
 
@@ -1008,7 +1050,8 @@
             paradaExtra = horas * 100;
             paradaTexto = `<br>${t.stopExtra} (${horas}h): R$ ${paradaExtra.toLocaleString('pt-BR')}`;
         }
-        const total = precoBase + madrugadaExtra + paradaExtra;
+        const altaIdaExtra = altaIda() ? ACRESCIMO_ALTA : 0;
+        const total = precoBase + madrugadaExtra + paradaExtra + altaIdaExtra;
         const regiao = regiaoLabel();
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
@@ -1021,12 +1064,16 @@
         const dataV = document.getElementById("dataViagemV")?.value || "-";
         const horaV = document.getElementById("horaEmbarqueV")?.value || "-";
         const blocoVolta = temVolta
-            ? `<br><span style="color:#8a7a55;font-weight:600;">${t.labelVolta}: ${sentidoV}</span><br>${t.date}: ${dataV} às ${horaV}<br>${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}${madrugadaVolta() ? `<br>${t.nightExtra}: R$ 100` : ''}`
+            ? `<br><span style="color:#8a7a55;font-weight:600;">${t.labelVolta}: ${sentidoV}</span><br>${t.date}: ${dataV} às ${horaV}<br>${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}${madrugadaVolta() ? `<br>${t.nightExtra}: R$ 100` : ''}${altaVolta() ? `<br>${altaTxt().label}: R$ 100` : ''}`
+            : '';
+        const notaAlta = (altaIdaExtra > 0 || altaVolta())
+            ? `<div style="background:#fdf3dc;border:1px solid #e2c778;color:#8a6d1f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-weight:600;">⚠️ ${altaTxt().nota}</div>`
             : '';
 
         const resumoDiv = document.getElementById("resumoPreview");
         if (resumoDiv) {
             resumoDiv.innerHTML = `
+                ${notaAlta}
                 <strong>${t.summary}</strong><br>
                 ${temVolta ? `<span style="color:#8a7a55;font-weight:600;">${t.labelIda}: ${sentido}</span>` : `${t.direction}: ${sentido}`}<br>
                 ${t.guest}: ${nome} (Reserva: ${reserva})<br>
@@ -1035,6 +1082,7 @@
                 Bagagens: ${bagagemTexto}<br>
                 ${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}<br>
                 ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
+                ${altaIdaExtra > 0 ? `${altaTxt().label}: R$ 100<br>` : ""}
                 ${paradaExtra > 0 ? paradaTexto + "<br>" : ""}
                 ${temVolta ? `${t.date}: ${data} às ${hora}<br>` : ""}
                 ${blocoVolta}
@@ -1381,6 +1429,9 @@
                 scheduleUpdate();
             });
         }
+        if (sfx === "V") {
+            document.getElementById("dataViagemV")?.addEventListener("change", () => scheduleUpdate());
+        }
     }
 
     // Destino dinâmico: Aeroporto (GIG/SDU) mostra voo+cia; Cidade do Rio mostra endereço livre e oculta voo/cia.
@@ -1429,7 +1480,7 @@
     function calcularTotalVolta() {
         if (!idaVoltaAtivo()) return 0;
         const precoBase = parseFloat(document.getElementById("precoBase")?.value) || 0;
-        return precoBase + (madrugadaVolta() ? 100 : 0);
+        return precoBase + (madrugadaVolta() ? 100 : 0) + (altaVolta() ? ACRESCIMO_ALTA : 0);
     }
     function calcularTotalGeral() { return calcularTotal() + calcularTotalVolta(); }
     function toggleIdaVolta() {
@@ -1487,7 +1538,9 @@
         mensagem += `Região no Rio: ${regiao}\n`;
         mensagem += `Veículo: ${veiculo}\n`;
         mensagem += `Valor total: R$ ${total.toLocaleString('pt-BR')}\n`;
-        mensagem += `Madrugada: ${madrugada}\n\n`;
+        mensagem += `Madrugada: ${madrugada}\n`;
+        if (altaIda()) mensagem += `Adicional alta temporada (ida): R$ 100\n`;
+        mensagem += `\n`;
         if (idaVoltaAtivo()) mensagem += `>>> TRECHO 1 - IDA\n`;
         mensagem += `Data: ${data}\n`;
         mensagem += `Horário: ${hora}\n`;
@@ -1508,6 +1561,7 @@
             mensagem += `Destino: ${document.getElementById("enderecoV")?.value || "-"}\n`;
             if (vooV && vooV !== "-") mensagem += `Voo: ${vooV} - ${ciaV}\n`;
             mensagem += `Madrugada: ${madrugadaVolta() ? t.madrugadaYes : t.madrugadaNo}\n`;
+            if (altaVolta()) mensagem += `Adicional alta temporada (volta): R$ 100\n`;
             mensagem += `Valor do trecho: R$ ${calcularTotalVolta().toLocaleString('pt-BR')}\n`;
             mensagem += `\nVALOR TOTAL (2 trechos): R$ ${calcularTotalGeral().toLocaleString('pt-BR')}\n\n`;
         }
