@@ -569,7 +569,7 @@
             sucessoTexto: "Em breve você receberá a confirmação.",
             novaSolicitacao: "Fazer nova solicitação",
             aproveite: "✨ Aproveite sua estada",
-            labelDataEmbarque: "Data de embarque (Rio)",
+            labelDataEmbarque: "Data da chegada",
             labelHoraEmbarque: "Horário de chegada",
             labelEndereco: "Endereço de embarque",
             placeholderEndereco: "Aeroporto GIG",
@@ -577,6 +577,11 @@
             placeholderVoo: "AA 973",
             labelCia: "Companhia aérea",
             placeholderCia: "American Airlines",
+            destinoRegiaoLagos: "Região dos Lagos",
+            destinoHotelCasasBrancas: "Hotel Casas Brancas",
+            destinoCidadeRegiaoLagos: "Cidade da Região dos Lagos",
+            labelDestinoRegiaoLagos: "Cidade, hotel ou endereço de destino",
+            placeholderDestinoRegiaoLagos: "Ex.: Casas Brancas Boutique Hotel, Búzios",
             labelDataSaida: "Data de saída (Búzios)",
             labelHoraSaida: "Horário de saída",
             labelDestino: "Destino no Rio",
@@ -671,7 +676,7 @@
             sucessoTexto: "You will receive the confirmation shortly.",
             novaSolicitacao: "Make a new request",
             aproveite: "✨ Enjoy your stay",
-            labelDataEmbarque: "Departure date (Rio)",
+            labelDataEmbarque: "Arrival date",
             labelHoraEmbarque: "Arrival time",
             labelEndereco: "Pickup address",
             placeholderEndereco: "GIG Airport",
@@ -679,6 +684,11 @@
             placeholderVoo: "AA 973",
             labelCia: "Airline",
             placeholderCia: "American Airlines",
+            destinoRegiaoLagos: "Lakes Region",
+            destinoHotelCasasBrancas: "Casas Brancas Hotel",
+            destinoCidadeRegiaoLagos: "City in the Lakes Region",
+            labelDestinoRegiaoLagos: "Destination city, hotel or address",
+            placeholderDestinoRegiaoLagos: "E.g.: Casas Brancas Boutique Hotel, Búzios",
             labelDataSaida: "Departure date (Búzios)",
             labelHoraSaida: "Departure time",
             labelDestino: "Destination in Rio",
@@ -773,7 +783,7 @@
             sucessoTexto: "Pronto recibirás la confirmación.",
             novaSolicitacao: "Hacer una nueva solicitud",
             aproveite: "✨ Disfrute su estancia",
-            labelDataEmbarque: "Fecha de embarque (Río)",
+            labelDataEmbarque: "Fecha de llegada",
             labelHoraEmbarque: "Hora de llegada",
             labelEndereco: "Dirección de recogida",
             placeholderEndereco: "Aeropuerto GIG",
@@ -781,6 +791,11 @@
             placeholderVoo: "AA 973",
             labelCia: "Aerolínea",
             placeholderCia: "American Airlines",
+            destinoRegiaoLagos: "Región de los Lagos",
+            destinoHotelCasasBrancas: "Hotel Casas Brancas",
+            destinoCidadeRegiaoLagos: "Ciudad de la Región de los Lagos",
+            labelDestinoRegiaoLagos: "Ciudad, hotel o dirección de destino",
+            placeholderDestinoRegiaoLagos: "Ej.: Casas Brancas Boutique Hotel, Búzios",
             labelDataSaida: "Fecha de salida (Búzios)",
             labelHoraSaida: "Hora de salida",
             labelDestino: "Destino en Río",
@@ -1406,12 +1421,21 @@
             <div class="form-row"><label>${labelData}</label><input type="date" id="dataViagem${sfx}" min="${minData}" value="${minData}"></div>
             <div class="form-row"><label>${labelHora}</label><input type="time" id="horaEmbarque${sfx}" value="${horaDefault}"></div>
             <div class="form-row"><label>${LL.partida}</label><input type="text" id="localPartida${sfx}" placeholder="${LL.partidaPh}"></div>
-            <div class="form-row"><label>${LL.destino}</label>
-                <select id="destinoTipo${sfx}">
-                    <option value="aeroporto">${LL.tAero}</option>
-                    <option value="cidade">${LL.tCidade}</option>
-                </select>
-            </div>
+            ${sentido === "IN" ? `
+                <div class="form-row"><label>${LL.destino}</label>
+                    <select id="destinoTipo${sfx}">
+                        <option value="hotel-casas-brancas">${t.destinoHotelCasasBrancas}</option>
+                        <option value="cidade-regiao-lagos">${t.destinoCidadeRegiaoLagos}</option>
+                    </select>
+                </div>
+            ` : `
+                <div class="form-row"><label>${LL.destino}</label>
+                    <select id="destinoTipo${sfx}">
+                        <option value="aeroporto">${LL.tAero}</option>
+                        <option value="cidade">${LL.tCidade}</option>
+                    </select>
+                </div>
+            `}
             <div id="destinoDetalhe${sfx}"></div>
         `;
         renderDestinoDetalhe(sfx);
@@ -1434,10 +1458,12 @@
         }
     }
 
-    // Destino dinâmico: Aeroporto (GIG/SDU) mostra voo+cia; Cidade do Rio mostra endereço livre e oculta voo/cia.
+    // IN: Hotel Casas Brancas ou cidade da Região dos Lagos + voo/cia.
+    // OUT: Aeroporto (GIG/SDU) mostra voo/cia; Cidade do Rio mostra endereço livre.
     function renderDestinoDetalhe(sfx) {
         sfx = sfx || "";
         const t = translations[currentLang];
+        const sentido = sfx === "V" ? sentidoVolta() : sentidoIda();
         const cont = document.getElementById("destinoDetalhe" + sfx);
         if (!cont) return;
         const tipo = document.getElementById("destinoTipo" + sfx)?.value || "aeroporto";
@@ -1446,7 +1472,16 @@
             en: { aeroLabel: 'Airport', cidadeLabel: 'Address in Rio de Janeiro', cidadePh: 'Area, street and number' },
             es: { aeroLabel: 'Aeropuerto', cidadeLabel: 'Dirección en Río de Janeiro', cidadePh: 'Barrio, calle y número' }
         }[currentLang] || { aeroLabel: 'Aeroporto', cidadeLabel: 'Endereço no Rio de Janeiro', cidadePh: '' };
-        if (tipo === "aeroporto") {
+        if (sentido === "IN") {
+            const campoDestino = tipo === "cidade-regiao-lagos"
+                ? `<div class="form-row"><label>${t.labelDestinoRegiaoLagos}</label><input type="text" id="endereco${sfx}" placeholder="${t.placeholderDestinoRegiaoLagos}"></div>`
+                : `<input type="hidden" id="endereco${sfx}" value="Hotel Casas Brancas">`;
+            cont.innerHTML = `
+                ${campoDestino}
+                <div class="form-row"><label>${t.labelVoo}</label><input type="text" id="voo${sfx}" placeholder="${t.placeholderVoo}"></div>
+                <div class="form-row"><label>${t.labelCia}</label><input type="text" id="ciaAerea${sfx}" placeholder="${t.placeholderCia}"></div>
+            `;
+        } else if (tipo === "aeroporto") {
             cont.innerHTML = `
                 <div class="form-row"><label>${LL.aeroLabel}</label>
                     <select id="endereco${sfx}">
@@ -1996,6 +2031,3 @@
     // Mostra "Voltar" só quando há histórico (ex.: veio do menu do app)
     if (history.length > 1) { var _an = document.getElementById('appnav'); if (_an) _an.style.display = 'flex'; }
 </script>
-<script src="cb-versao.js"></script>
-</body>
-</html>
