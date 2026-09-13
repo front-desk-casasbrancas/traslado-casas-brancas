@@ -939,6 +939,46 @@
         return "Centro/Sul";
     }
 
+    // Regras cadastradas em Configurações: valor adicional por trecho dentro de um período.
+    let adicionaisConfigurados = [];
+
+    function dataRegra(valor) {
+        const m = String(valor || "").match(/^\d{4}-\d{2}-\d{2}/);
+        return m ? m[0] : "";
+    }
+
+    function adicionaisDaData(data) {
+        if (!data) return [];
+        return adicionaisConfigurados.filter(regra =>
+            regra.ativo && regra.inicio && regra.fim && data >= regra.inicio && data <= regra.fim
+        );
+    }
+
+    function totalAdicionaisDaData(data) {
+        return adicionaisDaData(data).reduce((total, regra) => total + regra.valor, 0);
+    }
+
+    function textoAdicionais(regras) {
+        return regras.map(regra => `<br>Adicional ${regra.nome}: R$ ${regra.valor.toLocaleString('pt-BR')}`).join("");
+    }
+
+    async function carregarAdicionaisConfigurados() {
+        try {
+            const resposta = await fetch(WEBAPP_URL + '?action=adicionais&t=' + Date.now());
+            const dados = await resposta.json();
+            adicionaisConfigurados = (Array.isArray(dados) ? dados : []).map(regra => ({
+                nome: String(regra.Nome || "").trim(),
+                valor: parseFloat(regra.Valor) || 0,
+                inicio: dataRegra(regra.Inicio),
+                fim: dataRegra(regra.Fim),
+                ativo: String(regra.Ativo || "Sim").toLowerCase() !== "nao"
+            })).filter(regra => regra.nome && regra.inicio && regra.fim);
+            scheduleUpdate();
+        } catch (erro) {
+            console.warn("Não foi possível carregar regras de adicionais.", erro);
+        }
+    }
+
     // ==================== TELEFONE ====================
     function getTelefone() {
         let ddi = document.getElementById("ddi")?.value || "55";
@@ -1037,6 +1077,7 @@
         }
         if (altaIda()) total += ACRESCIMO_ALTA;
         if (anoNovoIda()) total += ACRESCIMO_ANO_NOVO;
+        total += totalAdicionaisDaData(document.getElementById("dataViagem")?.value);
         return total;
     }
 
@@ -1075,7 +1116,9 @@
         }
         const altaIdaExtra = altaIda() ? ACRESCIMO_ALTA : 0;
         const anoNovoIdaExtra = anoNovoIda() ? ACRESCIMO_ANO_NOVO : 0;
-        const total = precoBase + madrugadaExtra + paradaExtra + altaIdaExtra + anoNovoIdaExtra;
+        const regrasIda = adicionaisDaData(document.getElementById("dataViagem")?.value);
+        const adicionaisIdaExtra = totalAdicionaisDaData(document.getElementById("dataViagem")?.value);
+        const total = precoBase + madrugadaExtra + paradaExtra + altaIdaExtra + anoNovoIdaExtra + adicionaisIdaExtra;
         const regiao = regiaoLabel();
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
@@ -1086,6 +1129,8 @@
         const totalGeral = total + totalVolta;
         const sentidoV = sentidoVolta() === "IN" ? "Chegada" : "Saída";
         const dataV = document.getElementById("dataViagemV")?.value || "-";
+        const regrasVolta = adicionaisDaData(document.getElementById("dataViagemV")?.value);
+        const adicionaisVoltaExtra = totalAdicionaisDaData(document.getElementById("dataViagemV")?.value);
         const horaV = document.getElementById("horaEmbarqueV")?.value || "-";
         const blocoVolta = temVolta
             ? `<br><span style="color:#8a7a55;font-weight:600;">${t.labelVolta}: ${sentidoV}</span><br>${t.date}: ${dataV} às ${horaV}<br>${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}${madrugadaVolta() ? `<br>${t.nightExtra}: R$ 100` : ''}${altaVolta() ? `<br>${altaTxt().label}: R$ 100` : ''}`
@@ -1112,9 +1157,11 @@
                 ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
                 ${altaIdaExtra > 0 ? `${altaTxt().label}: R$ 100<br>` : ""}
                 ${anoNovoIdaExtra > 0 ? "Adicional de Ano Novo: R$ 300<br>" : ""}
+                ${adicionaisIdaExtra > 0 ? textoAdicionais(regrasIda) + "<br>" : ""}
                 ${paradaExtra > 0 ? paradaTexto + "<br>" : ""}
                 ${temVolta ? `${t.date}: ${data} às ${hora}<br>` : ""}
                 ${blocoVolta}
+                ${temVolta && adicionaisVoltaExtra > 0 ? textoAdicionais(regrasVolta) : ""}
                 ${temVolta ? "<br>" : ""}
                 <strong>${temVolta ? t.totalTrechos : t.totalValue}: R$ ${totalGeral.toLocaleString('pt-BR')}</strong><br>
                 ${temVolta ? "" : `${t.date}: ${data} às ${hora}<br>`}
@@ -1529,7 +1576,7 @@
     function calcularTotalVolta() {
         if (!idaVoltaAtivo()) return 0;
         const precoBase = parseFloat(document.getElementById("precoBase")?.value) || 0;
-        return precoBase + (madrugadaVolta() ? 100 : 0) + (altaVolta() ? ACRESCIMO_ALTA : 0) + (anoNovoVolta() ? ACRESCIMO_ANO_NOVO : 0);
+        return precoBase + (madrugadaVolta() ? 100 : 0) + (altaVolta() ? ACRESCIMO_ALTA : 0) + (anoNovoVolta() ? ACRESCIMO_ANO_NOVO : 0) + totalAdicionaisDaData(document.getElementById("dataViagemV")?.value);
     }
     function calcularTotalGeral() { return calcularTotal() + calcularTotalVolta(); }
     function toggleIdaVolta() {
@@ -1589,6 +1636,7 @@
         mensagem += `Valor total: R$ ${total.toLocaleString('pt-BR')}\n`;
         mensagem += `Madrugada: ${madrugada}\n`;
         if (altaIda()) mensagem += `Adicional alta temporada (ida): R$ 100\n`;
+        adicionaisDaData(document.getElementById("dataViagem")?.value).forEach(regra => { mensagem += `Adicional ${regra.nome} (ida): R$ ${regra.valor.toLocaleString("pt-BR")}\n`; });
         mensagem += `\n`;
         if (idaVoltaAtivo()) mensagem += `>>> TRECHO 1 - IDA\n`;
         mensagem += `Data: ${data}\n`;
@@ -1611,6 +1659,7 @@
             if (vooV && vooV !== "-") mensagem += `Voo: ${vooV} - ${ciaV}\n`;
             mensagem += `Madrugada: ${madrugadaVolta() ? t.madrugadaYes : t.madrugadaNo}\n`;
             if (altaVolta()) mensagem += `Adicional alta temporada (volta): R$ 100\n`;
+            adicionaisDaData(document.getElementById("dataViagemV")?.value).forEach(regra => { mensagem += `Adicional ${regra.nome} (volta): R$ ${regra.valor.toLocaleString("pt-BR")}\n`; });
             mensagem += `Valor do trecho: R$ ${calcularTotalVolta().toLocaleString('pt-BR')}\n`;
             mensagem += `\nVALOR TOTAL (2 trechos): R$ ${calcularTotalGeral().toLocaleString('pt-BR')}\n\n`;
         }
@@ -2040,6 +2089,7 @@
     })();
 
     renderForm();
+    carregarAdicionaisConfigurados();
     translatePage();
 
     // Mostra "Voltar" só quando há histórico (ex.: veio do menu do app)
