@@ -225,6 +225,13 @@
             color: #34322c;
         }
         .filtros-bar input.busca { flex: 1; min-width: 180px; }
+        .month-navigator { margin-bottom: 16px; padding: 12px; background: #f8f3e9; border: 1px solid #e5d8be; border-radius: 12px; }
+        .month-navigator-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--gold-d); font-size: 0.82rem; font-weight: 600; }
+        .month-navigator-head select { padding: 7px 10px; border: 1px solid #d8cbb0; border-radius: 8px; background: #fff; color: #34322c; font-size: 0.85rem; }
+        .month-tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; }
+        .month-tab { flex: 0 0 auto; border: 1px solid #d8cbb0; border-radius: 8px 8px 0 0; background: #fff; color: #8a7a55; padding: 8px 12px; font-size: 0.78rem; cursor: pointer; }
+        .month-tab:hover { background: #f0e5cc; }
+        .month-tab.active { background: #b8995a; border-color: #b8995a; color: #fff; font-weight: 600; }
         @media (max-width: 768px) {
             .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
             .confirm-btn, .complete-btn, .cancel-btn,
@@ -367,6 +374,10 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     <div id="tab-lista" class="tab-content">
         <div class="table-container">
+            <div class="month-navigator" aria-label="Navegação por mês">
+                <div class="month-navigator-head"><label for="filtroAno">Ano</label><select id="filtroAno" title="Selecionar ano"></select></div>
+                <div class="month-tabs" id="filtroMesTabs" role="tablist" aria-label="Meses do ano"></div>
+            </div>
             <div class="filtros-bar">
                 <input type="text" id="filtroBusca" class="busca" placeholder="Buscar por nome ou telefone...">
                 <input type="date" id="filtroData" title="Filtrar por data da viagem">
@@ -665,6 +676,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 throw new Error((dados && dados.error) || 'resposta inválida do servidor');
             }
             transfers = dados;
+            montarNavegadorMeses();
             document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
             updateDashboard();
             renderProximos();
@@ -978,12 +990,44 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     }
 
     // ==================== LISTA DE TRANSFERS (com filtros) ====================
+    const nomesMesesLista = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    let filtroAnoLista = null;
+    let filtroMesLista = null;
+
+    function montarNavegadorMeses() {
+        const select = document.getElementById('filtroAno');
+        const tabs = document.getElementById('filtroMesTabs');
+        if (!select || !tabs) return;
+        const datas = transfers.map(t => parseLocal(t['Data Viagem'])).filter(d => !isNaN(d.getTime()));
+        const anos = [...new Set(datas.map(d => d.getFullYear()))].sort((a, b) => b - a);
+        if (!anos.length) anos.push(new Date().getFullYear());
+        const maisRecente = [...datas].sort((a, b) => b - a)[0];
+        if (!anos.includes(filtroAnoLista)) filtroAnoLista = maisRecente ? maisRecente.getFullYear() : anos[0];
+        if (filtroMesLista === null) filtroMesLista = maisRecente ? maisRecente.getMonth() : new Date().getMonth();
+        select.innerHTML = anos.map(ano => `<option value="${ano}">${ano}</option>`).join('');
+        select.value = String(filtroAnoLista);
+        tabs.innerHTML = nomesMesesLista.map((mes, indice) => `<button type="button" class="month-tab${indice === filtroMesLista ? ' active' : ''}" data-mes="${indice}" role="tab" aria-selected="${indice === filtroMesLista}">${mes}</button>`).join('');
+        tabs.querySelectorAll('.month-tab').forEach(botao => botao.addEventListener('click', () => {
+            filtroMesLista = parseInt(botao.dataset.mes, 10);
+            montarNavegadorMeses();
+            updateHistoryTable();
+        }));
+    }
+
+    function selecionarAnoLista() {
+        filtroAnoLista = parseInt(document.getElementById('filtroAno')?.value, 10) || new Date().getFullYear();
+        montarNavegadorMeses();
+        updateHistoryTable();
+    }
+
     function getFiltros() {
         return {
             busca: (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim(),
             data: document.getElementById('filtroData')?.value || '',
             status: document.getElementById('filtroStatus')?.value || 'todos',
-            sentido: document.getElementById('filtroSentido')?.value || 'todos'
+            sentido: document.getElementById('filtroSentido')?.value || 'todos',
+            ano: filtroAnoLista,
+            mes: filtroMesLista
         };
     }
 
@@ -1001,6 +1045,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 if (!alvo.includes(f.busca)) return false;
             }
             if (f.data && dataKey(t) !== f.data) return false;
+            const dataTransfer = parseLocal(t["Data Viagem"]);
+            if (!isNaN(dataTransfer.getTime()) && (dataTransfer.getFullYear() !== f.ano || dataTransfer.getMonth() !== f.mes)) return false;
             if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
             if (f.status === 'ativos' && (isCompleted(t) || isCancelled(t))) return false;
             if (f.status === 'finalizados' && !isCompleted(t)) return false;
@@ -1558,6 +1604,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             el.addEventListener('change', updateHistoryTable);
         }
     });
+    document.getElementById('filtroAno')?.addEventListener('change', selecionarAnoLista);
     document.getElementById('limparFiltros').addEventListener('click', () => {
         document.getElementById('filtroBusca').value = '';
         document.getElementById('filtroData').value = '';
