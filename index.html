@@ -984,6 +984,13 @@
     //  • 23/12 a 10/01 (fim de ano); ou
     //  • quinta-feira antes do Carnaval até o domingo pós-Carnaval (Carnaval é móvel).
     const ACRESCIMO_ALTA = 100;
+    const ACRESCIMO_ANO_NOVO = 300;
+
+    function anoNovoEspecial(str) {
+        return /-(12-31|01-01)$/.test(str || "");
+    }
+    function anoNovoIda() { return anoNovoEspecial(document.getElementById("dataViagem")?.value); }
+    function anoNovoVolta() { return idaVoltaAtivo() && anoNovoEspecial(document.getElementById("dataViagemV")?.value); }
     function calcularPascoa(ano) {
         const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100;
         const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
@@ -1029,6 +1036,7 @@
             total += horas * 100;
         }
         if (altaIda()) total += ACRESCIMO_ALTA;
+        if (anoNovoIda()) total += ACRESCIMO_ANO_NOVO;
         return total;
     }
 
@@ -1066,7 +1074,8 @@
             paradaTexto = `<br>${t.stopExtra} (${horas}h): R$ ${paradaExtra.toLocaleString('pt-BR')}`;
         }
         const altaIdaExtra = altaIda() ? ACRESCIMO_ALTA : 0;
-        const total = precoBase + madrugadaExtra + paradaExtra + altaIdaExtra;
+        const anoNovoIdaExtra = anoNovoIda() ? ACRESCIMO_ANO_NOVO : 0;
+        const total = precoBase + madrugadaExtra + paradaExtra + altaIdaExtra + anoNovoIdaExtra;
         const regiao = regiaoLabel();
         const data = document.getElementById("dataViagem")?.value || "-";
         const hora = document.getElementById("horaEmbarque")?.value || "-";
@@ -1084,11 +1093,15 @@
         const notaAlta = (altaIdaExtra > 0 || altaVolta())
             ? `<div style="background:#fdf3dc;border:1px solid #e2c778;color:#8a6d1f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-weight:600;">⚠️ ${altaTxt().nota}</div>`
             : '';
+        const notaAnoNovo = (anoNovoIdaExtra > 0 || anoNovoVolta())
+            ? '<div style="background:#fdf3dc;border:1px solid #e2c778;color:#8a6d1f;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-weight:600;">⚠️ Adicional de Ano Novo: +R$ 300 por trecho em 31/12 e 01/01.</div>'
+            : '';
 
         const resumoDiv = document.getElementById("resumoPreview");
         if (resumoDiv) {
             resumoDiv.innerHTML = `
                 ${notaAlta}
+                ${notaAnoNovo}
                 <strong>${t.summary}</strong><br>
                 ${temVolta ? `<span style="color:#8a7a55;font-weight:600;">${t.labelIda}: ${sentido}</span>` : `${t.direction}: ${sentido}`}<br>
                 ${t.guest}: ${nome} (Reserva: ${reserva})<br>
@@ -1098,6 +1111,7 @@
                 ${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}<br>
                 ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
                 ${altaIdaExtra > 0 ? `${altaTxt().label}: R$ 100<br>` : ""}
+                ${anoNovoIdaExtra > 0 ? "Adicional de Ano Novo: R$ 300<br>" : ""}
                 ${paradaExtra > 0 ? paradaTexto + "<br>" : ""}
                 ${temVolta ? `${t.date}: ${data} às ${hora}<br>` : ""}
                 ${blocoVolta}
@@ -1515,7 +1529,7 @@
     function calcularTotalVolta() {
         if (!idaVoltaAtivo()) return 0;
         const precoBase = parseFloat(document.getElementById("precoBase")?.value) || 0;
-        return precoBase + (madrugadaVolta() ? 100 : 0) + (altaVolta() ? ACRESCIMO_ALTA : 0);
+        return precoBase + (madrugadaVolta() ? 100 : 0) + (altaVolta() ? ACRESCIMO_ALTA : 0) + (anoNovoVolta() ? ACRESCIMO_ANO_NOVO : 0);
     }
     function calcularTotalGeral() { return calcularTotal() + calcularTotalVolta(); }
     function toggleIdaVolta() {
