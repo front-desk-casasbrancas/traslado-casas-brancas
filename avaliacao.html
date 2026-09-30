@@ -68,8 +68,9 @@
         else { btn.disabled=false; btn.innerText='Enviar avaliação'; alert('Não foi possível registrar. Tente novamente.'); }
       })
       .catch(function(){
-        // Sem conexão/leitura: assume enviado (comportamento antigo) para não travar o hóspede
-        document.getElementById('form').style.display='none'; document.getElementById('obrigado').style.display='block';
+        // Não confirmar enquanto a gravação não for reconhecida pelo servidor.
+        btn.disabled=false; btn.innerText='Enviar avaliação';
+        alert('Não foi possível confirmar o envio. Sua avaliação continua nesta tela; verifique a conexão e tente novamente.');
       });
   });
 </script>
