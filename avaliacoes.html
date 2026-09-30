@@ -81,6 +81,7 @@
   const WEBAPP_URL="https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRTV8VUiOsiymPIyUEXcNnS7_RAfC3VPajMwlubbT59_QVD3QiQ/exec";
   // A senha NÃO fica mais no código: é a CHAVE_RECEPCAO conferida pelo SERVIDOR.
   function _k(){ return encodeURIComponent(window.CHAVE||''); }
+  function escHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   function chaveMot(s){ let t=(s||'').toString().trim(); return t? t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'') : '__sem__'; }
   function nomeDisp(s){ let t=(s||'').toString().trim(); if(!t) return '(sem motorista)'; return t.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase()); }
   function estrelas(n){ n=parseInt(n,10)||0; return '★★★★★'.slice(0,n)+'<span style="color:#e3d8c2;">'+'★★★★★'.slice(0,5-n)+'</span>'; }
@@ -130,14 +131,14 @@
     // por motorista (nomes consolidados)
     let pm={};
     arr.forEach(a=>{ let k=chaveMot(a["Motorista"]); if(!pm[k])pm[k]={disp:nomeDisp(a["Motorista"]),n:0,soma:0}; pm[k].n++; pm[k].soma+=parseInt(a["Nota"],10)||0; });
-    let linhas=Object.values(pm).sort((x,y)=>(y.soma/y.n)-(x.soma/x.n)).map(d=>'<tr><td>'+d.disp+'</td><td>'+d.n+'</td><td class="estrelas">'+(d.soma/d.n).toFixed(1)+' ★</td></tr>').join('');
+    let linhas=Object.values(pm).sort((x,y)=>(y.soma/y.n)-(x.soma/x.n)).map(d=>'<tr><td>'+escHtml(d.disp)+'</td><td>'+d.n+'</td><td class="estrelas">'+(d.soma/d.n).toFixed(1)+' ★</td></tr>').join('');
     document.getElementById('porMot').innerHTML='<table><thead><tr><th>Motorista</th><th>Avaliações</th><th>Média</th></tr></thead><tbody>'+linhas+'</tbody></table>';
     // comentários (mais recentes primeiro)
     let itens=arr.slice().sort((a,b)=>new Date(b["Data"])-new Date(a["Data"])).map(a=>{
       let com=(a["Comentario"]||'').toString().trim();
       return '<div class="item"><div class="estrelas">'+estrelas(a["Nota"])+'</div>'+
-        (com?'<div class="coment">"'+com+'"</div>':'<div class="coment" style="color:#b0a890;">(sem comentário)</div>')+
-        '<div class="meta">'+(a["Hospede"]||'-')+' · '+nomeDisp(a["Motorista"])+' · '+fData(a["Data"])+'</div></div>';
+        (com?'<div class="coment">"'+escHtml(com)+'"</div>':'<div class="coment" style="color:#b0a890;">(sem comentário)</div>')+
+        '<div class="meta">'+escHtml(a["Hospede"]||'-')+' · '+escHtml(nomeDisp(a["Motorista"]))+' · '+fData(a["Data"])+'</div></div>';
     }).join('');
     document.getElementById('lista').innerHTML=itens;
   }
