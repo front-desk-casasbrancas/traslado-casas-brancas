@@ -13,7 +13,40 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192-v4.png">
-    <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
+    <script>
+(function () {
+    var atualizando = false;
+    var versaoApp = null;
+    function recarregar() {
+        if (atualizando) return;
+        atualizando = true;
+        window.location.reload();
+    }
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', recarregar);
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+                .then(function (registro) {
+                    function verificarAtualizacao() {
+                        if (document.visibilityState === 'visible') registro.update().catch(function () {});
+                        fetch('versao.json?t=' + Date.now(), { cache: 'no-store' })
+                            .then(function (resposta) { if (!resposta.ok) return null; return resposta.json(); })
+                            .then(function (dados) {
+                                if (!dados || !dados.v) return;
+                                if (versaoApp === null) versaoApp = dados.v;
+                                else if (dados.v !== versaoApp) recarregar();
+                            })
+                            .catch(function () {});
+                    }
+                    verificarAtualizacao();
+                    window.setInterval(verificarAtualizacao, 60 * 1000);
+                    document.addEventListener('visibilitychange', verificarAtualizacao);
+                })
+                .catch(function () {});
+        });
+    }
+})();
+</script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
@@ -932,13 +965,16 @@
         });
     });
 
-    // Região Serrana (Petrópolis): mesma tabela do Centro/Zona Sul + R$ 350 em todos os veículos.
-    // A tabela é derivada para que o adicional apareça nos cartões e entre uma única vez no total.
+    // Região Serrana (Petrópolis): soma R$ 350 e arredonda para cima ao próximo múltiplo de R$ 50.
+    // A tabela derivada exibe o valor final nos cartões e o considera uma única vez no total.
     const ACRESCIMO_REGIAO_SERRANA = 350;
+    const INTERVALO_ARREDONDAMENTO_SERRANA = 50;
     precosVeiculos["regiao-serrana"] = {};
     Object.keys(precosVeiculos["centro-sul"]).forEach(function (categoria) {
         precosVeiculos["regiao-serrana"][categoria] = precosVeiculos["centro-sul"][categoria].map(function (v) {
-            return Object.assign({}, v, { preco: v.preco + ACRESCIMO_REGIAO_SERRANA });
+            const precoComAdicional = v.preco + ACRESCIMO_REGIAO_SERRANA;
+            const precoArredondado = Math.ceil(precoComAdicional / INTERVALO_ARREDONDAMENTO_SERRANA) * INTERVALO_ARREDONDAMENTO_SERRANA;
+            return Object.assign({}, v, { preco: precoArredondado });
         });
     });
 
