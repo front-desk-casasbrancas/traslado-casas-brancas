@@ -65,7 +65,7 @@
     const lat=parseFloat(d.lat), lng=parseFloat(d.lng);
     if(isNaN(lat)||isNaN(lng)) return;
     if(!_map){
-      _map=L.map('mapa',{zoomControl:true,attributionControl:false}).setView([lat,lng],14);
+      _map=L.map('mapa',{zoomControl:true}).setView([lat,lng],14);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(_map);
     } else { _map.setView([lat,lng]); }
     if(!_marker){
@@ -87,7 +87,7 @@
     let sent=d.sentido==='IN'?'Chegada':'Saída';
     let cur=idxStatus(d.status);
     let steps=PASSOS.map(function(p,i){ let cls=i<cur?'done':(i===cur?'on':''); let ic=i<cur?'✓':(i===cur?'●':(i+1)); return '<div class="step '+cls+'"><div class="dot">'+ic+'</div><div class="lab">'+p[1]+'</div></div>'; }).join('');
-    let mot=d.motorista?('<div class="linha">🧑‍✈️ Motorista: <b>'+d.motorista+'</b></div>'):'<div class="linha" style="color:#8a8270;">Motorista a definir</div>';
+    let mot=d.motorista?('<div class="linha">🧑‍✈️ Motorista: <b>'+escHtml(d.motorista)+'</b></div>'):'<div class="linha" style="color:#8a8270;">Motorista a definir</div>';
     let temPos = d.lat && d.lng && !isNaN(parseFloat(d.lat)) && !isNaN(parseFloat(d.lng));
     let upd = d.posAtualizado ? horaCurta(d.posAtualizado) : '';
     let mapaCard = temPos
@@ -95,12 +95,12 @@
       : '';
     document.getElementById('conteudo').innerHTML=
       '<div class="card">'+
-        '<div class="ola">Olá'+(d.nome?', '+d.nome:'')+'! 👋</div>'+
+        '<div class="ola">Olá'+(d.nome?', '+escHtml(d.nome):'')+'! 👋</div>'+
         '<div class="rota">'+sent+'</div>'+
-        '<div class="linha">📅 <b>'+fData(d.data)+'</b> &nbsp; 🕒 <b>'+(d.horario||'-')+'</b></div>'+
-        '<div class="linha">🚗 '+(d.veiculo||'-')+'</div>'+
+        '<div class="linha">📅 <b>'+fData(d.data)+'</b> &nbsp; 🕒 <b>'+escHtml(d.horario||'-')+'</b></div>'+
+        '<div class="linha">🚗 '+escHtml(d.veiculo||'-')+'</div>'+
         mot+
-        (d.voo?'<div class="linha">✈️ Voo '+d.voo+(d.cia?' · '+d.cia:'')+'</div>':'')+
+        (d.voo?'<div class="linha">✈️ Voo '+escHtml(d.voo)+(d.cia?' · '+escHtml(d.cia):'')+'</div>':'')+
         '<div id="voobox"></div>'+
       '</div>'+
       mapaCard+
@@ -111,15 +111,18 @@
     try{
       const v=await (await fetch(WEBAPP_URL+'?action=flightstatus&voo='+encodeURIComponent(voo))).json();
       if(v&&v.status&&v.status!=='sem_dados'&&!v.erro){
-        let txt='Status do voo: <b>'+v.status+'</b>';
-        if(v.atrasoChegada)txt+=' · atraso ~'+v.atrasoChegada+' min';
-        if(v.portao)txt+=' · portão '+v.portao;
+        let txt='Status do voo: <b>'+escHtml(v.status)+'</b>';
+        if(v.atrasoChegada)txt+=' · atraso ~'+escHtml(v.atrasoChegada)+' min';
+        if(v.portao)txt+=' · portão '+escHtml(v.portao);
         let vb=document.getElementById('voobox'); if(vb) vb.innerHTML='<div class="voo">'+txt+'</div>';
       }
     }catch(e){}
   }
-  carregar();
-  setInterval(carregar, 25*1000);
+  function escHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+  let _poll=null;
+  function ajustarPolling(){if(_poll){clearInterval(_poll);_poll=null;} if(!document.hidden){carregar();_poll=setInterval(carregar,25*1000);}}
+  document.addEventListener('visibilitychange',ajustarPolling);
+  ajustarPolling();
 </script>
 <script src="cb-versao.js"></script>
 </body>
