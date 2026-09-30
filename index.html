@@ -1149,6 +1149,10 @@
         }
     }
 
+    function escapeHTML(valor) {
+        return String(valor == null ? "" : valor).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
     function atualizarResumo() {
         const t = translations[currentLang];
         const sentido = sentidoIda() === "IN" ? "Chegada" : "Saída";
@@ -1199,9 +1203,9 @@
                 ${notaAnoNovo}
                 <strong>${t.summary}</strong><br>
                 ${temVolta ? `<span style="color:#8a7a55;font-weight:600;">${t.labelIda}: ${sentido}</span>` : `${t.direction}: ${sentido}`}<br>
-                ${t.guest}: ${nome} (Reserva: ${reserva})<br>
+                ${t.guest}: ${escapeHTML(nome)} (Reserva: ${escapeHTML(reserva)})<br>
                 ${t.region}: ${regiao}<br>
-                ${t.vehicle}: ${veiculo}<br>
+                ${t.vehicle}: ${escapeHTML(veiculo)}<br>
                 Bagagens: ${bagagemTexto}<br>
                 ${t.basePrice}: R$ ${precoBase.toLocaleString('pt-BR')}<br>
                 ${madrugadaExtra > 0 ? `${t.nightExtra}: R$ 100<br>` : ""}
