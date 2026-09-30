@@ -112,9 +112,10 @@
 
     let motorista = "", chave = "", transfers = [], filtro = "proximos", timer = null;
 
-    function urlMotorista(){ return WEBAPP_URL + '?action=motorista&nome=' + encodeURIComponent(motorista) + '&chave=' + encodeURIComponent(chave); }
+    async function buscarTransfersMotorista(){ return (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'motorista',nome:motorista,chave:chave})})).json(); }
 
     function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[^a-z]/gi,''); }
+    function escHtml(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
     function parseLocal(v){ if(!v) return new Date(NaN); let m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]); return new Date(v); }
     function dKey(v){ let d=parseLocal(v); return isNaN(d.getTime())?null:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
     function fData(v){ let d=parseLocal(v); return isNaN(d.getTime())?'-':String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
@@ -136,7 +137,7 @@
         document.getElementById('gErro').style.display='none';
         try{
             motorista = nome; chave = senha;
-            let d = await (await fetch(urlMotorista())).json();
+            let d = await buscarTransfersMotorista();
             if(Array.isArray(d)){
                 transfers = d.filter(function(t){ return getStatus(t)!=='cancelled'; });
                 document.getElementById('gate').style.display='none';
@@ -172,7 +173,7 @@
     async function carregar(){
         if(!motorista || !chave) return;
         try{
-            const d = await (await fetch(urlMotorista())).json();
+            const d = await buscarTransfersMotorista();
             if(!Array.isArray(d)) return; // acesso negado / erro: mantém o que já tinha
             transfers = d.filter(function(t){ return getStatus(t)!=='cancelled'; });
             document.getElementById('upd').innerText = 'Atualizado: '+new Date().toLocaleTimeString('pt-BR');
@@ -215,18 +216,18 @@
             let mapBtn = end ? '<a class="btn btn-map" href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(end+', Búzios RJ')+'" target="_blank">📍 Maps</a>' : '';
             let tel = (t["Telefone"]||'').toString().replace(/\D/g,'');
             let email = (t["Email"]||'').toString().trim();
-            let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank">💬 WhatsApp</a>' : (email ? '<a class="btn btn-zap" style="background:#b8995a;" href="mailto:'+email+'">✉️ E-mail</a>' : '');
+            let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank" rel="noopener">💬 WhatsApp</a>' : (email ? '<a class="btn btn-zap" style="background:#b8995a;" href="mailto:'+escHtml(email)+'">✉️ E-mail</a>' : '');
             let pp = proximoPasso(s);
-            let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+_id+'">'+pp.label+'</button>' : '';
-            let fotoBtn = (emCurso(s)||s==='completed') ? '<button class="btn btn-foto" data-act="foto" data-id="'+_id+'">📷 Foto</button>' : '';
+            let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+escHtml(_id)+'">'+pp.label+'</button>' : '';
+            let fotoBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="foto" data-id="'+escHtml(_id)+'">📷 Foto</button>' : '';
             return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
-                '<div class="ch"><div><div class="hr">'+getHorario(t)+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
-                '<div class="nome-h">'+(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+t["Reserva"]+'</span>':'')+'</div>'+
-                '<div class="linha"><b>'+sent+'</b> · '+(t["Veículo"]||'-')+'</div>'+
-                (end?'<div class="linha">📍 '+end+'</div>':'')+
-                (voo?'<div class="linha">✈️ '+voo+'</div>':'')+
-                (t["Telefone"]?'<div class="linha">📞 '+t["Telefone"]+'</div>':(email?'<div class="linha">📧 '+email+'</div>':''))+
-                (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+t["ObsMotorista"]+'</div>':'')+
+                '<div class="ch"><div><div class="hr">'+escHtml(getHorario(t))+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
+                '<div class="nome-h">'+escHtml(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+escHtml(t["Reserva"])+'</span>':'')+'</div>'+
+                '<div class="linha"><b>'+sent+'</b> · '+escHtml(t["Veículo"]||'-')+'</div>'+
+                (end?'<div class="linha">📍 '+escHtml(end)+'</div>':'')+
+                (voo?'<div class="linha">✈️ '+escHtml(voo)+'</div>':'')+
+                (t["Telefone"]?'<div class="linha">📞 '+escHtml(t["Telefone"])+'</div>':(email?'<div class="linha">📧 '+escHtml(email)+'</div>':''))+
+                (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+escHtml(t["ObsMotorista"])+'</div>':'')+
                 '<div class="acoes">'+nextBtn+zapBtn+mapBtn+fotoBtn+'</div>'+
             '</div>';
         }).join('');
