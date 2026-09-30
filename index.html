@@ -529,6 +529,7 @@
             regiaoCentro: "Centro / Zona Sul (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeroportos GIG/SDU)",
             regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
             regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
+            regiaoSerrana: "Região Serrana (Petrópolis)",
             madrugada: "Transfer na madrugada (00h às 06h) - + R$ 100",
             parada: "Parada para almoço/compras - R$ 100/hora",
             horasParada: "Número de horas de parada",
@@ -636,6 +637,7 @@
             regiaoCentro: "Downtown / South Zone (Leblon, Ipanema, Copacabana, Lapa, Gávea, GIG/SDU airports)",
             regiaoOeste: "West Zone (Barra da Tijuca, Recreio)",
             regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
+            regiaoSerrana: "Mountain Region (Petrópolis)",
             madrugada: "Night transfer (00h to 06h) - + R$ 100",
             parada: "Stop for lunch/shopping - R$ 100/hour",
             horasParada: "Number of stop hours",
@@ -743,6 +745,7 @@
             regiaoCentro: "Centro / Zona Sur (Leblon, Ipanema, Copacabana, Lapa, Gávea, Aeropuertos GIG/SDU)",
             regiaoOeste: "Zona Oeste (Barra da Tijuca, Recreio)",
             regiaoCostaVerde: "Costa Verde (Conceição de Jacareí, Angra dos Reis, Paraty)",
+            regiaoSerrana: "Región Serrana (Petrópolis)",
             madrugada: "Traslado de madrugada (00h a 06h) - + R$ 100",
             parada: "Parada para almuerzo/compras - R$ 100/hora",
             horasParada: "Número de horas de parada",
@@ -929,13 +932,24 @@
         });
     });
 
-    let veiculosCache = { "centro-sul": null, "zona-oeste": null, "costa-verde": null };
+    // Região Serrana (Petrópolis): mesma tabela do Centro/Zona Sul + R$ 350 em todos os veículos.
+    // A tabela é derivada para que o adicional apareça nos cartões e entre uma única vez no total.
+    const ACRESCIMO_REGIAO_SERRANA = 350;
+    precosVeiculos["regiao-serrana"] = {};
+    Object.keys(precosVeiculos["centro-sul"]).forEach(function (categoria) {
+        precosVeiculos["regiao-serrana"][categoria] = precosVeiculos["centro-sul"][categoria].map(function (v) {
+            return Object.assign({}, v, { preco: v.preco + ACRESCIMO_REGIAO_SERRANA });
+        });
+    });
+
+    let veiculosCache = { "centro-sul": null, "zona-oeste": null, "costa-verde": null, "regiao-serrana": null };
 
     // Rótulo da região gravado na planilha / mensagens
     function regiaoLabel() {
         const r = document.querySelector('input[name="regiao"]:checked')?.value;
         if (r === "zona-oeste") return "Zona Oeste";
         if (r === "costa-verde") return "Costa Verde";
+        if (r === "regiao-serrana") return "Região Serrana (Petrópolis)";
         return "Centro/Sul";
     }
 
@@ -1407,6 +1421,7 @@
                     <label><input type="radio" name="regiao" value="centro-sul" checked> ${t.regiaoCentro}</label>
                     <label><input type="radio" name="regiao" value="zona-oeste"> ${t.regiaoOeste}</label>
                     <label><input type="radio" name="regiao" value="costa-verde"> ${t.regiaoCostaVerde}</label>
+                    <label><input type="radio" name="regiao" value="regiao-serrana"> ${t.regiaoSerrana}</label>
                 </div>
             </div>
             <div class="step-section"><div class="step-title">${t.step6}</div>
@@ -1982,6 +1997,7 @@
             if (lr[0]) lr[0].childNodes[1].textContent = " " + t.regiaoCentro;
             if (lr[1]) lr[1].childNodes[1].textContent = " " + t.regiaoOeste;
             if (lr[2]) lr[2].childNodes[1].textContent = " " + t.regiaoCostaVerde;
+            if (lr[3]) lr[3].childNodes[1].textContent = " " + t.regiaoSerrana;
         }
 
         // Rótulos dos dados do hóspede (step 2) — por ID
