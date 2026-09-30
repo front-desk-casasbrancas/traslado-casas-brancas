@@ -489,6 +489,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     const WEBAPP_URL = window.WEBAPP_URL;
     // Chave validada no login (janela acima); enviada em toda chamada ao servidor.
     function _k() { return encodeURIComponent(window.CHAVE || ''); }
+    function escHtml(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
     const AUTO_REFRESH_MIN = 5; // intervalo de auto-atualização (minutos)
 
     let transfers = [];
@@ -697,7 +698,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     let _liveMap = null, _liveMarkers = {}, _liveTimer = null;
     async function carregarPosicoesAtivas() {
         if (!window.CHAVE) return;
-        if (!_liveTimer) { _liveTimer = setInterval(carregarPosicoesAtivas, 25 * 1000); }
+        if (!_liveTimer && !document.hidden) { _liveTimer = setInterval(carregarPosicoesAtivas, 25 * 1000); }
         try {
             const r = await fetch(WEBAPP_URL + '?action=posicoesAtivas&k=' + _k() + '&t=' + Date.now());
             const d = await r.json();
@@ -708,7 +709,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             document.getElementById('liveCount').innerText = '(' + arr.length + ')';
             if (typeof L === 'undefined') return;
             if (!_liveMap) {
-                _liveMap = L.map('liveMapa', { zoomControl: true, attributionControl: false }).setView([parseFloat(arr[0].lat), parseFloat(arr[0].lng)], 13);
+                _liveMap = L.map('liveMapa', { zoomControl: true }).setView([parseFloat(arr[0].lat), parseFloat(arr[0].lng)], 13);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_liveMap);
                 setTimeout(function () { try { _liveMap.invalidateSize(); } catch (e) {} }, 200);
             }
@@ -716,15 +717,24 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             arr.forEach(function (c) {
                 const lat = parseFloat(c.lat), lng = parseFloat(c.lng); vistos[c.id] = true; bounds.push([lat, lng]);
                 const label = (c.motorista || 'Motorista') + ' · ' + (c.veiculo || '') + ' — ' + (c.nome || '');
-                if (_liveMarkers[c.id]) { _liveMarkers[c.id].setLatLng([lat, lng]).setPopupContent(label); }
-                else { _liveMarkers[c.id] = L.marker([lat, lng]).addTo(_liveMap).bindPopup(label); }
+                if (_liveMarkers[c.id]) { _liveMarkers[c.id].setLatLng([lat, lng]).setPopupContent(document.createTextNode(label)); }
+                else { _liveMarkers[c.id] = L.marker([lat, lng]).addTo(_liveMap).bindPopup(document.createTextNode(label)); }
             });
             Object.keys(_liveMarkers).forEach(function (id) { if (!vistos[id]) { _liveMap.removeLayer(_liveMarkers[id]); delete _liveMarkers[id]; } });
             if (bounds.length === 1) { _liveMap.setView(bounds[0], 14); }
             else if (bounds.length > 1) { try { _liveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }
-            document.getElementById('liveLista').innerHTML = arr.map(function (c) { return '🚗 <b>' + (c.motorista || '—') + '</b> · ' + (c.veiculo || '') + ' — ' + (c.nome || ''); }).join('<br>');
+            document.getElementById('liveLista').innerHTML = arr.map(function (c) { return '🚗 <b>' + escHtml(c.motorista || '—') + '</b> · ' + escHtml(c.veiculo || '') + ' — ' + escHtml(c.nome || ''); }).join('<br>');
         } catch (e) {}
     }
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+            if (_liveTimer) { clearInterval(_liveTimer); _liveTimer = null; }
+        } else if (window.CHAVE) {
+            carregarPosicoesAtivas();
+            if (!_liveTimer) _liveTimer = setInterval(carregarPosicoesAtivas, 25 * 1000);
+        }
+    });
 
     async function carregarPagamentos() {
         try {
@@ -1218,16 +1228,17 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let statusHtml = pg
             ? `<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#e6f0f2;color:#2f7d8c;">PAGO em ${pg["Data"] || '-'} · ${pg["Forma"] || '-'}</span>`
             : `<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#fff3cd;color:#8a6d1b;">Em aberto</span>`;
+        let valores = pg ? { qtd: Number(pg["Qtd"]) || 0, total: Number(pg["Total"]) || 0, comissao: Number(pg["Comissao"]) || 0 } : tt;
         cont.innerHTML =
             `<table style="width:100%"><tbody>
                 <tr><td>Mês de referência<\/td><td><strong>${mesLabel(mes)}<\/strong><\/td><\/tr>
-                <tr><td>Traslados no mês<\/td><td>${tt.qtd}<\/td><\/tr>
-                <tr><td>Total em traslados<\/td><td>R$ ${tt.total.toLocaleString('pt-BR')}<\/td><\/tr>
-                <tr><td>Comissão líq. (15% − 6% cartão)<\/td><td><strong>R$ ${tt.comissao.toLocaleString('pt-BR')}<\/strong><\/td><\/tr>
+                <tr><td>Traslados no mês<\/td><td>${valores.qtd}<\/td><\/tr>
+                <tr><td>Total em traslados<\/td><td>R$ ${valores.total.toLocaleString('pt-BR')}<\/td><\/tr>
+                <tr><td>Comissão líq. (15% − 6% cartão)<\/td><td><strong>R$ ${valores.comissao.toLocaleString('pt-BR')}<\/strong><\/td><\/tr>
                 <tr><td>Situação<\/td><td>${statusHtml}<\/td><\/tr>
             <\/tbody><\/table>`;
     }
-    function registrarPagamento() {
+    async function registrarPagamento() {
         let mes = document.getElementById('pgMes').value;
         if (!mes) { alert('Selecione o mês de referência.'); return; }
         let tt = totaisMes(mes);
@@ -1236,22 +1247,29 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let dataPg = document.getElementById('pgData').value;
         let dataBR = dataPg ? dataPg.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
         if (!confirm(`Confirmar pagamento da comissão de ${mesLabel(mes)} (R$ ${tt.comissao.toLocaleString('pt-BR')}) via ${forma}?`)) return;
-        let registro = { Mes: mes, Total: tt.total, Comissao: tt.comissao, Forma: forma, Data: dataBR, Qtd: tt.qtd };
-        // atualiza local
-        let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
-        if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
-        // envia para a planilha
-        postApi({ action: 'pagamentoComissao', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd })
-            .then(function (d) { if (d && d.error) alert('Erro ao registrar na planilha: ' + d.error); })
-            .catch(function (e) { console.error(e); });
-        renderPagamento();
-        alert('Pagamento registrado.');
+        let btn = document.getElementById('pgRegistrar');
+        if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
+        try {
+            // O servidor calcula novamente usando a planilha como fonte oficial.
+            let d = await postApi({ action: 'pagamentoComissao', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd });
+            if (!d || d.error || !(d.ok === true || d.success === true)) throw new Error((d && (d.error || d.erro)) || 'O servidor não confirmou a gravação.');
+            if (![d.total, d.comissao, d.qtd].every(v => Number.isFinite(Number(v)))) throw new Error('O servidor confirmou sem retornar os totais oficiais. Atualize o Apps Script e tente novamente.');
+            let registro = { Mes: mes, Total: Number(d.total), Comissao: Number(d.comissao), Forma: forma, Data: dataBR, Qtd: Number(d.qtd) };
+            let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
+            if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
+            renderPagamento(); alert('Pagamento registrado e confirmado pelo servidor.');
+        } catch (e) {
+            console.error(e); alert('Não foi possível confirmar o pagamento na planilha. O status continua inalterado. Tente novamente ou atualize os dados.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar como pago'; }
+        }
     }
     function gerarReciboPDF() {
         let mes = document.getElementById('pgMes').value;
         if (!mes) { alert('Selecione o mês de referência.'); return; }
         let tt = totaisMes(mes);
         let pg = pagamentoDoMes(mes);
+        if (pg) tt = { qtd: Number(pg["Qtd"]) || 0, total: Number(pg["Total"]) || 0, comissao: Number(pg["Comissao"]) || 0 };
         let forma = pg ? (pg["Forma"] || '-') : document.getElementById('pgForma').value;
         let dataPg = pg ? (pg["Data"] || '-') : (document.getElementById('pgData').value ? document.getElementById('pgData').value.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR'));
         let pago = !!pg;
