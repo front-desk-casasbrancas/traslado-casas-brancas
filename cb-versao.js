@@ -61,6 +61,7 @@
       el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
       document.body.appendChild(el);
     }
+    el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
     el.textContent = 'v' + v;
   }
 
