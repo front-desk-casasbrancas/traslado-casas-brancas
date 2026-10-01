@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-4">
+    <meta name="cb-build" content="2026.10.01-5">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -35,14 +35,15 @@
         .appnav a:hover, .appnav button:hover { background: #faf6ee; }
         .topo {
             position: relative; overflow: hidden; border-radius: 20px; color: #fff;
-            padding: 38px 30px; margin-bottom: 20px; min-height: 150px;
-            display: flex; flex-direction: column; justify-content: center;
+            padding: 28px 30px; margin-bottom: 20px; min-height: 210px;
+            display: flex; align-items: center; justify-content: space-between; gap: 24px;
             background-image: linear-gradient(100deg, rgba(30,28,23,0.78) 0%, rgba(30,28,23,0.40) 55%, rgba(30,28,23,0.12) 100%), url('fundo-hotel.jpg');
             background-size: cover; background-position: center 58%;
             box-shadow: 0 12px 32px rgba(40,36,28,0.18);
         }
         .topo .brandline { font-size: 0.68rem; letter-spacing: 2.5px; color: var(--gold-l); font-weight: 600; margin-bottom: 6px; }
         .topo h1 { font-size: 1.8rem; font-weight: 400; font-family: 'Georgia', serif; font-style: italic; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+        .weather-welcome{min-width:0}.weather-welcome h1{font-size:2.35rem!important;margin:3px 0 13px}.weather-greeting{font-size:.95rem;color:rgba(255,255,255,.94);margin:0 0 3px}.weather-date{font-size:.78rem;color:rgba(255,255,255,.8)}.weather-hero{width:270px;flex:0 0 270px;padding:14px 16px;border:1px solid rgba(255,255,255,.36);border-radius:18px;background:rgba(255,255,255,.18);backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(20,30,40,.12)}.weather-hero-top{display:flex;align-items:center;justify-content:space-between;gap:6px}.weather-hero-place{font-size:.95rem;font-weight:650;color:#fff}.weather-hero-main{display:flex;align-items:center;gap:4px;font-size:1.95rem;line-height:1;font-weight:700;color:#fff}.weather-hero-main img{width:42px;height:42px}.weather-hero-condition{font-size:.7rem;color:rgba(255,255,255,.92);margin-top:2px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.weather-hero-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:13px}.weather-hero-day{text-align:center;padding:7px 4px;border-radius:12px;background:rgba(255,255,255,.16);min-width:0}.weather-hero-day-name{font-size:.65rem;color:rgba(255,255,255,.9)}.weather-hero-day img{display:block;width:30px;height:30px;margin:1px auto}.weather-hero-day-temps{font-size:.65rem;font-weight:650;color:#fff;white-space:nowrap}.weather-hero-day-temps span{font-weight:400;color:rgba(255,255,255,.78);margin-left:3px}.weather-hero-loading{font-size:.75rem;color:rgba(255,255,255,.88);padding:12px 0}@media(max-width:700px){.topo{padding:22px;min-height:0;align-items:stretch;flex-direction:column;gap:17px}.weather-welcome h1{font-size:1.95rem!important}.weather-hero{width:100%;max-width:390px;flex-basis:auto;align-self:flex-end}.weather-hero-top{align-items:flex-start}}
         .tabs {
             display: flex;
             gap: 8px;
@@ -264,6 +265,46 @@
             .abrir-link, .editar-btn { padding: 4px 7px; font-size: 0.64rem; }
             .acoes-cell { gap: 3px; }
         }
+    
+        .weather-panel{padding:0;overflow:hidden;background:rgba(255,255,255,.97)}
+        .weather-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;border-bottom:1px solid #eee8dc}
+        .weather-heading{display:flex;align-items:center;gap:11px}
+        .weather-mark{width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:#f5eedf;color:#94753e;font-size:21px}
+        .weather-head h3{color:#5c503c;font-size:1rem;margin:0}
+        .weather-location{color:#928875;font-size:.76rem;margin-top:3px}
+        .weather-updated{color:#938b7d;font-size:.72rem;text-align:right}
+        .weather-refresh{margin-top:7px;padding:7px 12px;font-size:.74rem}
+        .weather-content{padding:18px 20px 20px}
+        .weather-loading,.weather-error{padding:24px 12px;text-align:center;color:#847c6d;font-size:.88rem}
+        .weather-current{display:grid;grid-template-columns:minmax(210px,1.1fr) minmax(0,2fr);gap:18px;align-items:center}
+        .weather-now{display:flex;align-items:center;gap:14px;min-width:0}
+        .weather-icon{width:76px;height:76px;object-fit:contain;flex:0 0 auto}
+        .weather-temperature{font-size:2.7rem;line-height:1;font-weight:650;letter-spacing:-.06em;color:#302d27}
+        .weather-condition{margin-top:7px;color:#655d50;font-size:.9rem}
+        .weather-feels{margin-top:4px;color:#968c7c;font-size:.76rem}
+        .weather-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+        .weather-metric{border:1px solid #f0eadf;background:#fcfbf8;border-radius:12px;padding:11px 12px;min-width:0}
+        .weather-metric-label{color:#928875;font-size:.69rem}
+        .weather-metric-value{display:block;margin-top:5px;color:#443e32;font-size:.96rem;font-weight:650;white-space:nowrap}
+        .weather-section-title{display:flex;align-items:center;gap:8px;margin:20px 0 10px;color:#75613c;font-size:.81rem;font-weight:650;letter-spacing:.02em}
+        .weather-hourly{display:flex;gap:9px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin}
+        .weather-hour{flex:0 0 82px;text-align:center;padding:10px 7px;border:1px solid #f0eadf;border-radius:13px;background:#fff}
+        .weather-hour-time{color:#827967;font-size:.7rem}
+        .weather-hour img{display:block;width:40px;height:40px;margin:5px auto 2px}
+        .weather-hour-temp{color:#443e32;font-weight:650;font-size:.9rem}
+        .weather-hour-rain{color:#558194;font-size:.68rem;margin-top:5px}
+        .weather-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+        .weather-day{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #f0eadf;border-radius:13px;padding:10px 12px;background:#fcfbf8}
+        .weather-day-main{min-width:0}
+        .weather-day-name{color:#514a3e;font-size:.78rem;font-weight:650}
+        .weather-day-condition{color:#928875;font-size:.68rem;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .weather-day img{width:39px;height:39px;flex:0 0 auto}
+        .weather-day-temps{color:#514a3e;font-size:.76rem;white-space:nowrap}
+        .weather-day-temps span{color:#9b9385;margin-left:4px}
+        .weather-note{margin-top:13px;display:flex;align-items:flex-start;gap:8px;border-radius:11px;padding:10px 12px;background:#f7f4ec;color:#716750;font-size:.76rem;line-height:1.4}
+        .weather-source{color:#a39b8f;font-size:.66rem;margin-top:10px;text-align:right}
+        @media(max-width:760px){.weather-head{padding:15px}.weather-content{padding:15px}.weather-current{grid-template-columns:1fr;gap:14px}.weather-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.weather-days{grid-template-columns:1fr}.weather-temperature{font-size:2.45rem}.weather-icon{width:68px;height:68px}}
+
     </style>
 </head>
 <body>
@@ -300,6 +341,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         window.CHAVE = senha;
         liberar();
         if (typeof carregarDados === 'function') carregarDados();
+        if (typeof window.carregarClima === 'function') window.carregarClima();
     }
     b.addEventListener('click', tentar);
     i.addEventListener('keydown', function (e) { if (e.key === 'Enter') tentar(); });
@@ -312,8 +354,16 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <a href="menu.html">⌂ Início</a>
     </div>
     <div class="topo">
-        <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
-        <h1>Dashboard</h1>
+        <div class="weather-welcome">
+            <div class="brandline">CASAS BRANCAS · MF TRANSPORTE EXECUTIVO</div>
+            <h1>Casas Brancas</h1>
+            <p class="weather-greeting" id="weatherGreeting">Bem-vindo ao painel</p>
+            <div class="weather-date" id="weatherDate"></div>
+        </div>
+        <aside class="weather-hero" id="weatherHero" aria-label="Previsão do tempo em Búzios">
+            <div class="weather-hero-top"><div><div class="weather-hero-place">Búzios</div><div class="weather-hero-condition" id="weatherHeroCondition">Carregando previsão…</div></div><div class="weather-hero-main" id="weatherHeroMain">—</div></div>
+            <div class="weather-hero-days" id="weatherHeroDays"><div class="weather-hero-loading">Buscando previsão…</div></div>
+        </aside>
     </div>
     <div class="tabs">
         <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
@@ -343,6 +393,14 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         </div>
         <div id="operacaoResumo" class="table-container" style="display:none;border-left:4px solid #b8995a;margin-bottom:20px;"></div>
         <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
+
+        <section class="table-container weather-panel" id="weatherPanel" aria-labelledby="weatherTitle">
+            <header class="weather-head">
+                <div class="weather-heading"><span class="weather-mark" aria-hidden="true">☼</span><div><h3 id="weatherTitle">Tempo em Búzios</h3><div class="weather-location">Condições atuais e previsão para os próximos dias</div></div></div>
+                <div><div class="weather-updated" id="weatherUpdated">Carregando previsão…</div><button class="refresh-btn weather-refresh" id="weatherRefresh" type="button">Atualizar clima</button></div>
+            </header>
+            <div class="weather-content" id="weatherContent"><div class="weather-loading">Buscando a previsão do tempo…</div></div>
+        </section>
         <div id="etaResumo" class="table-container" style="margin-bottom:20px;"><h3>Previsão interna de chegada</h3><div id="etaConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Aguardando posições dos motoristas.</div></div>
         <div id="ocorrenciasBox" class="table-container" style="margin-bottom:20px;"><h3>Ocorrências recentes</h3><div id="ocorrenciasConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Carregando…</div></div>
         <div class="table-container">
@@ -1963,6 +2021,71 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     setupAutoRefresh();
     carregarDados();
+</script>
+<script>
+(function(){
+  var target=document.getElementById("weatherContent");
+  var updated=document.getElementById("weatherUpdated");
+  var button=document.getElementById("weatherRefresh");
+  if(!target||!button)return;
+  var lastLoad=0,busy=false;
+  function escapeHtml(value){return String(value==null?"":value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];});}
+  function num(value,digits){var n=Number(value);return isFinite(n)?n.toFixed(digits||0):"—";}
+  function iconUrl(value){var s=String(value||"");return s.indexOf("//")===0?"https:"+s:(s.indexOf("http")===0?s:"https://cdn.weatherapi.com/weather/64x64"+(s.charAt(0)==="/" ? s : "/day/"+s));}
+  function icon(value){return value?'<img src="'+escapeHtml(iconUrl(value))+'" alt="" loading="lazy">':"";}
+  function weekday(value){var date=new Date(value+"T12:00:00-03:00");return isNaN(date.getTime())?value:new Intl.DateTimeFormat("pt-BR",{weekday:"short",timeZone:"America/Sao_Paulo"}).format(date).replace(".","");}
+  function render(data){
+    var current=data.current||{},days=data.forecast&&data.forecast.forecastday||[];
+    if((current.temp_c===undefined||current.temp_c===null)||!days.length)throw new Error("A previsão veio incompleta.");
+    var today=days[0].day||{},condition=current.condition||{};
+    var heroMain=document.getElementById("weatherHeroMain"),heroCondition=document.getElementById("weatherHeroCondition"),heroDays=document.getElementById("weatherHeroDays");
+    if(heroMain)heroMain.innerHTML=icon(condition.icon)+'<span>'+num(current.temp_c)+'°</span>';
+    if(heroCondition)heroCondition.textContent=(condition.text||"Condição atual")+" · sensação "+num(current.feelslike_c)+"°";
+    if(heroDays)heroDays.innerHTML=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-hero-day"><div class="weather-hero-day-name">'+escapeHtml(weekday(day.date))+'</div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-hero-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
+    var metrics=[["Máxima / mínima",num(today.maxtemp_c)+"° / "+num(today.mintemp_c)+"°"],["Chuva hoje",num(today.daily_chance_of_rain)+"%"],["Vento",num(current.wind_kph)+" km/h"],["Rajadas",num(current.gust_kph)+" km/h"],["Umidade",num(current.humidity)+"%"],["Índice UV",num(current.uv,1)],["Visibilidade",num(current.vis_km,1)+" km"],["Sensação",num(current.feelslike_c)+"°"]];
+    var metricsHtml=metrics.map(function(item){return '<div class="weather-metric"><span class="weather-metric-label">'+item[0]+'</span><strong class="weather-metric-value">'+item[1]+'</strong></div>';}).join("");
+    var nowEpoch=Number(current.last_updated_epoch)||Math.floor(Date.now()/1000);
+    var hours=days.reduce(function(all,day){return all.concat(day.hour||[]);},[]).filter(function(hour){return Number(hour.time_epoch)>=nowEpoch;}).slice(0,8);
+    var hourly=hours.length?hours.map(function(hour){var time=String(hour.time||"").split(" ")[1]||"";return '<div class="weather-hour"><div class="weather-hour-time">'+escapeHtml(time)+'</div>'+icon(hour.condition&&hour.condition.icon)+'<div class="weather-hour-temp">'+num(hour.temp_c)+'°</div><div class="weather-hour-rain">☂ '+num(hour.chance_of_rain)+'%</div></div>';}).join(""):'<div class="weather-loading">Previsão por hora indisponível.</div>';
+    var daysHtml=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-day"><div class="weather-day-main"><div class="weather-day-name">'+escapeHtml(weekday(day.date))+'</div><div class="weather-day-condition">'+escapeHtml(info.condition&&info.condition.text||"")+' · chuva '+num(info.daily_chance_of_rain)+'%</div></div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
+    var alerts=data.alerts&&data.alerts.alert||[],note="Previsão sujeita a mudanças. Consulte novamente antes de decisões operacionais.";
+    if(alerts.length)note="Alerta meteorológico: "+escapeHtml(alerts[0].headline||alerts[0].event||"há um alerta ativo.")+(alerts.length>1?" (+"+(alerts.length-1)+" alerta(s))":"");
+    else if(Number(today.daily_chance_of_rain)>=60)note="A previsão indica chance elevada de chuva hoje ("+num(today.daily_chance_of_rain)+"%).";
+    target.innerHTML='<div class="weather-current"><div class="weather-now">'+icon(condition.icon)+'<div><div class="weather-temperature">'+num(current.temp_c)+'°</div><div class="weather-condition">'+escapeHtml(condition.text||"Condição atual indisponível")+'</div><div class="weather-feels">Sensação de '+num(current.feelslike_c)+'° · '+escapeHtml(data.location&&data.location.name||"Búzios")+'</div></div></div><div class="weather-metrics">'+metricsHtml+'</div></div><div class="weather-section-title">Próximas horas</div><div class="weather-hourly">'+hourly+'</div><div class="weather-section-title">Próximos dias</div><div class="weather-days">'+daysHtml+'</div><div class="weather-note"><span aria-hidden="true">ℹ</span><span>'+note+'</span></div><div class="weather-source">Fonte: WeatherAPI.com · previsão para Búzios, RJ</div>';
+    updated.textContent="Atualizado"+(current.last_updated?" às "+String(current.last_updated).split(" ")[1]:" agora");
+  }
+  function initGreeting(){
+    var now=new Date();
+    var hour=Number(new Intl.DateTimeFormat("en-US",{hour:"2-digit",hourCycle:"h23",timeZone:"America/Sao_Paulo"}).format(now));
+    var label=hour<12?"Bom dia!":(hour<18?"Boa tarde!":"Boa noite!");
+    var greeting=document.getElementById("weatherGreeting"),date=document.getElementById("weatherDate");
+    if(greeting)greeting.textContent=label;
+    if(date)date.textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
+  }
+  initGreeting();
+  async function loadWeather(force){
+    if(busy||(!force&&Date.now()-lastLoad<30*60*1000))return;
+    busy=true;button.disabled=true;button.textContent="Atualizando…";
+    if(!lastLoad)target.innerHTML='<div class="weather-loading">Buscando a previsão do tempo…</div>';
+    try{
+      var url=window.WEBAPP_URL+"?action=climaBuzios&k="+(typeof _k==="function"?_k():"")+"&t="+Date.now();
+      var response=await fetch(url,{cache:"no-store"});
+      if(!response.ok)throw new Error("Não foi possível consultar a previsão.");
+      var payload=await response.json();
+      if(payload&&payload.ok===false)throw new Error(payload.error||payload.erro||"A consulta da previsão falhou.");
+      render(payload.data||payload.weather||payload);
+      lastLoad=Date.now();
+    }catch(error){
+      target.innerHTML='<div class="weather-error">'+escapeHtml(error.message||"Não foi possível carregar a previsão agora.")+'<br><small>Verifique a conexão e tente atualizar novamente.</small></div>';
+      updated.textContent="Previsão temporariamente indisponível";
+    }finally{busy=false;button.disabled=false;button.textContent="Atualizar clima";}
+  }
+  button.addEventListener("click",function(){loadWeather(true);});
+  if(window.CHAVE)loadWeather(false);else target.innerHTML='<div class="weather-loading">Entre no painel para consultar a previsão do tempo.</div>';
+  window.carregarClima=function(){lastLoad=0;loadWeather(true);};
+  window.setInterval(function(){if(!document.hidden)loadWeather(false);},30*60*1000);
+  document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastLoad>30*60*1000)loadWeather(false);});
+})();
 </script>
 <script src="cb-versao.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
