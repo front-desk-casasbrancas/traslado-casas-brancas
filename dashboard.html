@@ -184,6 +184,31 @@
         .edit-card h3 { color: var(--gold-d); margin-bottom: 14px; }
         .edit-card label { display: block; font-size: 0.78rem; color: #8a7a55; margin: 12px 0 5px; }
         .edit-card input, .edit-card select { width: 100%; padding: 11px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font-size: 0.9rem; }
+        .chat-layout { display:grid; grid-template-columns:minmax(220px,300px) minmax(0,1fr); gap:14px; min-height:560px; }
+        .chat-rooms { background:#fff; border:1px solid #e8e1d4; border-radius:16px; overflow:hidden; }
+        .chat-rooms-head,.chat-room-head { padding:14px 16px; border-bottom:1px solid #eee8dc; }
+        .chat-rooms-head h3,.chat-room-head h3 { margin:0;color:#76613d; }
+        .chat-room-list { max-height:490px; overflow:auto; }
+        .chat-room-item { width:100%;display:block;text-align:left;border:0;border-bottom:1px solid #f0ece4;background:#fff;padding:12px 14px;cursor:pointer;color:#332f28; }
+        .chat-room-item:hover,.chat-room-item.active { background:#f8f5ed; }
+        .chat-room-item strong { display:flex;justify-content:space-between;gap:8px; }
+        .chat-preview { display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#827b6f;font-size:.78rem;margin-top:4px; }
+        .chat-unread { color:#fff;background:#2f7d61;border-radius:50%;width:9px;height:9px;display:inline-block;flex:0 0 auto; }
+        .chat-window { display:flex;flex-direction:column;background:#fff;border:1px solid #e8e1d4;border-radius:16px;overflow:hidden;min-width:0; }
+        .chat-room-head small { display:block;color:#827b6f;margin-top:4px; }
+        .chat-messages { flex:1;min-height:340px;max-height:55vh;overflow-y:auto;padding:16px;background:#f7f5ef;display:flex;flex-direction:column;gap:9px; }
+        .chat-empty { color:#8a8270;text-align:center;margin:auto; }
+        .chat-message { max-width:min(82%,560px);background:#fff;border:1px solid #ece7dc;border-radius:14px 14px 14px 4px;padding:9px 12px;align-self:flex-start;box-shadow:0 2px 5px rgba(45,40,30,.04);overflow-wrap:anywhere; }
+        .chat-message.mine { background:#e8f2e9;border-color:#d4e6d6;border-radius:14px 14px 4px 14px;align-self:flex-end; }
+        .chat-message-meta { color:#837b6e;font-size:.7rem;margin-bottom:4px; }
+        .chat-message-text { white-space:pre-wrap;line-height:1.4; }
+        .chat-transfer-card { border:1px solid #ded5c3;border-radius:10px;padding:8px 10px;margin-top:7px;background:rgba(255,255,255,.72);font-size:.78rem; }
+        .chat-transfer-card a { color:#8b6e36;font-weight:600; }
+        .chat-composer { padding:12px;display:grid;grid-template-columns:1fr auto;gap:8px;border-top:1px solid #eee8dc; }
+        .chat-composer textarea { grid-column:1/-1;width:100%;min-height:70px;resize:vertical;border:1px solid #e0d8ca;border-radius:12px;padding:10px;font:inherit; }
+        .chat-composer button { border:0;border-radius:22px;padding:9px 14px;cursor:pointer;font-weight:600; }
+        .chat-mobile-back { display:none; }
+        @media(max-width:760px) { .chat-layout { grid-template-columns:1fr;min-height:0; } .chat-rooms { min-height:180px; } .chat-room-list { max-height:230px; } .chat-window { min-height:62vh; } .chat-layout.room-open .chat-rooms { display:none; } .chat-layout:not(.room-open) .chat-window { display:none; } .chat-mobile-back { display:inline-block; margin-right:8px;border:0;background:none;color:#8b6e36;cursor:pointer; } .chat-message { max-width:92%; } }
         .edit-total { margin-top: 14px; font-size: 1.1rem; font-weight: 700; color: var(--gold-d); }
         .edit-acoes { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
         .edit-acoes button { flex: 1; padding: 12px; border-radius: 40px; border: none; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
@@ -294,6 +319,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <button class="tab-btn" data-tab="comissao">Comissões (líq.)</button>
         <button class="tab-btn" data-tab="lista">Lista de Transfers</button>
         <button class="tab-btn" data-tab="auditoria">Auditoria</button>
+        <button class="tab-btn" data-tab="chat">Chat Interno</button>
     </div>
 
     <div class="header-actions">
@@ -422,6 +448,35 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             </div>
         </div>
         <div id="auditBody">Abra esta aba para carregar o histórico.</div>
+    </div>
+</div>
+
+<div id="tab-chat" class="tab-content">
+    <div class="chat-layout" id="chatLayout">
+        <aside class="chat-rooms">
+            <div class="chat-rooms-head"><h3>Conversas</h3><small style="color:#827b6f;">Equipe e motoristas</small><button id="chatEnableNotifs" type="button" style="display:none;margin-top:8px;border:1px solid #d8cbb0;border-radius:18px;padding:6px 10px;background:#fff;color:#806a42;cursor:pointer;">🔔 Ativar notificações</button><small id="chatNotifStatus" style="display:block;color:#2f7d61;margin-top:5px;"></small></div>
+            <div class="chat-room-list" id="chatRoomList"><div class="chat-empty" style="padding:18px;">Carregando conversas…</div></div>
+        </aside>
+        <section class="chat-window">
+            <div class="chat-room-head"><button class="chat-mobile-back" id="chatBack">‹ Conversas</button><h3 id="chatRoomTitle">Selecione uma conversa</h3><small id="chatRoomSubtitle">Mensagens internas da operação</small></div>
+            <div class="chat-messages" id="chatMessages"><div class="chat-empty">Escolha uma conversa para começar.</div></div>
+            <div class="chat-composer">
+                <div id="chatTransferPreview" style="grid-column:1/-1;display:none;border:1px solid #e1dacd;border-radius:10px;padding:7px 10px;color:#6b614f;font-size:.8rem;"></div>
+                <textarea id="chatText" maxlength="2000" placeholder="Escreva uma mensagem interna…" aria-label="Mensagem"></textarea>
+                <button id="chatAttach" style="background:#f3ecdd;color:#806a42;">Vincular transfer</button>
+                <button id="chatSend" style="background:#2f7d61;color:#fff;">Enviar</button>
+            </div>
+        </section>
+    </div>
+    <div style="font-size:.75rem;color:#888;margin:8px 4px;">Chat interno para a operação. As mensagens não são enviadas ao hóspede.</div>
+</div>
+
+<div class="edit-overlay" id="chatPickerOverlay">
+    <div class="edit-card">
+        <h3>Vincular um transfer</h3>
+        <input id="chatTransferSearch" type="search" placeholder="Buscar hóspede, data ou reserva…">
+        <div id="chatTransferChoices" style="max-height:55vh;overflow:auto;margin-top:10px;"></div>
+        <div class="edit-acoes"><button class="btn-cancelar-edit" id="chatPickerClose">Fechar</button></div>
     </div>
 </div>
 
@@ -680,6 +735,115 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             .then(function (d) { if (d && d.error) alert('Erro ao gravar: ' + d.error); })
             .catch(function (e) { console.error(e); });
     }
+
+    // ==================== CHAT INTERNO ====================
+    let chatRooms = [], chatIdentity = null, chatActiveId = '', chatCursor = 1, chatMessages = [], chatPendingTransferId = '', chatBusy = false, chatLastRoomsLoad = 0;
+    function chatPost(action, payload) { return postApi(Object.assign({ action: action }, payload || {})); }
+    function chatSeenKey(id) { return 'cb_chat_seen_v1_' + id; }
+    function chatSeen(id) { try { return localStorage.getItem(chatSeenKey(id)) || ''; } catch (e) { return ''; } }
+    function chatMarkSeen(id, date) { try { localStorage.setItem(chatSeenKey(id), date || new Date().toISOString()); } catch (e) {} }
+    function chatRenderRooms() {
+        const list = document.getElementById('chatRoomList'); if (!list) return;
+        if (!chatRooms.length) { list.innerHTML = '<div class="chat-empty" style="padding:18px;">Nenhuma conversa disponível.</div>'; return; }
+        list.innerHTML = chatRooms.map(room => {
+            const last = room.ultima, unseen = last && last.autor !== chatIdentity?.nome && last.dataHora > chatSeen(room.id);
+            const preview = last ? `${last.autor}: ${last.texto}` : 'Nenhuma mensagem ainda';
+            return `<button class="chat-room-item ${room.id === chatActiveId ? 'active' : ''}" data-chat-room="${escHtml(room.id)}"><strong><span>${escHtml(room.nome)}</span>${unseen ? '<i class="chat-unread" title="Nova mensagem"></i>' : ''}</strong><span class="chat-preview">${escHtml(preview)}</span></button>`;
+        }).join('');
+        list.querySelectorAll('[data-chat-room]').forEach(b => b.addEventListener('click', () => chatAbrirSala(b.dataset.chatRoom)));
+    }
+    async function chatCarregarSalas() {
+        const d = await chatPost('chatListar');
+        if (!d || !d.ok || !Array.isArray(d.threads)) throw new Error((d && d.error) || 'Não foi possível carregar as conversas.');
+        chatIdentity = d.identity; chatRooms = d.threads; chatLastRoomsLoad = Date.now();
+        if (chatActiveId && !chatRooms.some(r => r.id === chatActiveId)) chatActiveId = '';
+        chatRenderRooms();
+        return chatRooms;
+    }
+    async function chatAbrir() {
+        try { await chatCarregarSalas(); if (!chatActiveId && chatRooms.length) await chatAbrirSala(chatRooms[0].id); }
+        catch (e) { document.getElementById('chatRoomList').textContent = e.message || 'Erro ao carregar conversas.'; }
+        chatAgendarPolling();
+    }
+    async function chatAbrirSala(id) {
+        const room = chatRooms.find(r => r.id === id); if (!room) return;
+        if (chatActiveId !== id) { chatPendingTransferId = ''; chatAtualizarPreviaTransfer(); }
+        chatActiveId = id; chatCursor = 1; chatMessages = [];
+        document.getElementById('chatLayout').classList.add('room-open');
+        document.getElementById('chatRoomTitle').textContent = room.nome;
+        document.getElementById('chatRoomSubtitle').textContent = room.tipo === 'gerencial' ? 'Recepção e Marcelo · sala gerencial' : 'Conversa individual com a recepção';
+        chatRenderRooms(); chatRenderMessages(); await chatPoll(); chatAgendarPolling();
+    }
+    function chatRenderMessages() {
+        const box = document.getElementById('chatMessages'); if (!box) return;
+        if (!chatMessages.length) { box.innerHTML = '<div class="chat-empty">Esta conversa está vazia. Envie a primeira mensagem.</div>'; return; }
+        box.innerHTML = chatMessages.map(m => {
+            const t = m.transferId ? transferPorId(m.transferId) : null;
+            const when = new Date(m.dataHora), time = isNaN(when.getTime()) ? '' : when.toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            let card = '';
+            if (m.transferId) {
+                const ref = t ? `${formatarData(t['Data Viagem'])} ${getHorario(t)} · ${t.Nome || 'Hóspede'} · ${t.Sentido === 'IN' ? 'Chegada' : 'Saída'}` : `Transfer ${m.transferId}`;
+                const link = `transfer.html?id=${encodeURIComponent(m.transferId)}`;
+                card = `<div class="chat-transfer-card"><b>Transfer vinculado</b><br>${escHtml(ref)}<br><a href="${link}" target="_blank" rel="noopener">Abrir detalhes</a>${t && getStatus(t) === 'active' ? ` · <button data-chat-confirm="${escHtml(m.transferId)}" style="border:0;background:none;color:#8b6e36;text-decoration:underline;cursor:pointer;font-weight:600;">Confirmar com hóspede</button>` : ''}</div>`;
+            }
+            return `<div class="chat-message ${m.autor === chatIdentity?.nome ? 'mine' : ''}"><div class="chat-message-meta">${escHtml(m.autor)} · ${escHtml(time)}</div><div class="chat-message-text">${escHtml(m.texto)}</div>${card}</div>`;
+        }).join('');
+        box.querySelectorAll('[data-chat-confirm]').forEach(b => b.addEventListener('click', () => { const t = transferPorId(b.dataset.chatConfirm); if (t) enviarConfirmacao(t); }));
+        box.scrollTop = box.scrollHeight;
+        const last = chatMessages[chatMessages.length - 1]; if (last && last.autor !== chatIdentity?.nome) chatMarkSeen(chatActiveId, last.dataHora);
+        const room = chatRooms.find(r => r.id === chatActiveId); if (room && last) room.ultima = last;
+        chatRenderRooms();
+    }
+    async function chatPoll() {
+        if (!chatActiveId || chatBusy || document.hidden || !document.getElementById('tab-chat').classList.contains('active')) return;
+        chatBusy = true;
+        try {
+            const d = await chatPost('chatLer', { threadId: chatActiveId, cursor: chatCursor });
+            if (!d || !d.ok || !Array.isArray(d.messages)) throw new Error((d && d.error) || 'Falha ao atualizar o chat.');
+            const seen = new Set(chatMessages.map(m => m.id));
+            d.messages.forEach(m => { if (!seen.has(m.id)) chatMessages.push(m); });
+            chatCursor = d.cursor || chatCursor;
+            chatRenderMessages();
+            if (Date.now() - chatLastRoomsLoad > 60000) { try { await chatCarregarSalas(); } catch (e) {} }
+        } catch (e) { if (!chatMessages.length) document.getElementById('chatMessages').textContent = e.message || 'Erro ao atualizar mensagens.'; }
+        finally { chatBusy = false; }
+    }
+    function chatAgendarPolling() {
+        if (window._chatTimer) clearInterval(window._chatTimer);
+        window._chatTimer = setInterval(chatPoll, 15000);
+    }
+    function chatAtualizarPreviaTransfer() {
+        const el = document.getElementById('chatTransferPreview'), t = transferPorId(chatPendingTransferId);
+        if (!chatPendingTransferId || !t) { chatPendingTransferId = ''; el.style.display = 'none'; el.innerHTML = ''; return; }
+        el.style.display = 'block';
+        el.innerHTML = `<b>Transfer vinculado:</b> ${escHtml(formatarData(t['Data Viagem']))} ${escHtml(getHorario(t))} · ${escHtml(t.Nome || 'Hóspede')} <button id="chatRemoveTransfer" style="float:right;border:0;background:none;color:#8d5751;cursor:pointer;">Remover</button>`;
+        document.getElementById('chatRemoveTransfer').addEventListener('click', () => { chatPendingTransferId = ''; chatAtualizarPreviaTransfer(); });
+    }
+    function chatMostrarTransfers() {
+        const busca = document.getElementById('chatTransferSearch').value.trim().toLowerCase();
+        const lista = transfers.filter(t => !isCancelled(t)).slice().sort((a,b) => parseLocal(b['Data Viagem']) - parseLocal(a['Data Viagem']));
+        const filtered = lista.filter(t => [t.Nome, t.ID, t.Reserva, formatarData(t['Data Viagem'])].join(' ').toLowerCase().includes(busca));
+        const box = document.getElementById('chatTransferChoices');
+        box.innerHTML = filtered.length ? filtered.slice(0,100).map(t => `<button data-chat-pick="${escHtml(t.ID)}" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;background:#fff;padding:11px;cursor:pointer;"><b>${escHtml(formatarData(t['Data Viagem']))} ${escHtml(getHorario(t))} · ${escHtml(t.Nome || 'Hóspede')}</b><br><small>${escHtml(t.Sentido === 'IN' ? 'Chegada' : 'Saída')} · ${escHtml(t['Veículo'] || 'Veículo não definido')} · ${escHtml(t.Status || 'active')}</small></button>`).join('') : '<div style="padding:12px;color:#888;">Nenhum transfer encontrado.</div>';
+        box.querySelectorAll('[data-chat-pick]').forEach(b => b.addEventListener('click', () => { chatPendingTransferId = b.dataset.chatPick; chatAtualizarPreviaTransfer(); document.getElementById('chatPickerOverlay').classList.remove('show'); }));
+    }
+    document.getElementById('chatAttach').addEventListener('click', () => { document.getElementById('chatTransferSearch').value = ''; chatMostrarTransfers(); document.getElementById('chatPickerOverlay').classList.add('show'); });
+    document.getElementById('chatTransferSearch').addEventListener('input', chatMostrarTransfers);
+    document.getElementById('chatPickerClose').addEventListener('click', () => document.getElementById('chatPickerOverlay').classList.remove('show'));
+    document.getElementById('chatBack').addEventListener('click', () => document.getElementById('chatLayout').classList.remove('room-open'));
+    document.getElementById('chatSend').addEventListener('click', async function () {
+        const b = this, text = document.getElementById('chatText'), message = text.value.trim() || (chatPendingTransferId ? 'Transfer selecionado para conversarmos.' : '');
+        if (!chatActiveId) { alert('Selecione uma conversa.'); return; }
+        if (!message) { alert('Escreva uma mensagem antes de enviar.'); text.focus(); return; }
+        b.disabled = true; b.textContent = 'Enviando…';
+        try {
+            const d = await chatPost('chatEnviar', { threadId: chatActiveId, texto: message, transferId: chatPendingTransferId });
+            if (!d || !d.ok) throw new Error((d && (d.erro || d.error)) || 'Não foi possível enviar.');
+            text.value = ''; chatPendingTransferId = ''; chatAtualizarPreviaTransfer(); await chatPoll();
+        } catch (e) { alert(e.message || 'Erro ao enviar a mensagem.'); }
+        finally { b.disabled = false; b.textContent = 'Enviar'; text.focus(); }
+    });
+    document.getElementById('chatText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('chatSend').click(); } });
 
     // ==================== CARREGAR DADOS ====================
     async function carregarDados() {
@@ -1753,6 +1917,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         if (id === 'auditoria') carregarAuditoria();
+        if (id === 'chat') chatAbrir();
+        else if (window._chatTimer) { clearInterval(window._chatTimer); window._chatTimer = null; }
     }));
 
     document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
@@ -1798,5 +1964,33 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     carregarDados();
 </script>
 <script src="cb-versao.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+(function(){
+    var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
+    var CFG={apiKey:'AIzaSyA_J5kmYRoJ2buFwmLdzh7xEtmz_VUIHqQ',authDomain:'traslados-a06ef.firebaseapp.com',projectId:'traslados-a06ef',storageBucket:'traslados-a06ef.firebasestorage.app',messagingSenderId:'973014023548',appId:'1:973014023548:web:78985913ed135bd10038f9'};
+    var btn=document.getElementById('chatEnableNotifs'),status=document.getElementById('chatNotifStatus');
+    if(!btn||!('Notification'in window)||!('serviceWorker'in navigator)||typeof firebase==='undefined')return;
+    try{firebase.initializeApp(CFG);}catch(e){}
+    try{firebase.messaging().onMessage(function(payload){if(document.hidden){var d=payload.data||{};navigator.serviceWorker.ready.then(function(reg){reg.showNotification(d.titulo||'Nova mensagem no chat',{body:d.corpo||'Você recebeu uma nova mensagem.',icon:'icon-192-v4.png',data:{url:d.url||'dashboard.html'}});});}});}catch(e){}
+    function registrar(){
+        return navigator.serviceWorker.register('firebase-messaging-sw.js',{scope:'./fcm-push/'})
+            .then(function(reg){return firebase.messaging().getToken({vapidKey:VAPID,serviceWorkerRegistration:reg});})
+            .then(function(token){if(!token)throw new Error('Não foi possível registrar este aparelho.');return fetch(window.WEBAPP_URL,{method:'POST',mode:'cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'registrarPush',token:token,tipo:'recepcao',nome:''})});});
+    }
+    if(Notification.permission==='granted'){
+        registrar().then(function(){status.textContent='Notificações ativas neste aparelho.';}).catch(function(){});
+    }else{
+        btn.style.display='inline-block';
+        btn.addEventListener('click',function(){
+            btn.disabled=true;btn.textContent='Ativando…';
+            Notification.requestPermission().then(function(p){if(p!=='granted')throw new Error('Permissão de notificações não concedida.');return registrar();})
+                .then(function(){btn.style.display='none';status.textContent='Notificações ativas neste aparelho.';})
+                .catch(function(e){btn.disabled=false;btn.textContent='🔔 Ativar notificações';status.textContent=e.message||'Não foi possível ativar as notificações.';});
+        });
+    }
+})();
+</script>
 </body>
 </html>
