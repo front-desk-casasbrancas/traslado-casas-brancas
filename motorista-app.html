@@ -55,6 +55,8 @@
         .gate-card input { width:100%; padding:12px 14px; border:1px solid #d8cbb0; border-radius:10px; font-size:1rem; margin-bottom:10px; text-align:center; }
         .gate-card button { width:100%; padding:12px; background:linear-gradient(135deg,var(--gold),var(--gold-d)); color:#fff; border:none; border-radius:40px; font-weight:600; cursor:pointer; }
         .gate-erro { color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none; }
+        .occ-text { width:100%;min-height:110px;padding:12px;border:1px solid #d8cbb0;border-radius:10px;font:inherit;resize:vertical;text-align:left; }
+        .occ-select { width:100%;padding:12px;border:1px solid #d8cbb0;border-radius:10px;font:inherit;margin:0 0 10px; }
     </style>
 </head>
 <body>
@@ -101,6 +103,18 @@
         <button id="sTrocar">Salvar nova senha</button>
         <button id="sCancelar" style="background:none;color:#8a7a55;margin-top:8px;box-shadow:none;">Cancelar</button>
         <div class="gate-erro" id="sErro"></div>
+    </div>
+</div>
+
+<div class="gate" id="ocorrenciaOverlay" style="display:none;z-index:10000;">
+    <div class="gate-card" style="max-width:440px;text-align:left;">
+        <div class="tt" style="text-align:center;">Registrar ocorrência</div>
+        <div class="ds" style="text-align:center;">Este registro fica no histórico interno do traslado.</div>
+        <select id="ocCategoria" class="occ-select"><option>Atraso</option><option>Hóspede não localizado</option><option>Mudança de endereço</option><option>Trânsito ou rota</option><option>Problema com veículo</option><option>Outro</option></select>
+        <textarea id="ocDescricao" class="occ-text" maxlength="1000" placeholder="Descreva brevemente o que aconteceu"></textarea>
+        <button id="ocSalvar" style="margin-top:10px;">Salvar ocorrência</button>
+        <button id="ocCancelar" style="background:none;color:#8a7a55;margin-top:8px;box-shadow:none;">Cancelar</button>
+        <div class="gate-erro" id="ocErro"></div>
     </div>
 </div>
 
@@ -220,6 +234,7 @@
             let pp = proximoPasso(s);
             let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+escHtml(_id)+'">'+pp.label+'</button>' : '';
             let fotoBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="foto" data-id="'+escHtml(_id)+'">📷 Foto</button>' : '';
+            let ocorrenciaBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="ocorrencia" data-id="'+escHtml(_id)+'">⚠️ Ocorrência</button>' : '';
             return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
                 '<div class="ch"><div><div class="hr">'+escHtml(getHorario(t))+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
                 '<div class="nome-h">'+escHtml(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+escHtml(t["Reserva"])+'</span>':'')+'</div>'+
@@ -228,7 +243,7 @@
                 (voo?'<div class="linha">✈️ '+escHtml(voo)+'</div>':'')+
                 (t["Telefone"]?'<div class="linha">📞 '+escHtml(t["Telefone"])+'</div>':(email?'<div class="linha">📧 '+escHtml(email)+'</div>':''))+
                 (t["ObsMotorista"]?'<div class="linha" style="color:#9c7d3f;">📝 '+escHtml(t["ObsMotorista"])+'</div>':'')+
-                '<div class="acoes">'+nextBtn+zapBtn+mapBtn+fotoBtn+'</div>'+
+                '<div class="acoes">'+nextBtn+zapBtn+mapBtn+fotoBtn+ocorrenciaBtn+'</div>'+
             '</div>';
         }).join('');
 
@@ -249,8 +264,36 @@
         cont.querySelectorAll('button[data-act="foto"]').forEach(function(b){
             b.addEventListener('click',function(){ fotoAlvo=b.dataset.id; fotoInput.value=''; fotoInput.click(); });
         });
+        cont.querySelectorAll('button[data-act="ocorrencia"]').forEach(function(b){
+            b.addEventListener('click',function(){ abrirOcorrenciaMotorista(b.dataset.id); });
+        });
         try { if (window._sincronizarGps) window._sincronizarGps(); } catch(e){}
     }
+
+    let ocorrenciaMotoristaId = '';
+    function abrirOcorrenciaMotorista(id) {
+        ocorrenciaMotoristaId = id;
+        document.getElementById('ocCategoria').value = 'Atraso';
+        document.getElementById('ocDescricao').value = '';
+        document.getElementById('ocErro').style.display = 'none';
+        document.getElementById('ocorrenciaOverlay').style.display = 'flex';
+        document.getElementById('ocDescricao').focus();
+    }
+    document.getElementById('ocCancelar').addEventListener('click', function(){ document.getElementById('ocorrenciaOverlay').style.display='none'; });
+    document.getElementById('ocorrenciaOverlay').addEventListener('click', function(e){ if(e.target===this)this.style.display='none'; });
+    document.getElementById('ocSalvar').addEventListener('click', async function(){
+        const b=this, descricao=document.getElementById('ocDescricao').value.trim(), erro=document.getElementById('ocErro');
+        if(descricao.length<3){erro.innerText='Escreva pelo menos 3 caracteres.';erro.style.display='block';return;}
+        b.disabled=true;b.innerText='Salvando…';erro.style.display='none';
+        try{
+            const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'registrarOcorrencia',id:ocorrenciaMotoristaId,categoria:document.getElementById('ocCategoria').value,descricao:descricao,authNome:motorista,authChave:chave})});
+            const d=await r.json();
+            if(!d||!d.ok)throw new Error((d&&(d.erro||d.error))||'Não foi possível salvar.');
+            document.getElementById('ocorrenciaOverlay').style.display='none';
+            alert('Ocorrência registrada.');
+        }catch(e){erro.innerText=e.message||'Falha ao salvar. Tente novamente.';erro.style.display='block';}
+        finally{b.disabled=false;b.innerText='Salvar ocorrência';}
+    });
 
     // ===== Foto da corrida (comprime e envia ao Drive via backend) =====
     let fotoAlvo='';
