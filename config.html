@@ -86,6 +86,16 @@
     <div class="adicionais-head"><div><h3>Valores adicionais por período</h3><p style="font-size:.75rem;color:#8a8270;margin-top:3px;">Aplicados a cada trecho cuja data esteja no período definido.</p></div><button class="btn btn-add" id="btnAddAdicional">+ Adicionar regra</button></div>
     <div id="tabelaAdicionais"></div>
   </section>
+  <section class="adicionais" id="secSenhas" style="background:#fff;padding:18px;border:1px solid var(--line);border-radius:12px;">
+    <div class="adicionais-head" style="margin-top:0;"><div><h3>Senhas dos motoristas</h3><p style="font-size:.75rem;color:#8a8270;margin-top:4px;">Não é possível consultar senhas atuais. Você pode definir uma nova senha para o motorista selecionado.</p></div></div>
+    <div class="barra" style="margin:10px 0 0;">
+      <select id="senhaMotoristaSelect" aria-label="Motorista"></select>
+      <input type="password" id="senhaMotoristaNova" placeholder="Nova senha (mínimo 8 caracteres)" autocomplete="new-password">
+      <input type="password" id="senhaMotoristaConfirma" placeholder="Repita a nova senha" autocomplete="new-password">
+      <button class="btn btn-save" id="btnRedefinirSenha">Definir nova senha</button>
+    </div>
+    <div id="senhaMotoristaMsg" role="status" style="font-size:.82rem;color:#6a6558;margin-top:8px;"></div>
+  </section>
   <p style="font-size:.75rem;color:#8a8270;margin-top:14px;">
     As alterações só valem depois de <b>Salvar</b>. O formulário do hóspede passará a usar estes preços
     quando a integração for ativada (após a validação técnica).
@@ -117,6 +127,7 @@ async function entrar(){
     document.getElementById('gate').style.display='none';
     document.getElementById('app').style.display='block';
     carregar();
+    carregarListaMotoristasSenha();
   }catch(e){ document.getElementById('gateErr').style.display='block'; }
 }
 
@@ -240,6 +251,35 @@ document.getElementById('btnSave').addEventListener('click', async ()=>{
     else { msg('Erro ao salvar: '+((respostas.find(r=>!r||!r.ok)||{}).error||'desconhecido')); }
   }catch(e){ msg('Falha de conexão ao salvar.'); }
   finally{ btn.disabled=false; btn.textContent='Salvar alterações'; }
+});
+
+
+async function carregarListaMotoristasSenha(){
+  const select=document.getElementById('senhaMotoristaSelect'), msgEl=document.getElementById('senhaMotoristaMsg');
+  try{
+    const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'listarMotoristasSenha',k:CHAVE})});
+    const d=await r.json();
+    if(!d||!d.ok||!Array.isArray(d.motoristas)) throw new Error((d&&d.error)||'Não foi possível carregar os motoristas.');
+    select.innerHTML=d.motoristas.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+    msgEl.textContent=d.motoristas.length?'Selecione o motorista para definir uma nova senha.':'Nenhum motorista cadastrado.';
+  }catch(e){msgEl.textContent=e.message||'Não foi possível carregar os motoristas.';}
+}
+document.getElementById('btnRedefinirSenha').addEventListener('click',async function(){
+  const nome=document.getElementById('senhaMotoristaSelect').value;
+  const nova=document.getElementById('senhaMotoristaNova').value;
+  const confirma=document.getElementById('senhaMotoristaConfirma').value;
+  const btn=this, msgEl=document.getElementById('senhaMotoristaMsg');
+  if(!nome||nova.length<8||nova!==confirma){msgEl.textContent=nova.length<8?'A senha precisa ter pelo menos 8 caracteres.':'Confira se as duas senhas são iguais.';return;}
+  if(!confirm('Definir uma nova senha para '+nome+'? A senha atual deixará de funcionar.'))return;
+  btn.disabled=true;btn.textContent='Salvando…';msgEl.textContent='';
+  try{
+    const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'redefinirSenhaMotorista',k:CHAVE,nome:nome,senhaNova:nova})});
+    const d=await r.json();
+    if(!d||!d.ok)throw new Error((d&&(d.erro||d.error))||'Não foi possível redefinir a senha.');
+    document.getElementById('senhaMotoristaNova').value='';document.getElementById('senhaMotoristaConfirma').value='';
+    msgEl.textContent='Nova senha definida para '+nome+'. Compartilhe-a diretamente com o motorista.';
+  }catch(e){msgEl.textContent=e.message||'Falha de conexão.';}
+  finally{btn.disabled=false;btn.textContent='Definir nova senha';}
 });
 
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
