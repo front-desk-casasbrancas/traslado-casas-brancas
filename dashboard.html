@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-6">
+    <meta name="cb-build" content="2026.10.01-7">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -410,13 +410,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <div id="operacaoResumo" class="table-container" style="display:none;border-left:4px solid #b8995a;margin-bottom:20px;"></div>
         <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
 
-        <section class="table-container weather-panel" id="weatherPanel" aria-labelledby="weatherTitle">
-            <header class="weather-head">
-                <div class="weather-heading"><span class="weather-mark" aria-hidden="true">☼</span><div><h3 id="weatherTitle">Tempo em Búzios</h3><div class="weather-location">Condições atuais e previsão para os próximos dias</div></div></div>
-                <div><div class="weather-updated" id="weatherUpdated">Carregando previsão…</div><button class="refresh-btn weather-refresh" id="weatherRefresh" type="button">Atualizar clima</button></div>
-            </header>
-            <div class="weather-content" id="weatherContent"><div class="weather-loading">Buscando a previsão do tempo…</div></div>
-        </section>
         <div id="etaResumo" class="table-container" style="margin-bottom:20px;"><h3>Previsão interna de chegada</h3><div id="etaConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Aguardando posições dos motoristas.</div></div>
         <div id="ocorrenciasBox" class="table-container" style="margin-bottom:20px;"><h3>Ocorrências recentes</h3><div id="ocorrenciasConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Carregando…</div></div>
         <div class="table-container">
@@ -2040,10 +2033,12 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 </script>
 <script>
 (function(){
-  var target=document.getElementById("weatherContent");
-  var updated=document.getElementById("weatherUpdated");
-  var button=document.getElementById("weatherRefresh");
-  if(!target||!button)return;
+  var hero=document.getElementById("weatherHero");
+  var conditionEl=document.getElementById("weatherHeroCondition");
+  var tempEl=document.getElementById("weatherHeroMain");
+  var metricsEl=document.getElementById("weatherHeroMetrics");
+  var daysEl=document.getElementById("weatherHeroDays");
+  if(!hero||!tempEl||!daysEl)return;
   var lastLoad=0,busy=false;
   function escapeHtml(value){return String(value==null?"":value).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];});}
   function num(value,digits){var n=Number(value);return isFinite(n)?n.toFixed(digits||0):"—";}
@@ -2052,39 +2047,21 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
   function weekday(value){var date=new Date(value+"T12:00:00-03:00");return isNaN(date.getTime())?value:new Intl.DateTimeFormat("pt-BR",{weekday:"short",timeZone:"America/Sao_Paulo"}).format(date).replace(".","");}
   function render(data){
     var current=data.current||{},days=data.forecast&&data.forecast.forecastday||[];
-    if((current.temp_c===undefined||current.temp_c===null)||!days.length)throw new Error("A previsão veio incompleta.");
-    var today=days[0].day||{},condition=current.condition||{};
-    var heroMain=document.getElementById("weatherHeroMain"),heroCondition=document.getElementById("weatherHeroCondition"),heroDays=document.getElementById("weatherHeroDays");
-    if(heroMain)heroMain.innerHTML=icon(condition.icon)+'<span>'+num(current.temp_c)+'°</span>';
-    if(heroCondition)heroCondition.textContent=(condition.text||"Condição atual")+" · sensação "+num(current.feelslike_c)+"°";
-    var heroMetrics=document.getElementById("weatherHeroMetrics");
-    if(heroMetrics)heroMetrics.innerHTML=[["Vento",num(current.wind_kph)+" km/h"],["Chuva hoje",num(today.daily_chance_of_rain)+"% · "+num(today.totalprecip_mm,1)+" mm"],["Umidade",num(current.humidity)+"%"]].map(function(item){return '<div class="weather-hero-metric"><span>'+item[0]+'</span><strong>'+item[1]+'</strong></div>';}).join("");
-    if(heroDays)heroDays.innerHTML=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-hero-day"><div class="weather-hero-day-name">'+escapeHtml(weekday(day.date))+'</div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-hero-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div><div class="weather-hero-rain">☂ '+num(info.daily_chance_of_rain)+'%</div></div>';}).join("");
-    var metrics=[["Máxima / mínima",num(today.maxtemp_c)+"° / "+num(today.mintemp_c)+"°"],["Chance de chuva",num(today.daily_chance_of_rain)+"%"],["Precipitação prevista",num(today.totalprecip_mm,1)+" mm"],["Vento",num(current.wind_kph)+" km/h"],["Rajadas",num(current.gust_kph)+" km/h"],["Umidade",num(current.humidity)+"%"],["Índice UV",num(current.uv,1)],["Visibilidade",num(current.vis_km,1)+" km"],["Sensação",num(current.feelslike_c)+"°"]];
-    var metricsHtml=metrics.map(function(item){return '<div class="weather-metric"><span class="weather-metric-label">'+item[0]+'</span><strong class="weather-metric-value">'+item[1]+'</strong></div>';}).join("");
-    var nowEpoch=Number(current.last_updated_epoch)||Math.floor(Date.now()/1000);
-    var hours=days.reduce(function(all,day){return all.concat(day.hour||[]);},[]).filter(function(hour){return Number(hour.time_epoch)>=nowEpoch;}).slice(0,8);
-    var hourly=hours.length?hours.map(function(hour){var time=String(hour.time||"").split(" ")[1]||"";return '<div class="weather-hour"><div class="weather-hour-time">'+escapeHtml(time)+'</div>'+icon(hour.condition&&hour.condition.icon)+'<div class="weather-hour-temp">'+num(hour.temp_c)+'°</div><div class="weather-hour-rain">☂ '+num(hour.chance_of_rain)+'% · '+num(hour.precip_mm,1)+' mm</div></div>';}).join(""):'<div class="weather-loading">Previsão por hora indisponível.</div>';
-    var daysHtml=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-day"><div class="weather-day-main"><div class="weather-day-name">'+escapeHtml(weekday(day.date))+'</div><div class="weather-day-condition">'+escapeHtml(info.condition&&info.condition.text||"")+' · chuva '+num(info.daily_chance_of_rain)+'% · '+num(info.totalprecip_mm,1)+' mm</div></div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
-    var alerts=data.alerts&&data.alerts.alert||[],note="Previsão sujeita a mudanças. Consulte novamente antes de decisões operacionais.";
-    if(alerts.length)note="Alerta meteorológico: "+escapeHtml(alerts[0].headline||alerts[0].event||"há um alerta ativo.")+(alerts.length>1?" (+"+(alerts.length-1)+" alerta(s))":"");
-    else if(Number(today.daily_chance_of_rain)>=60)note="A previsão indica chance elevada de chuva hoje ("+num(today.daily_chance_of_rain)+"%).";
-    target.innerHTML='<div class="weather-current"><div class="weather-now">'+icon(condition.icon)+'<div><div class="weather-temperature">'+num(current.temp_c)+'°</div><div class="weather-condition">'+escapeHtml(condition.text||"Condição atual indisponível")+'</div><div class="weather-feels">Sensação de '+num(current.feelslike_c)+'° · '+escapeHtml(data.location&&data.location.name||"Búzios")+'</div></div></div><div class="weather-metrics">'+metricsHtml+'</div></div><div class="weather-section-title">Próximas horas</div><div class="weather-hourly">'+hourly+'</div><div class="weather-section-title">Próximos dias</div><div class="weather-days">'+daysHtml+'</div><div class="weather-note"><span aria-hidden="true">ℹ</span><span>'+note+'</span></div><div class="weather-source">Fonte: WeatherAPI.com · previsão para Búzios, RJ</div>';
-    updated.textContent="Atualizado"+(current.last_updated?" às "+String(current.last_updated).split(" ")[1]:" agora");
+    if(current.temp_c==null||!days.length)throw new Error("A previsão veio incompleta.");
+    var today=days[0].day||{},weather=current.condition||{};
+    tempEl.innerHTML=icon(weather.icon)+'<span>'+num(current.temp_c)+'°</span>';
+    if(conditionEl)conditionEl.textContent=(weather.text||"Condição atual")+" · sensação "+num(current.feelslike_c)+"°";
+    if(metricsEl)metricsEl.innerHTML=[
+      ["Vento / rajadas",""+num(current.wind_kph)+" / "+num(current.gust_kph)+" km/h"],
+      ["Chuva prevista",num(today.daily_chance_of_rain)+"% · "+num(today.totalprecip_mm,1)+" mm"],
+      ["Umidade",num(current.humidity)+"%"],
+      ["Índice UV",num(current.uv,1)]
+    ].map(function(item){return '<div class="weather-hero-metric"><span>'+item[0]+'</span><strong>'+item[1]+'</strong></div>';}).join("");
+    daysEl.innerHTML=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-hero-day"><div class="weather-hero-day-name">'+escapeHtml(weekday(day.date))+'</div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-hero-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div><div class="weather-hero-rain">☂ '+num(info.daily_chance_of_rain)+'% · '+num(info.totalprecip_mm,1)+' mm</div></div>';}).join("");
   }
-  function initGreeting(){
-    var now=new Date();
-    var hour=Number(new Intl.DateTimeFormat("en-US",{hour:"2-digit",hourCycle:"h23",timeZone:"America/Sao_Paulo"}).format(now));
-    var label=hour<12?"Bom dia!":(hour<18?"Boa tarde!":"Boa noite!");
-    var greeting=document.getElementById("weatherGreeting"),date=document.getElementById("weatherDate");
-    if(greeting)greeting.textContent=label;
-    if(date)date.textContent=new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric",timeZone:"America/Sao_Paulo"}).format(now);
-  }
-  initGreeting();
   async function loadWeather(force){
     if(busy||(!force&&Date.now()-lastLoad<30*60*1000))return;
-    busy=true;button.disabled=true;button.textContent="Atualizando…";
-    if(!lastLoad)target.innerHTML='<div class="weather-loading">Buscando a previsão do tempo…</div>';
+    busy=true;
     try{
       var url=window.WEBAPP_URL+"?action=climaBuzios&k="+(typeof _k==="function"?_k():"")+"&t="+Date.now();
       var response=await fetch(url,{cache:"no-store"});
@@ -2094,12 +2071,11 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
       render(payload.data||payload.weather||payload);
       lastLoad=Date.now();
     }catch(error){
-      target.innerHTML='<div class="weather-error">'+escapeHtml(error.message||"Não foi possível carregar a previsão agora.")+'<br><small>Verifique a conexão e tente atualizar novamente.</small></div>';
-      updated.textContent="Previsão temporariamente indisponível";
-    }finally{busy=false;button.disabled=false;button.textContent="Atualizar clima";}
+      if(conditionEl)conditionEl.textContent="Previsão temporariamente indisponível";
+    }finally{busy=false;}
   }
-  button.addEventListener("click",function(){loadWeather(true);});
-  if(window.CHAVE)loadWeather(false);else target.innerHTML='<div class="weather-loading">Entre no painel para consultar a previsão do tempo.</div>';
+  if(window.CHAVE)loadWeather(false);
+  else if(conditionEl)conditionEl.textContent="Entre no painel para consultar a previsão";
   window.carregarClima=function(){lastLoad=0;loadWeather(true);};
   window.setInterval(function(){if(!document.hidden)loadWeather(false);},30*60*1000);
   document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastLoad>30*60*1000)loadWeather(false);});
