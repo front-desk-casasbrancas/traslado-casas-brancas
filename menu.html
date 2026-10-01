@@ -7,6 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
+    <meta name="cb-build" content="2026.10.01-6">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Gestão de Traslados</title>
@@ -76,7 +77,25 @@
             .hero-tempo { min-width: 0; width: 100%; }
             .nome { font-size: 2.1rem; }
         }
-    </style>
+    
+        /* Cartão de previsão compacto, consistente com o dashboard e sem corte de temperatura. */
+        .hero-tempo { width:350px; max-width:100%; min-width:0; flex:0 1 350px; overflow:hidden; padding:14px 16px; }
+        .ht-top { min-width:0; gap:10px; align-items:flex-start; }
+        .ht-top > div:first-child { flex:1 1 auto; min-width:0; }
+        .ht-cond { max-width:205px; white-space:normal; overflow-wrap:anywhere; }
+        .ht-temp { display:flex; align-items:center; gap:4px; flex:0 0 auto; white-space:nowrap; font-size:clamp(1.7rem,5vw,2.35rem); }
+        .ht-temp img { width:36px; height:36px; object-fit:contain; }
+        .ht-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:10px; }
+        .ht-metric { min-width:0; overflow:hidden; padding:7px 8px; border:1px solid rgba(255,255,255,.17); border-radius:10px; background:rgba(255,255,255,.12); }
+        .ht-metric-label { display:block; font-size:.61rem; opacity:.78; white-space:nowrap; }
+        .ht-metric-value { display:block; margin-top:3px; font-size:.74rem; font-weight:650; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .ht-dias { gap:7px; margin-top:9px; }
+        .ht-dia { min-width:0; padding:7px 3px; }
+        .ht-dia img { display:block; width:29px; height:29px; object-fit:contain; margin:1px auto; }
+        .ht-dia-rain { margin-top:3px; font-size:.62rem; color:rgba(255,255,255,.8); }
+        @media (max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
+
+    </style></style>
 </head>
 <body>
 <div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
@@ -142,6 +161,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 <div><div class="ht-local">Búzios</div><div class="ht-cond" id="tpCond">Carregando previsão...</div></div>
                 <div class="ht-temp" id="tpTemp">–</div>
             </div>
+            <div class="ht-metrics" id="tpMetrics" aria-label="Condições atuais"></div>
             <div class="ht-dias" id="tpDias"></div>
         </div>
     </header>
@@ -453,24 +473,49 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (code >= 95) return { e: '⛈️', t: 'Trovoadas' };
         return { e: '🌡️', t: '—' };
     }
+    function escTempo(value) {
+        return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function iconeTempo(url) {
+        var src = String(url || '');
+        if (src.indexOf('//') === 0) src = 'https:' + src;
+        return src ? '<img src="' + escTempo(src) + '" alt="" loading="lazy">' : '';
+    }
     async function carregarTempo() {
+        var cond = document.getElementById('tpCond');
+        if (!window.CHAVE) { if (cond) cond.textContent = 'Entre no aplicativo para consultar'; return; }
         try {
-            const u = "https://api.open-meteo.com/v1/forecast?latitude=-22.75&longitude=-41.88&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=America%2FSao_Paulo&forecast_days=3";
-            const w = await (await fetch(u)).json();
-            const at = tempoIcone(w.current.weather_code);
-            document.getElementById('tpTemp').innerText = Math.round(w.current.temperature_2m) + '°';
-            document.getElementById('tpCond').innerText = at.e + ' ' + at.t;
+            const url = WEBAPP_URL + '?action=climaBuzios&k=' + encodeURIComponent(window.CHAVE) + '&t=' + Date.now();
+            const resposta = await fetch(url, { cache: 'no-store' });
+            if (!resposta.ok) throw new Error('Não foi possível consultar a previsão.');
+            const payload = await resposta.json();
+            if (!payload || payload.ok === false) throw new Error((payload && (payload.error || payload.erro)) || 'Previsão indisponível');
+            const w = payload.data || payload.weather || payload;
+            const atual = w.current || {}, dias = (w.forecast && w.forecast.forecastday) || [];
+            if (atual.temp_c == null || !dias.length) throw new Error('A previsão veio incompleta.');
+            const diaHoje = dias[0].day || {}, condicao = atual.condition || {};
+            document.getElementById('tpTemp').innerHTML = iconeTempo(condicao.icon) + '<span>' + Math.round(Number(atual.temp_c)) + '°</span>';
+            cond.textContent = (condicao.text || 'Condição atual') + ' · sensação ' + Math.round(Number(atual.feelslike_c)) + '°';
+            document.getElementById('tpMetrics').innerHTML = [
+                ['Vento', Math.round(Number(atual.wind_kph) || 0) + ' km/h'],
+                ['Chuva hoje', Math.round(Number(diaHoje.daily_chance_of_rain) || 0) + '% · ' + (Number(diaHoje.totalprecip_mm) || 0).toFixed(1) + ' mm'],
+                ['Umidade', Math.round(Number(atual.humidity) || 0) + '%']
+            ].map(function (item) {
+                return '<div class="ht-metric"><span class="ht-metric-label">' + item[0] + '</span><strong class="ht-metric-value">' + item[1] + '</strong></div>';
+            }).join('');
             const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            let html = '';
-            for (let i = 0; i < w.daily.time.length; i++) {
-                const d = new Date(w.daily.time[i] + 'T12:00:00');
-                const ic = tempoIcone(w.daily.weather_code[i]);
-                const dia = i === 0 ? 'Hoje' : nomes[d.getDay()];
-                html += '<div class="ht-dia"><div class="d">' + dia + '</div><div class="e">' + ic.e + '</div><span class="mx">' + Math.round(w.daily.temperature_2m_max[i]) + '°</span> <span class="mn">' + Math.round(w.daily.temperature_2m_min[i]) + '°</span></div>';
-            }
-            document.getElementById('tpDias').innerHTML = html;
+            document.getElementById('tpDias').innerHTML = dias.slice(0, 3).map(function (item, index) {
+                const date = new Date(item.date + 'T12:00:00');
+                const dia = index === 0 ? 'Hoje' : nomes[date.getDay()];
+                const info = item.day || {};
+                return '<div class="ht-dia"><div class="d">' + dia + '</div>' + iconeTempo(info.condition && info.condition.icon) +
+                    '<span class="mx">' + Math.round(Number(info.maxtemp_c)) + '°</span> <span class="mn">' + Math.round(Number(info.mintemp_c)) +
+                    '°</span><div class="ht-dia-rain">☂ ' + Math.round(Number(info.daily_chance_of_rain) || 0) + '%</div></div>';
+            }).join('');
         } catch (e) {
-            document.getElementById('tpCond').innerText = 'Previsão indisponível';
+            if (cond) cond.textContent = 'Previsão indisponível';
         }
     }
 
