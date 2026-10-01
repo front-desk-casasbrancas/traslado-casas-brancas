@@ -374,14 +374,15 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (!mes) { cont.innerHTML = '<div style="color:#8a8270;font-size:0.85rem;">Selecione um mês.</div>'; return; }
         let tt = totaisMes(mes); let pg = pagamentoDoMes(mes);
         let statusHtml = pg ? '<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#e6f0f2;color:#2f7d8c;">PAGO em ' + (pg["Data"] || '-') + ' · ' + (pg["Forma"] || '-') + '</span>' : '<span style="padding:3px 12px;border-radius:40px;font-size:0.8rem;font-weight:600;background:#fff3cd;color:#8a6d1b;">Em aberto</span>';
+        let valores = pg ? { qtd: Number(pg["Qtd"]) || 0, total: Number(pg["Total"]) || 0, comissao: Number(pg["Comissao"]) || 0 } : tt;
         cont.innerHTML = '<table style="width:100%"><tbody>' +
             '<tr><td>Mês de referência</td><td><strong>' + mesLabel(mes) + '</strong></td></tr>' +
-            '<tr><td>Traslados no mês</td><td>' + tt.qtd + '</td></tr>' +
-            '<tr><td>Total em traslados</td><td>R$ ' + tt.total.toLocaleString('pt-BR') + '</td></tr>' +
-            '<tr><td>Comissão líq. (15% − 6% cartão)</td><td><strong>R$ ' + tt.comissao.toLocaleString('pt-BR') + '</strong></td></tr>' +
+            '<tr><td>Traslados no mês</td><td>' + valores.qtd + '</td></tr>' +
+            '<tr><td>Total em traslados</td><td>R$ ' + valores.total.toLocaleString('pt-BR') + '</td></tr>' +
+            '<tr><td>Comissão líq. (15% − 6% cartão)</td><td><strong>R$ ' + valores.comissao.toLocaleString('pt-BR') + '</strong></td></tr>' +
             '<tr><td>Situação</td><td>' + statusHtml + '</td></tr></tbody></table>';
     }
-    function registrarPagamento() {
+    async function registrarPagamento() {
         let mes = document.getElementById('pgMes').value;
         if (!mes) { alert('Selecione o mês de referência.'); return; }
         let tt = totaisMes(mes);
@@ -390,19 +391,29 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let dataPg = document.getElementById('pgData').value;
         let dataBR = dataPg ? dataPg.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR');
         if (!confirm('Confirmar pagamento da comissão de ' + mesLabel(mes) + ' (R$ ' + tt.comissao.toLocaleString('pt-BR') + ') via ' + forma + '?')) return;
-        let registro = { Mes: mes, Total: tt.total, Comissao: tt.comissao, Forma: forma, Data: dataBR, Qtd: tt.qtd };
-        let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
-        if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
-        fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'pagamentoComissao', k: window.CHAVE || '', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) })
-            .then(function (r) { return r.json(); })
-            .then(function (d) { if (d && d.error) alert('Erro ao registrar na planilha: ' + d.error); })
-            .catch(function (e) { console.error(e); });
-        renderPagamento(); alert('Pagamento registrado.');
+        let btn = document.getElementById('pgRegistrar');
+        if (btn) { btn.disabled = true; btn.textContent = 'Registrando…'; }
+        try {
+            // O servidor calcula novamente usando a planilha como fonte oficial.
+            let r = await fetch(WEBAPP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'pagamentoComissao', k: window.CHAVE || '', mes: mes, total: tt.total, comissao: tt.comissao, forma: forma, data: dataBR, qtd: tt.qtd }) });
+            let d = await r.json();
+            if (!r.ok || !d || d.error || !(d.ok === true || d.success === true)) throw new Error((d && (d.error || d.erro)) || 'O servidor não confirmou a gravação.');
+            if (![d.total, d.comissao, d.qtd].every(v => Number.isFinite(Number(v)))) throw new Error('O servidor confirmou sem retornar os totais oficiais. Atualize o Apps Script e tente novamente.');
+            let registro = { Mes: mes, Total: Number(d.total), Comissao: Number(d.comissao), Forma: forma, Data: dataBR, Qtd: Number(d.qtd) };
+            let i = pagamentos.findIndex(p => (p["Mes"] || '') === mes);
+            if (i >= 0) pagamentos[i] = registro; else pagamentos.push(registro);
+            renderPagamento(); alert('Pagamento registrado e confirmado pelo servidor.');
+        } catch (e) {
+            console.error(e); alert('Não foi possível confirmar o pagamento na planilha. O status continua inalterado. Tente novamente ou atualize os dados.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.textContent = '✓ Marcar como pago'; }
+        }
     }
     function gerarReciboPDF() {
         let mes = document.getElementById('pgMes').value;
         if (!mes) { alert('Selecione o mês de referência.'); return; }
         let tt = totaisMes(mes); let pg = pagamentoDoMes(mes);
+        if (pg) tt = { qtd: Number(pg["Qtd"]) || 0, total: Number(pg["Total"]) || 0, comissao: Number(pg["Comissao"]) || 0 };
         let forma = pg ? (pg["Forma"] || '-') : document.getElementById('pgForma').value;
         let dataPg = pg ? (pg["Data"] || '-') : (document.getElementById('pgData').value ? document.getElementById('pgData').value.split('-').reverse().join('/') : new Date().toLocaleDateString('pt-BR'));
         let pago = !!pg;
