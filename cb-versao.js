@@ -12,7 +12,7 @@
 
   function campoEditavel(el) {
     return el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) &&
-      !el.readOnly && !el.disabled && el.type !== 'password';
+      !el.readOnly && !el.disabled && el.type !== 'password' && !el.closest('#authGate');
   }
 
   function temAlteracoesPendentes() {
@@ -20,7 +20,7 @@
     if (typeof window.cbHasUnsavedChanges === 'function') {
       try { return !!window.cbHasUnsavedChanges(); } catch (e) {}
     }
-    return usuarioEditou || campoEditavel(document.activeElement);
+    return usuarioEditou;
   }
 
   document.addEventListener('input', function (e) { if (campoEditavel(e.target)) usuarioEditou = true; }, true);
@@ -58,7 +58,7 @@
     if (!el) {
       el = document.createElement('div');
       el.id = 'cbVersao';
-      el.style.cssText = 'position:fixed;right:8px;bottom:6px;z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
+      el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
       document.body.appendChild(el);
     }
     el.textContent = 'v' + v;
