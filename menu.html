@@ -21,9 +21,9 @@
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; color: #34322c; min-height: 100vh; position: relative; }
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.90), rgba(246,242,235,0.95)); }
-        .container { max-width: 1180px; margin: 0 auto; padding: 24px 24px 40px; }
+        .container { max-width: none; width: 100%; margin: 0 auto; padding: 14px 16px 30px; }
         /* HERO */
-        .hero { position: relative; overflow: hidden; border-radius: 24px; padding: 40px 36px; display: flex; justify-content: space-between; align-items: center; gap: 28px; flex-wrap: wrap; color: #fff; box-shadow: 0 16px 40px rgba(40,36,28,0.22); background-image: linear-gradient(100deg, rgba(30,28,23,0.80) 0%, rgba(30,28,23,0.50) 42%, rgba(30,28,23,0.12) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 38%; }
+        .hero { position: relative; overflow: hidden; border-radius: 24px; padding: 22px 26px; display: flex; justify-content: space-between; align-items: center; gap: 28px; flex-wrap: wrap; color: #fff; box-shadow: 0 16px 40px rgba(40,36,28,0.22); background-image: linear-gradient(100deg, rgba(30,28,23,0.80) 0%, rgba(30,28,23,0.50) 42%, rgba(30,28,23,0.12) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 38%; }
         .hero-left { position: relative; z-index: 1; }
         .nome { font-family: 'Georgia', 'Times New Roman', serif; font-style: italic; font-size: 2.6rem; line-height: 1; letter-spacing: 0.5px; text-shadow: 0 2px 14px rgba(0,0,0,0.35); }
         .sub { font-size: 0.72rem; letter-spacing: 3px; margin-top: 8px; color: var(--gold-l); font-weight: 600; }
@@ -96,7 +96,7 @@
         @media (max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
 
     
-        .hero-tempo { width:580px; max-width:100%; min-width:0; flex:0 1 580px; overflow:hidden; padding:16px 18px; }
+        .hero-tempo { width:820px; max-width:100%; min-width:0; flex:0 1 820px; overflow:hidden; padding:13px 16px; }
         .ht-top { gap:12px; min-width:0; }
         .ht-temp { font-size:clamp(1.75rem,4vw,2.4rem); }
         .ht-metrics { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:12px; }
@@ -104,14 +104,14 @@
         .ht-metric-value { font-size:.76rem; }
         .ht-section-title { margin:12px 0 7px; font-size:.68rem; font-weight:650; letter-spacing:.04em; text-transform:uppercase; color:rgba(255,255,255,.82); }
         .ht-hours { display:flex; gap:6px; overflow-x:auto; padding:2px 1px 7px; scrollbar-width:thin; }
-        .ht-hour { flex:0 0 58px; min-width:0; padding:6px 4px; border:1px solid rgba(255,255,255,.17); border-radius:10px; background:rgba(255,255,255,.12); text-align:center; }
+        .ht-hour { flex:0 0 78px; min-width:0; padding:6px 5px; } border:1px solid rgba(255,255,255,.17); border-radius:10px; background:rgba(255,255,255,.12); text-align:center; }
         .ht-hour-time { font-size:.61rem; color:rgba(255,255,255,.82); }
         .ht-hour img { display:block; width:31px; height:31px; margin:2px auto; }
         .ht-hour-temp { font-size:.74rem; font-weight:700; color:#fff; }
-        .ht-hour-rain { margin-top:2px; font-size:.58rem; color:rgba(255,255,255,.82); white-space:nowrap; }
+        .ht-hour-rain { margin-top:2px; font-size:.62rem; line-height:1.15; color:rgba(255,255,255,.82); white-space:normal; }
         .ht-dia-condition { font-size:.58rem; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         @media(max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
-        @media(max-width:520px) { .ht-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .ht-hour { flex-basis:54px; } }
+        @media(max-width:520px) { .ht-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .ht-hour { flex-basis:72px; } }
 
     </style></style></style>
 </head>
@@ -526,11 +526,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 ['Vento', valorTempo(atual.wind_kph) + ' km/h'],
                 ['Rajadas', valorTempo(atual.gust_kph) + ' km/h'],
                 ['Chuva hoje', valorTempo(hoje.daily_chance_of_rain) + '% · ' + valorTempo(hoje.totalprecip_mm, 1) + ' mm'],
-                ['Umidade', valorTempo(atual.humidity) + '%'],
-                ['Índice UV', valorTempo(atual.uv, 1)],
-                ['Visibilidade', valorTempo(atual.vis_km, 1) + ' km'],
-                ['Máx. / mín.', valorTempo(hoje.maxtemp_c) + '° / ' + valorTempo(hoje.mintemp_c) + '°'],
-                ['Pressão', valorTempo(atual.pressure_mb) + ' hPa']
+                ['Umidade', valorTempo(atual.humidity) + '%']
             ].map(function (item) {
                 return '<div class="ht-metric"><span class="ht-metric-label">' + item[0] + '</span><strong class="ht-metric-value">' + item[1] + '</strong></div>';
             }).join('');
