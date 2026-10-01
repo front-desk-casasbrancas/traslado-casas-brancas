@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-5">
+    <meta name="cb-build" content="2026.10.01-6">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -305,7 +305,22 @@
         .weather-source{color:#a39b8f;font-size:.66rem;margin-top:10px;text-align:right}
         @media(max-width:760px){.weather-head{padding:15px}.weather-content{padding:15px}.weather-current{grid-template-columns:1fr;gap:14px}.weather-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.weather-days{grid-template-columns:1fr}.weather-temperature{font-size:2.45rem}.weather-icon{width:68px;height:68px}}
 
-    </style>
+    
+        /* Evita que o ícone ou os graus escapem do cartão no cabeçalho. */
+        .weather-hero { width:350px; max-width:100%; min-width:0; flex:0 1 350px; overflow:hidden; }
+        .weather-hero-top { min-width:0; align-items:flex-start; gap:10px; }
+        .weather-hero-top > div:first-child { flex:1 1 auto; min-width:0; }
+        .weather-hero-condition { max-width:205px; white-space:normal; overflow-wrap:anywhere; }
+        .weather-hero-main { min-width:0; flex:0 0 auto; white-space:nowrap; font-size:clamp(1.55rem,4.8vw,1.9rem); }
+        .weather-hero-main img { width:34px; height:34px; flex:0 0 auto; }
+        .weather-hero-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:10px; }
+        .weather-hero-metric { min-width:0; overflow:hidden; padding:7px 8px; border:1px solid rgba(255,255,255,.2); border-radius:10px; background:rgba(255,255,255,.12); }
+        .weather-hero-metric span { display:block; font-size:.61rem; color:rgba(255,255,255,.78); white-space:nowrap; }
+        .weather-hero-metric strong { display:block; margin-top:3px; font-size:.74rem; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .weather-hero-rain { margin-top:2px; font-size:.61rem; color:rgba(255,255,255,.78); }
+        @media(max-width:700px) { .weather-hero { width:100%; max-width:390px; flex:0 1 auto; } }
+
+    </style></style>
 </head>
 <body>
 <div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
@@ -362,6 +377,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         </div>
         <aside class="weather-hero" id="weatherHero" aria-label="Previsão do tempo em Búzios">
             <div class="weather-hero-top"><div><div class="weather-hero-place">Búzios</div><div class="weather-hero-condition" id="weatherHeroCondition">Carregando previsão…</div></div><div class="weather-hero-main" id="weatherHeroMain">—</div></div>
+            <div class="weather-hero-metrics" id="weatherHeroMetrics" aria-label="Condições atuais"></div>
             <div class="weather-hero-days" id="weatherHeroDays"><div class="weather-hero-loading">Buscando previsão…</div></div>
         </aside>
     </div>
@@ -2041,13 +2057,15 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     var heroMain=document.getElementById("weatherHeroMain"),heroCondition=document.getElementById("weatherHeroCondition"),heroDays=document.getElementById("weatherHeroDays");
     if(heroMain)heroMain.innerHTML=icon(condition.icon)+'<span>'+num(current.temp_c)+'°</span>';
     if(heroCondition)heroCondition.textContent=(condition.text||"Condição atual")+" · sensação "+num(current.feelslike_c)+"°";
-    if(heroDays)heroDays.innerHTML=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-hero-day"><div class="weather-hero-day-name">'+escapeHtml(weekday(day.date))+'</div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-hero-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
-    var metrics=[["Máxima / mínima",num(today.maxtemp_c)+"° / "+num(today.mintemp_c)+"°"],["Chuva hoje",num(today.daily_chance_of_rain)+"%"],["Vento",num(current.wind_kph)+" km/h"],["Rajadas",num(current.gust_kph)+" km/h"],["Umidade",num(current.humidity)+"%"],["Índice UV",num(current.uv,1)],["Visibilidade",num(current.vis_km,1)+" km"],["Sensação",num(current.feelslike_c)+"°"]];
+    var heroMetrics=document.getElementById("weatherHeroMetrics");
+    if(heroMetrics)heroMetrics.innerHTML=[["Vento",num(current.wind_kph)+" km/h"],["Chuva hoje",num(today.daily_chance_of_rain)+"% · "+num(today.totalprecip_mm,1)+" mm"],["Umidade",num(current.humidity)+"%"]].map(function(item){return '<div class="weather-hero-metric"><span>'+item[0]+'</span><strong>'+item[1]+'</strong></div>';}).join("");
+    if(heroDays)heroDays.innerHTML=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-hero-day"><div class="weather-hero-day-name">'+escapeHtml(weekday(day.date))+'</div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-hero-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div><div class="weather-hero-rain">☂ '+num(info.daily_chance_of_rain)+'%</div></div>';}).join("");
+    var metrics=[["Máxima / mínima",num(today.maxtemp_c)+"° / "+num(today.mintemp_c)+"°"],["Chance de chuva",num(today.daily_chance_of_rain)+"%"],["Precipitação prevista",num(today.totalprecip_mm,1)+" mm"],["Vento",num(current.wind_kph)+" km/h"],["Rajadas",num(current.gust_kph)+" km/h"],["Umidade",num(current.humidity)+"%"],["Índice UV",num(current.uv,1)],["Visibilidade",num(current.vis_km,1)+" km"],["Sensação",num(current.feelslike_c)+"°"]];
     var metricsHtml=metrics.map(function(item){return '<div class="weather-metric"><span class="weather-metric-label">'+item[0]+'</span><strong class="weather-metric-value">'+item[1]+'</strong></div>';}).join("");
     var nowEpoch=Number(current.last_updated_epoch)||Math.floor(Date.now()/1000);
     var hours=days.reduce(function(all,day){return all.concat(day.hour||[]);},[]).filter(function(hour){return Number(hour.time_epoch)>=nowEpoch;}).slice(0,8);
-    var hourly=hours.length?hours.map(function(hour){var time=String(hour.time||"").split(" ")[1]||"";return '<div class="weather-hour"><div class="weather-hour-time">'+escapeHtml(time)+'</div>'+icon(hour.condition&&hour.condition.icon)+'<div class="weather-hour-temp">'+num(hour.temp_c)+'°</div><div class="weather-hour-rain">☂ '+num(hour.chance_of_rain)+'%</div></div>';}).join(""):'<div class="weather-loading">Previsão por hora indisponível.</div>';
-    var daysHtml=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-day"><div class="weather-day-main"><div class="weather-day-name">'+escapeHtml(weekday(day.date))+'</div><div class="weather-day-condition">'+escapeHtml(info.condition&&info.condition.text||"")+' · chuva '+num(info.daily_chance_of_rain)+'%</div></div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
+    var hourly=hours.length?hours.map(function(hour){var time=String(hour.time||"").split(" ")[1]||"";return '<div class="weather-hour"><div class="weather-hour-time">'+escapeHtml(time)+'</div>'+icon(hour.condition&&hour.condition.icon)+'<div class="weather-hour-temp">'+num(hour.temp_c)+'°</div><div class="weather-hour-rain">☂ '+num(hour.chance_of_rain)+'% · '+num(hour.precip_mm,1)+' mm</div></div>';}).join(""):'<div class="weather-loading">Previsão por hora indisponível.</div>';
+    var daysHtml=days.slice(0,3).map(function(day){var info=day.day||{};return '<div class="weather-day"><div class="weather-day-main"><div class="weather-day-name">'+escapeHtml(weekday(day.date))+'</div><div class="weather-day-condition">'+escapeHtml(info.condition&&info.condition.text||"")+' · chuva '+num(info.daily_chance_of_rain)+'% · '+num(info.totalprecip_mm,1)+' mm</div></div>'+icon(info.condition&&info.condition.icon)+'<div class="weather-day-temps">'+num(info.maxtemp_c)+'° <span>'+num(info.mintemp_c)+'°</span></div></div>';}).join("");
     var alerts=data.alerts&&data.alerts.alert||[],note="Previsão sujeita a mudanças. Consulte novamente antes de decisões operacionais.";
     if(alerts.length)note="Alerta meteorológico: "+escapeHtml(alerts[0].headline||alerts[0].event||"há um alerta ativo.")+(alerts.length>1?" (+"+(alerts.length-1)+" alerta(s))":"");
     else if(Number(today.daily_chance_of_rain)>=60)note="A previsão indica chance elevada de chuva hoje ("+num(today.daily_chance_of_rain)+"%).";
