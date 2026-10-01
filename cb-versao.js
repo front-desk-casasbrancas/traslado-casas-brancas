@@ -91,7 +91,7 @@
   function iniciar() {
     assinatura();
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', recarregar);
+      // A troca do service worker não recarrega a tela sozinha: evita piscar enquanto a equipe usa o app.
       navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) {
         r.update().catch(function () {});
       }).catch(function () {});
