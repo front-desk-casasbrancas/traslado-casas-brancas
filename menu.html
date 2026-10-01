@@ -95,7 +95,25 @@
         .ht-dia-rain { margin-top:3px; font-size:.62rem; color:rgba(255,255,255,.8); }
         @media (max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
 
-    </style></style>
+    
+        .hero-tempo { width:580px; max-width:100%; min-width:0; flex:0 1 580px; overflow:hidden; padding:16px 18px; }
+        .ht-top { gap:12px; min-width:0; }
+        .ht-temp { font-size:clamp(1.75rem,4vw,2.4rem); }
+        .ht-metrics { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:12px; }
+        .ht-metric { padding:8px 9px; }
+        .ht-metric-value { font-size:.76rem; }
+        .ht-section-title { margin:12px 0 7px; font-size:.68rem; font-weight:650; letter-spacing:.04em; text-transform:uppercase; color:rgba(255,255,255,.82); }
+        .ht-hours { display:flex; gap:6px; overflow-x:auto; padding:2px 1px 7px; scrollbar-width:thin; }
+        .ht-hour { flex:0 0 58px; min-width:0; padding:6px 4px; border:1px solid rgba(255,255,255,.17); border-radius:10px; background:rgba(255,255,255,.12); text-align:center; }
+        .ht-hour-time { font-size:.61rem; color:rgba(255,255,255,.82); }
+        .ht-hour img { display:block; width:31px; height:31px; margin:2px auto; }
+        .ht-hour-temp { font-size:.74rem; font-weight:700; color:#fff; }
+        .ht-hour-rain { margin-top:2px; font-size:.58rem; color:rgba(255,255,255,.82); white-space:nowrap; }
+        .ht-dia-condition { font-size:.58rem; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        @media(max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
+        @media(max-width:520px) { .ht-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .ht-hour { flex-basis:54px; } }
+
+    </style></style></style>
 </head>
 <body>
 <div id="authGate" style="position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background-image:linear-gradient(rgba(30,28,23,0.7),rgba(30,28,23,0.7)), url('fundo-hotel.jpg'); background-size:cover; background-position:center;">
@@ -163,6 +181,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 <div class="ht-temp" id="tpTemp">–</div>
             </div>
             <div class="ht-metrics" id="tpMetrics" aria-label="Condições atuais"></div>
+            <div class="ht-section-title">Previsão por hora</div><div class="ht-hours" id="tpHours"></div>
             <div class="ht-dias" id="tpDias"></div>
         </div>
     </header>
@@ -484,6 +503,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (src.indexOf('//') === 0) src = 'https:' + src;
         return src ? '<img src="' + escTempo(src) + '" alt="" loading="lazy">' : '';
     }
+    function valorTempo(value, digits) {
+        var n = Number(value); return isFinite(n) ? n.toFixed(digits || 0) : '—';
+    }
     async function carregarTempo() {
         var cond = document.getElementById('tpCond');
         if (!window.CHAVE) { if (cond) cond.textContent = 'Entre no aplicativo para consultar'; return; }
@@ -496,30 +518,43 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             const w = payload.data || payload.weather || payload;
             const atual = w.current || {}, dias = (w.forecast && w.forecast.forecastday) || [];
             if (atual.temp_c == null || !dias.length) throw new Error('A previsão veio incompleta.');
-            const diaHoje = dias[0].day || {}, condicao = atual.condition || {};
-            document.getElementById('tpTemp').innerHTML = iconeTempo(condicao.icon) + '<span>' + Math.round(Number(atual.temp_c)) + '°</span>';
-            cond.textContent = (condicao.text || 'Condição atual') + ' · sensação ' + Math.round(Number(atual.feelslike_c)) + '°';
+            const hoje = dias[0].day || {}, condicao = atual.condition || {};
+            document.getElementById('tpTemp').innerHTML = iconeTempo(condicao.icon) + '<span>' + valorTempo(atual.temp_c) + '°</span>';
+            var atualizado = String(atual.last_updated || '').split(' ')[1] || '';
+            cond.textContent = (condicao.text || 'Condição atual') + ' · sensação ' + valorTempo(atual.feelslike_c) + '°' + (atualizado ? ' · ' + atualizado : '');
             document.getElementById('tpMetrics').innerHTML = [
-                ['Vento', Math.round(Number(atual.wind_kph) || 0) + ' km/h'],
-                ['Chuva hoje', Math.round(Number(diaHoje.daily_chance_of_rain) || 0) + '% · ' + (Number(diaHoje.totalprecip_mm) || 0).toFixed(1) + ' mm'],
-                ['Umidade', Math.round(Number(atual.humidity) || 0) + '%']
+                ['Vento', valorTempo(atual.wind_kph) + ' km/h'],
+                ['Rajadas', valorTempo(atual.gust_kph) + ' km/h'],
+                ['Chuva hoje', valorTempo(hoje.daily_chance_of_rain) + '% · ' + valorTempo(hoje.totalprecip_mm, 1) + ' mm'],
+                ['Umidade', valorTempo(atual.humidity) + '%'],
+                ['Índice UV', valorTempo(atual.uv, 1)],
+                ['Visibilidade', valorTempo(atual.vis_km, 1) + ' km'],
+                ['Máx. / mín.', valorTempo(hoje.maxtemp_c) + '° / ' + valorTempo(hoje.mintemp_c) + '°'],
+                ['Pressão', valorTempo(atual.pressure_mb) + ' hPa']
             ].map(function (item) {
                 return '<div class="ht-metric"><span class="ht-metric-label">' + item[0] + '</span><strong class="ht-metric-value">' + item[1] + '</strong></div>';
             }).join('');
-            const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            var agoraEpoch = Number(atual.last_updated_epoch) || Math.floor(Date.now() / 1000);
+            var horas = dias.reduce(function (all, item) { return all.concat(item.hour || []); }, []).filter(function (hour) {
+                return Number(hour.time_epoch) >= agoraEpoch;
+            }).slice(0, 8);
+            document.getElementById('tpHours').innerHTML = horas.map(function (hour) {
+                var hora = String(hour.time || '').split(' ')[1] || '';
+                return '<div class="ht-hour"><div class="ht-hour-time">' + escTempo(hora) + '</div>' + iconeTempo(hour.condition && hour.condition.icon) +
+                    '<div class="ht-hour-temp">' + valorTempo(hour.temp_c) + '°</div><div class="ht-hour-rain">☂ ' +
+                    valorTempo(hour.chance_of_rain) + '% · ' + valorTempo(hour.precip_mm, 1) + ' mm</div></div>';
+            }).join('') || '<div class="ht-hour-time">Sem dados por hora</div>';
+            var nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
             document.getElementById('tpDias').innerHTML = dias.slice(0, 3).map(function (item, index) {
-                const date = new Date(item.date + 'T12:00:00');
-                const dia = index === 0 ? 'Hoje' : nomes[date.getDay()];
-                const info = item.day || {};
+                var date = new Date(item.date + 'T12:00:00'), dia = index === 0 ? 'Hoje' : nomes[date.getDay()];
+                var info = item.day || {};
                 return '<div class="ht-dia"><div class="d">' + dia + '</div>' + iconeTempo(info.condition && info.condition.icon) +
-                    '<span class="mx">' + Math.round(Number(info.maxtemp_c)) + '°</span> <span class="mn">' + Math.round(Number(info.mintemp_c)) +
-                    '°</span><div class="ht-dia-rain">☂ ' + Math.round(Number(info.daily_chance_of_rain) || 0) + '%</div></div>';
+                    '<div class="ht-dia-condition">' + escTempo(info.condition && info.condition.text || '') + '</div><span class="mx">' +
+                    valorTempo(info.maxtemp_c) + '°</span> <span class="mn">' + valorTempo(info.mintemp_c) + '°</span>' +
+                    '<div class="ht-dia-rain">☂ ' + valorTempo(info.daily_chance_of_rain) + '% · ' + valorTempo(info.totalprecip_mm, 1) + ' mm</div></div>';
             }).join('');
-        } catch (e) {
-            if (cond) cond.textContent = 'Previsão indisponível';
-        }
+        } catch (e) { if (cond) cond.textContent = 'Previsão indisponível'; }
     }
-
     carregar();
     carregarTempo();
     setInterval(carregar, 5 * 60 * 1000);
