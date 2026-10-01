@@ -1,16 +1,57 @@
 /*
-  Sistema de Traslados - selo de versao + aviso de atualizacao
-  Autor: Renato Rios (renatorios1611@gmail.com)
-
-  Deteccao "primeira leitura": ao carregar, a pagina anota a versao publicada
-  (versao.json) como a versao EM EXECUCAO. So mostra o aviso de recarregar se a
-  versao.json MUDAR enquanto a pagina esta aberta (ou seja, houve nova publicacao).
-  Isso elimina o aviso "preso": ao recarregar, a versao anotada volta a ser a atual
-  e o aviso some. Nao depende de uma versao embutida neste arquivo.
+  Sistema de Traslados — atualizacao automatica do aplicativo
+  Confere se a versao da pagina corresponde a publicada e atualiza automaticamente.
 */
 (function () {
-  var atual = null;      // versao que ESTA pagina carregou
-  var avisado = false;
+  var avisoEl = null;
+  var timerAviso = null;
+  var recarregando = false;
+  var versaoPagina = (document.querySelector('meta[name="cb-build"]') || {}).content || '';
+  var usuarioEditou = false;
+  var ignorarPendencias = false;
+
+  function campoEditavel(el) {
+    return el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) &&
+      !el.readOnly && !el.disabled && el.type !== 'password';
+  }
+
+  function temAlteracoesPendentes() {
+    if (ignorarPendencias) return false;
+    if (typeof window.cbHasUnsavedChanges === 'function') {
+      try { return !!window.cbHasUnsavedChanges(); } catch (e) {}
+    }
+    return usuarioEditou || campoEditavel(document.activeElement);
+  }
+
+  document.addEventListener('input', function (e) { if (campoEditavel(e.target)) usuarioEditou = true; }, true);
+  document.addEventListener('change', function (e) { if (campoEditavel(e.target)) usuarioEditou = true; }, true);
+
+  function recarregar() {
+    if (recarregando) return;
+    if (temAlteracoesPendentes()) { mostrarAviso(true); return; }
+    recarregando = true;
+    setTimeout(function () { location.reload(); }, 150);
+  }
+
+  function mostrarAviso(adiado) {
+    if (!document.body) return;
+    if (!avisoEl) {
+      avisoEl = document.createElement('button');
+      avisoEl.type = 'button';
+      avisoEl.id = 'cbAtualizacaoAviso';
+      avisoEl.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10002;background:#9c7d3f;color:#fff;padding:10px 18px;border:0;border-radius:40px;font:600 13px Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;';
+      avisoEl.addEventListener('click', function () {
+        ignorarPendencias = true;
+        usuarioEditou = false;
+        recarregar();
+      });
+      document.body.appendChild(avisoEl);
+    }
+    avisoEl.textContent = adiado ? 'Atualização pronta — salve os dados e toque aqui' : 'Nova versão — atualizando…';
+    avisoEl.hidden = false;
+    if (timerAviso) clearTimeout(timerAviso);
+    if (!adiado) timerAviso = setTimeout(recarregar, 1500);
+  }
 
   function selo(v) {
     var el = document.getElementById('cbVersao');
@@ -23,28 +64,11 @@
     el.textContent = 'v' + v;
   }
 
-  function aviso(nova) {
-    if (avisado) return; avisado = true;
-    var b = document.createElement('div');
-    b.innerHTML = '↻ Nova versao disponivel (' + nova + '). <u style="cursor:pointer">Recarregar</u>';
-    b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10002;background:#9c7d3f;color:#fff;padding:10px 18px;border-radius:40px;font:600 13px Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;';
-    b.addEventListener('click', function () {
-      try {
-        if ('caches' in window) {
-          caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
-            .then(function () { location.reload(true); });
-        } else { location.reload(true); }
-      } catch (e) { location.reload(true); }
-    });
-    document.body.appendChild(b);
-  }
-
   function assinatura() {
     if (!document.body || document.getElementById('cbTechCredit')) return;
     var style = document.createElement('style');
     style.textContent = '#cbTechCredit{display:flex;align-items:center;justify-content:center;gap:9px;width:max-content;max-width:calc(100% - 32px);margin:24px auto 18px;padding:8px 14px;border:1px solid rgba(184,153,90,.28);border-radius:999px;background:rgba(255,255,255,.78);color:#6f654f;font-family:Segoe UI,-apple-system,BlinkMacSystemFont,Helvetica Neue,Arial,sans-serif;box-shadow:0 2px 10px rgba(40,36,28,.045)}#cbTechCredit svg{width:30px;height:30px;flex:0 0 auto}#cbTechCredit .cb-tech-copy{display:flex;flex-direction:column;gap:2px}#cbTechCredit .cb-tech-label{font-size:9px;line-height:1.1;font-weight:600;letter-spacing:.12em;text-transform:uppercase;opacity:.72}#cbTechCredit strong{font-size:12px;line-height:1.2;font-weight:600;letter-spacing:.01em;color:#3a3832}@media(max-width:550px){#cbTechCredit{margin:20px auto 16px;padding:7px 12px}}';
     document.head.appendChild(style);
-
     var footer = document.createElement('footer');
     footer.id = 'cbTechCredit';
     footer.setAttribute('aria-label', 'Desenvolvido por Búzios Technology');
@@ -54,21 +78,29 @@
 
   function checar() {
     fetch('versao.json?t=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { return r.json(); })
+      .then(function (r) { if (!r.ok) throw new Error('versao indisponivel'); return r.json(); })
       .then(function (j) {
         if (!j || !j.v) return;
-        if (atual === null) { atual = j.v; selo(j.v); }   // 1a leitura = versao em execucao
-        else if (j.v !== atual && !avisado) aviso(j.v);   // publicaram algo novo depois
+        selo(j.v);
+        if (versaoPagina && j.v !== versaoPagina) recarregar();
       })
       .catch(function () {});
   }
 
   function iniciar() {
-    checar();
     assinatura();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', recarregar);
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) {
+        r.update().catch(function () {});
+      }).catch(function () {});
+    }
+    checar();
+    setInterval(checar, 60 * 1000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) checar(); });
+    window.addEventListener('focus', checar);
   }
 
   if (document.readyState !== 'loading') iniciar();
   else document.addEventListener('DOMContentLoaded', iniciar);
-  setInterval(checar, 5 * 60 * 1000);
 })();

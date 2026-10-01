@@ -7,6 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
+    <meta name="cb-build" content="2026.10.01-4">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Configurações — Preços · Casas Brancas</title>
@@ -267,11 +268,13 @@ function renderAdicionais(){
 document.getElementById('filtroRegiao').addEventListener('change', render);
 
 document.getElementById('btnAddAdicional').addEventListener('click', ()=>{
+  cbConfigDirty=true;
   ADICIONAIS.push({ nome:'', valor:0, inicio:'', fim:'', ativo:true });
   renderAdicionais();
 });
 
 document.getElementById('btnAdd').addEventListener('click', ()=>{
+  cbConfigDirty=true;
   const reg = document.getElementById('filtroRegiao').value;
   ITENS.push({ regiao:reg, categoria:CATEGORIAS[0], veiculo:"", capacidade:"", preco:0, obs:"", ativo:true });
   render();
@@ -279,6 +282,9 @@ document.getElementById('btnAdd').addEventListener('click', ()=>{
   window.scrollTo(0, document.body.scrollHeight);
 });
 
+let cbConfigDirty=false;
+window.cbHasUnsavedChanges=()=>cbConfigDirty;
+['tabelas','tabelaAdicionais'].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener('input',()=>cbConfigDirty=true);el.addEventListener('change',()=>cbConfigDirty=true);el.addEventListener('click',e=>{if(e.target.closest('button'))cbConfigDirty=true;});}});
 document.getElementById('btnSave').addEventListener('click', async ()=>{
   // valida: veículo não vazio
   const invalidos = ITENS.filter(it=>!String(it.veiculo).trim());
@@ -292,7 +298,7 @@ document.getElementById('btnSave').addEventListener('click', async ()=>{
       fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'salvarPrecos',k:CHAVE,quem:quem,itens:ITENS})}).then(r=>r.json()),
       fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'salvarAdicionais',k:CHAVE,quem:quem,itens:ADICIONAIS})}).then(r=>r.json())
     ]);
-    if(respostas[0]&&respostas[0].ok&&respostas[1]&&respostas[1].ok){ msg('Salvo! Preços e adicionais atualizados.'); }
+    if(respostas[0]&&respostas[0].ok&&respostas[1]&&respostas[1].ok){ cbConfigDirty=false; msg('Salvo! Preços e adicionais atualizados.'); }
     else { msg('Erro ao salvar: '+((respostas.find(r=>!r||!r.ok)||{}).error||'desconhecido')); }
   }catch(e){ msg('Falha de conexão ao salvar.'); }
   finally{ btn.disabled=false; btn.textContent='Salvar alterações'; }
