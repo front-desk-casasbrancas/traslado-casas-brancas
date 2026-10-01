@@ -86,6 +86,7 @@
         <input type="text" id="gNome" placeholder="Nome" autocomplete="off" autocapitalize="none" data-lpignore="true">
         <input type="password" id="gSenha" placeholder="Senha" autocomplete="off" data-lpignore="true">
         <button id="gBtn">Entrar</button>
+        <button id="gRecepcaoBtn" type="button" style="width:100%;margin-top:9px;padding:10px;background:#fff;color:#8a7a55;border:1px solid #d8cbb0;border-radius:40px;font-weight:600;cursor:pointer;">Entrar como Recepção</button>
         <div class="gate-erro" id="gErro">Nome ou senha incorretos</div>
     </div>
 </div>
@@ -164,8 +165,9 @@
     // Nenhuma senha fica no app. O nome e a senha são validados no servidor (Code.gs),
     // que só devolve os transfers em que ESTE motorista foi marcado.
 
-    let motorista = "", chave = "", transfers = [], filtro = "proximos", timer = null;
+    let motorista = "", chave = "", transfers = [], filtro = "proximos", timer = null, perfilRecepcao = false;
 
+    function credencialPost(){ return perfilRecepcao ? {k:chave} : {authNome:motorista,authChave:chave}; }
     async function buscarTransfersMotorista(){ return (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'motorista',nome:motorista,chave:chave})})).json(); }
 
     function norm(s){ return (s||'').toString().toLowerCase().normalize('NFD').replace(/[^a-z]/gi,''); }
@@ -208,16 +210,29 @@
         btn.disabled=false; btn.innerText='Entrar';
     }
     document.getElementById('gBtn').addEventListener('click',entrar);
+    document.getElementById('gRecepcaoBtn').addEventListener('click',entrarComoRecepcao);
+    async function entrarComoRecepcao(){
+        var senha=document.getElementById('gSenha').value, btn=document.getElementById('gRecepcaoBtn');
+        if(!senha)return;
+        btn.disabled=true; btn.innerText='Validando acesso...'; document.getElementById('gErro').style.display='none';
+        motorista='Recepção'; chave=senha; perfilRecepcao=true;
+        try{
+            var d=await buscarTransfersMotorista();
+            if(Array.isArray(d)){ transfers=d.filter(function(t){return getStatus(t)!=='cancelled';}); document.getElementById('gate').style.display='none'; iniciar(true); }
+            else { throw new Error('acesso negado'); }
+        }catch(e){ motorista=''; chave=''; perfilRecepcao=false; document.getElementById('gErro').style.display='block'; document.getElementById('gSenha').value=''; }
+        btn.disabled=false; btn.innerText='Entrar como Recepção';
+    }
     ['gNome','gSenha'].forEach(function(id){ document.getElementById(id).addEventListener('keydown',function(e){ if(e.key==='Enter')entrar(); }); });
     document.getElementById('gNome').focus();
 
-    document.getElementById('sairBtn').addEventListener('click',function(){ fecharChatMotorista(); motorista=''; chave=''; transfers=[]; if(timer){clearInterval(timer);timer=null;} document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='flex'; document.getElementById('gSenha').value=''; document.getElementById('gErro').style.display='none'; });
+    document.getElementById('sairBtn').addEventListener('click',function(){ fecharChatMotorista(); motorista=''; chave=''; transfers=[]; if(timer){clearInterval(timer);timer=null;} document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='flex'; document.getElementById('gSenha').value=''; perfilRecepcao=false; motorista=''; chave=''; document.getElementById('gErro').style.display='none'; });
     document.querySelectorAll('.fbtn').forEach(function(b){ b.addEventListener('click',function(){ if(!b.hasAttribute('data-f'))return; filtro=b.getAttribute('data-f'); document.querySelectorAll('.fbtn[data-f]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); render(); }); });
 
     // ==================== CHAT INTERNO DO MOTORISTA ====================
     let driverChatRooms=[], driverChatThread='', driverChatCursor=1, driverChatMessages=[], driverChatTransferId='', driverChatPolling=null, driverChatBusy=false, driverChatSelf='';
     async function dcPost(action, payload){
-        const body=Object.assign({action:action,authNome:motorista,authChave:chave},payload||{});
+        const body=Object.assign(perfilRecepcao?{action:action,k:chave}:{action:action,authNome:motorista,authChave:chave},payload||{});
         const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
         return r.json();
     }
@@ -303,8 +318,9 @@
 
     function iniciar(jaTemDados){
         document.getElementById('app').style.display='block';
-        document.getElementById('ola').innerText='Olá, '+motorista+'!';
-        try { if (window.cbRegistrarPushMotorista) window.cbRegistrarPushMotorista(motorista); } catch(e){}
+        document.getElementById('ola').innerText=perfilRecepcao?'Recepção · acesso de gestão':'Olá, '+motorista+'!';
+        document.getElementById('senhaBtn').style.display=perfilRecepcao?'none':'';
+        try { if (window.cbRegistrarPushMotorista) window.cbRegistrarPushMotorista(motorista,perfilRecepcao?'recepcao':'motorista'); } catch(e){}
         dcLoadRooms().catch(function(){});
         if(jaTemDados){ document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleTimeString('pt-BR'); render(); }
         else { carregar(); }
@@ -361,7 +377,7 @@
             let zapBtn = tel ? '<a class="btn btn-zap" href="https://wa.me/'+tel+'?text='+encodeURIComponent('Olá '+(t["Nome"]||'')+', aqui é o seu motorista da Casas Brancas.')+'" target="_blank" rel="noopener">💬 WhatsApp</a>' : (email ? '<a class="btn btn-zap" style="background:#b8995a;" href="mailto:'+escHtml(email)+'">✉️ E-mail</a>' : '');
             let pp = proximoPasso(s);
             let nextBtn = pp ? '<button class="btn '+pp.cls+'" data-act="passo" data-st="'+pp.st+'" data-id="'+escHtml(_id)+'">'+pp.label+'</button>' : '';
-            let fotoBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="foto" data-id="'+escHtml(_id)+'">📷 Foto</button>' : '';
+            let fotoBtn = (!perfilRecepcao && emCurso(s)) ? '<button class="btn btn-foto" data-act="foto" data-id="'+escHtml(_id)+'">📷 Foto</button>' : '';
             let ocorrenciaBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="ocorrencia" data-id="'+escHtml(_id)+'">⚠️ Ocorrência</button>' : '';
             return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
                 '<div class="ch"><div><div class="hr">'+escHtml(getHorario(t))+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
@@ -414,7 +430,7 @@
         if(descricao.length<3){erro.innerText='Escreva pelo menos 3 caracteres.';erro.style.display='block';return;}
         b.disabled=true;b.innerText='Salvando…';erro.style.display='none';
         try{
-            const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'registrarOcorrencia',id:ocorrenciaMotoristaId,categoria:document.getElementById('ocCategoria').value,descricao:descricao,authNome:motorista,authChave:chave})});
+            const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({action:'registrarOcorrencia',id:ocorrenciaMotoristaId,categoria:document.getElementById('ocCategoria').value,descricao:descricao},credencialPost()))});
             const d=await r.json();
             if(!d||!d.ok)throw new Error((d&&(d.erro||d.error))||'Não foi possível salvar.');
             document.getElementById('ocorrenciaOverlay').style.display='none';
@@ -446,7 +462,7 @@
     function mudarStatus(t, st, obs){
         t["Status"]=st;
         // authNome/authChave: o servidor confere que é ESTE motorista antes de gravar
-        var corpo={action:'update', id:idOf(t), status:st, authNome:motorista, authChave:chave};
+        var corpo=Object.assign({action:'update', id:idOf(t), status:st},credencialPost());
         if(typeof obs==='string' && obs.trim()){ corpo.obsMotorista=obs.trim(); t["ObsMotorista"]=obs.trim(); }
         fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(corpo)})
             .then(function(r){return r.json();})
@@ -511,14 +527,14 @@
         lastSend = now;
         try {
             fetch(WEBAPP_URL, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'posicao', id: curId, lat: lat, lng: lng, authNome: motorista, authChave: chave }) });
+                body: JSON.stringify(Object.assign({ action: 'posicao', id: curId, lat: lat, lng: lng }, credencialPost())) });
         } catch (e) {}
     }
     async function lockTela() {
         try { if ('wakeLock' in navigator && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', function () { wake = null; }); } } catch (e) {}
     }
     window.cbGpsStart = function (id) {
-        if (!('geolocation' in navigator) || !id) return;
+        if (perfilRecepcao || !('geolocation' in navigator) || !id) return;
         if (curId === id && watchId != null) return; // já rastreando essa corrida
         curId = id; lastSend = 0; lockTela();
         if (watchId != null) navigator.geolocation.clearWatch(watchId);
@@ -563,11 +579,11 @@
             try { navigator.serviceWorker.ready.then(function (r) { r.showNotification(t, { body: c, icon: 'icon-192-v4.png', vibrate: [120, 60, 120] }); }); } catch (e) {}
         });
     } catch (e) {}
-    var nomeAtual = '', btn = null;
-    function doReg(nome) {
+    var nomeAtual = '', tipoAtual = 'motorista', btn = null;
+    function doReg(nome,tipo) {
         return navigator.serviceWorker.register('firebase-messaging-sw.js', { scope: './fcm-push/' })
             .then(function (reg) { return firebase.messaging().getToken({ vapidKey: VAPID, serviceWorkerRegistration: reg }); })
-            .then(function (token) { if (!token) return; try { fetch(URL_BACK, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'registrarPush', token: token, tipo: 'motorista', nome: nome || '' }) }); } catch (e) {} });
+            .then(function (token) { if (!token) return; try { fetch(URL_BACK, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'registrarPush', token: token, tipo: tipo || 'motorista', nome: (tipo==='recepcao'?'':(nome||'')) }) }); } catch (e) {} });
     }
     function mostrarBotao() {
         if (btn) { btn.style.display = 'block'; return; }
@@ -578,14 +594,14 @@
             btn.disabled = true; btn.innerHTML = 'Ativando...';
             Notification.requestPermission().then(function (p) {
                 if (p !== 'granted') { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; alert('Permissão negada. Libere as notificações deste site nas configurações do navegador.'); return; }
-                doReg(nomeAtual).then(function () { btn.style.background = '#2f7d8c'; btn.innerHTML = '✓ Notificações ativadas'; setTimeout(function () { btn.style.display = 'none'; }, 4000); }).catch(function () { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; });
+                doReg(nomeAtual,tipoAtual).then(function () { btn.style.background = '#2f7d8c'; btn.innerHTML = '✓ Notificações ativadas'; setTimeout(function () { btn.style.display = 'none'; }, 4000); }).catch(function () { btn.disabled = false; btn.innerHTML = '🔔 Ativar notificações'; });
             });
         });
         document.body.appendChild(btn);
     }
-    window.cbRegistrarPushMotorista = function (nome) {
-        nomeAtual = nome || nomeAtual || '';
-        if (Notification.permission === 'granted') { doReg(nomeAtual).catch(function () {}); if (btn) btn.style.display = 'none'; }
+    window.cbRegistrarPushMotorista = function (nome,tipo) {
+        nomeAtual = nome || nomeAtual || ''; tipoAtual=tipo||'motorista';
+        if (Notification.permission === 'granted') { doReg(nomeAtual,tipoAtual).catch(function () {}); if (btn) btn.style.display = 'none'; }
         else { mostrarBotao(); }
     };
 })();
