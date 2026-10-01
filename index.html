@@ -603,7 +603,7 @@
             enviando: "Enviando...",
             copiado: "Resumo copiado!",
             sucessoTitulo: "Solicitação enviada!",
-            sucessoTexto: "Em breve você receberá a confirmação.",
+            sucessoTexto: "Solicitação recebida! Em instantes você será levado à página de experiências.",
             novaSolicitacao: "Fazer nova solicitação",
             aproveite: "✨ Aproveite sua estada",
             labelDataEmbarque: "Data da chegada",
@@ -714,7 +714,7 @@
             enviando: "Sending...",
             copiado: "Summary copied!",
             sucessoTitulo: "Request sent!",
-            sucessoTexto: "You will receive the confirmation shortly.",
+            sucessoTexto: "Request received! You’ll be taken to the experiences page in a moment.",
             novaSolicitacao: "Make a new request",
             aproveite: "✨ Enjoy your stay",
             labelDataEmbarque: "Arrival date",
@@ -825,7 +825,7 @@
             enviando: "Enviando...",
             copiado: "¡Resumen copiado!",
             sucessoTitulo: "¡Solicitud enviada!",
-            sucessoTexto: "Pronto recibirás la confirmación.",
+            sucessoTexto: "¡Solicitud recibida! En unos instantes te llevaremos a la página de experiencias.",
             novaSolicitacao: "Hacer una nueva solicitud",
             aproveite: "✨ Disfrute su estancia",
             labelDataEmbarque: "Fecha de llegada",
@@ -1769,6 +1769,7 @@
         el.style.boxShadow = on ? '0 0 0 3px rgba(220,53,69,0.12)' : '';
     }
 
+    let _redirecionamentoSucessoTimer = null;
     function mostrarSucesso() {
         const t = translations[currentLang];
         document.getElementById('sucessoTitulo').innerText = t.sucessoTitulo;
@@ -1776,6 +1777,11 @@
         document.getElementById('novaSolicitacaoBtn').innerText = t.novaSolicitacao;
         var _sb = document.getElementById('servicosBtn'); if (_sb) _sb.innerText = t.aproveite;
         document.getElementById('sucessoOverlay').classList.add('show');
+        if (_redirecionamentoSucessoTimer) clearTimeout(_redirecionamentoSucessoTimer);
+        try { localStorage.setItem('cb_lang', currentLang); } catch (e) {}
+        _redirecionamentoSucessoTimer = setTimeout(function () {
+            window.location.href = 'servicos.html';
+        }, 1800);
     }
 
     async function enviarWhatsApp() {
@@ -2190,6 +2196,7 @@
 
     document.getElementById('enviarBtnBar')?.addEventListener('click', enviarWhatsApp);
     document.getElementById('novaSolicitacaoBtn').addEventListener('click', () => {
+        if (_redirecionamentoSucessoTimer) { clearTimeout(_redirecionamentoSucessoTimer); _redirecionamentoSucessoTimer = null; }
         _enviandoForm = false;                  // libera novo envio
         document.getElementById('sucessoOverlay').classList.remove('show');
         renderForm();
