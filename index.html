@@ -546,6 +546,9 @@
             inOutOption: "Transfer de chegada + saída (ida e volta)",
             nome: "Nome completo (titular da reserva)",
             reserva: "Número da reserva ou do quarto",
+            lembrarDados: "Salvar meus dados de contato neste aparelho para próximas solicitações",
+            dadosLocaisInfo: "Os dados ficam somente neste navegador e podem ser apagados a qualquer momento.",
+            apagarDados: "Apagar dados salvos",
             telefone: "Telefone celular (WhatsApp)",
             pais: "País",
             contatoMetodo: "Como prefere receber a confirmação?",
@@ -654,6 +657,9 @@
             inOutOption: "Arrival + Departure (round trip)",
             nome: "Full name (reservation holder)",
             reserva: "Reservation or room number",
+            lembrarDados: "Save my contact details on this device for future requests",
+            dadosLocaisInfo: "Details stay in this browser and can be deleted at any time.",
+            apagarDados: "Delete saved details",
             telefone: "Mobile phone (WhatsApp)",
             pais: "Country",
             contatoMetodo: "How would you like to receive the confirmation?",
@@ -762,6 +768,9 @@
             inOutOption: "Traslado de llegada + salida (ida y vuelta)",
             nome: "Nombre completo (titular de la reserva)",
             reserva: "Número de reserva o de habitación",
+            lembrarDados: "Guardar mis datos de contacto en este dispositivo para próximas solicitudes",
+            dadosLocaisInfo: "Los datos quedan solo en este navegador y se pueden borrar en cualquier momento.",
+            apagarDados: "Borrar datos guardados",
             telefone: "Teléfono celular (WhatsApp)",
             pais: "País",
             contatoMetodo: "¿Cómo prefiere recibir la confirmación?",
@@ -1436,6 +1445,13 @@
                 <div class="form-row" id="blocoEmail" style="display:none;"><label id="lblEmail">${t.emailLabel}</label>
                     <input type="email" id="email" inputmode="email" placeholder="nome@email.com">
                 </div>
+                <div class="form-row" style="margin:4px 0 0;padding:12px;background:#fafaf7;border:1px solid #ebe5db;border-radius:10px;">
+                    <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;margin:0;color:#5a6e4a;">
+                        <input type="checkbox" id="lembrarDados" style="width:auto;margin-top:3px;flex:0 0 auto;">
+                        <span><span id="lembrarDadosTexto">${t.lembrarDados}</span><small id="dadosLocaisInfo" style="display:block;margin-top:4px;color:#8a8270;line-height:1.4;">${t.dadosLocaisInfo}</small></span>
+                    </label>
+                    <button type="button" id="apagarDadosSalvos" style="display:none;margin:8px 0 0 26px;background:none;border:0;color:#8b7a5c;text-decoration:underline;font-size:.75rem;cursor:pointer;">${t.apagarDados}</button>
+                </div>
                 <div class="form-row" style="display:flex; gap:24px; flex-wrap:wrap;">
                     <div><label id="lblAdultos">${t.adultos}</label>${stepperHtml('adultos', 2, 1)}</div>
                     <div><label id="lblCriancas">${t.criancas}</label>${stepperHtml('criancas', 0, 0)}</div>
@@ -1504,6 +1520,7 @@
         bindEvents();
         bindSteppers();
         toggleContato();
+        restaurarDadosContato();
         scheduleUpdate();
     }
 
@@ -1874,6 +1891,53 @@
     }
 
     let _enviandoForm = false;
+    const PERFIL_HOSPEDE_KEY = 'cb_dados_contato_v1';
+    function obterPerfilContato() {
+        try { return JSON.parse(localStorage.getItem(PERFIL_HOSPEDE_KEY) || 'null'); } catch (e) { return null; }
+    }
+    function restaurarDadosContato() {
+        const check = document.getElementById('lembrarDados');
+        const apagar = document.getElementById('apagarDadosSalvos');
+        const perfil = obterPerfilContato();
+        if (!check) return;
+        if (perfil) {
+            const nome = document.getElementById('nome'); if (nome) nome.value = perfil.nome || '';
+            const reserva = document.getElementById('reserva'); if (reserva) reserva.value = perfil.reserva || '';
+            const ddi = document.getElementById('ddi'); if (ddi && perfil.ddi) ddi.value = perfil.ddi;
+            const telefone = document.getElementById('telefone'); if (telefone) telefone.value = perfil.telefone || '';
+            const email = document.getElementById('email'); if (email) email.value = perfil.email || '';
+            const metodo = document.querySelector('input[name="contato"][value="' + (perfil.metodo === 'Email' ? 'Email' : 'WhatsApp') + '"]');
+            if (metodo) metodo.checked = true;
+            check.checked = true;
+            if (apagar) apagar.style.display = 'inline-block';
+            toggleContato();
+        }
+        check.addEventListener('change', function () {
+            if (!check.checked) {
+                try { localStorage.removeItem(PERFIL_HOSPEDE_KEY); } catch (e) {}
+            }
+            if (apagar) apagar.style.display = check.checked && obterPerfilContato() ? 'inline-block' : 'none';
+        });
+        if (apagar) apagar.addEventListener('click', function () {
+            try { localStorage.removeItem(PERFIL_HOSPEDE_KEY); } catch (e) {}
+            check.checked = false; apagar.style.display = 'none';
+        });
+    }
+    function salvarPerfilContatoSeAutorizado() {
+        const check = document.getElementById('lembrarDados');
+        try {
+            if (!check || !check.checked) { localStorage.removeItem(PERFIL_HOSPEDE_KEY); return; }
+            localStorage.setItem(PERFIL_HOSPEDE_KEY, JSON.stringify({
+                nome: (document.getElementById('nome')?.value || '').trim(),
+                reserva: (document.getElementById('reserva')?.value || '').trim(),
+                ddi: document.getElementById('ddi')?.value || '55',
+                telefone: (document.getElementById('telefone')?.value || '').trim(),
+                email: (document.getElementById('email')?.value || '').trim(),
+                metodo: metodoContato() === 'Email' ? 'Email' : 'WhatsApp'
+            }));
+            const apagar = document.getElementById('apagarDadosSalvos'); if (apagar) apagar.style.display = 'inline-block';
+        } catch (e) { /* armazenamento bloqueado não pode interromper o pedido */ }
+    }
     async function confirmarEnvioFinal() {
         if (_enviandoForm) return;              // trava reenvio, mesmo com vários cliques
         _enviandoForm = true;
@@ -1941,6 +2005,7 @@
         }
 
         if (okIda && okVolta) {
+            salvarPerfilContatoSeAutorizado();
             document.getElementById('revisaoOverlay').classList.remove('show');
             mostrarSucesso();
         } else {
@@ -2044,6 +2109,9 @@
         const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.innerHTML = v; };
         setTxt('lblNome', t.nome);
         setTxt('lblReserva', t.reserva);
+        setTxt('lembrarDadosTexto', t.lembrarDados);
+        setTxt('dadosLocaisInfo', t.dadosLocaisInfo);
+        setTxt('apagarDadosSalvos', t.apagarDados);
         setTxt('lblContato', t.contatoMetodo);
         setTxt('lblViaWhats', t.viaWhats);
         setTxt('lblViaEmail', t.viaEmail);
