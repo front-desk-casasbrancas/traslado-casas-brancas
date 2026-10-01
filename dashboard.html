@@ -314,6 +314,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             <div id="liveMapa" style="width:100%; height:320px; border-radius:12px; overflow:hidden; margin-top:12px;"></div>
             <div id="liveLista" style="margin-top:10px; font-size:0.85rem; color:#5a5446;"></div>
         </div>
+        <div id="operacaoResumo" class="table-container" style="display:none;border-left:4px solid #b8995a;margin-bottom:20px;"></div>
         <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
         <div class="table-container">
             <h3>Próximos traslados</h3>
@@ -682,6 +683,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             updateDashboard();
             renderProximos();
             renderConflitos();
+            renderOperacaoResumo();
             updateHistoryTable();
             updateComissaoTab(currentPeriodo);
             carregarPagamentos();
@@ -696,6 +698,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     // ===== Carros ao vivo (posições dos motoristas em corrida) =====
     let _liveMap = null, _liveMarkers = {}, _liveTimer = null;
+    let _posicoesOperacionais = [];
     async function carregarPosicoesAtivas() {
         if (!window.CHAVE) return;
         if (!_liveTimer && !document.hidden) { _liveTimer = setInterval(carregarPosicoesAtivas, 25 * 1000); }
@@ -703,6 +706,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             const r = await fetch(WEBAPP_URL + '?action=posicoesAtivas&k=' + _k() + '&t=' + Date.now());
             const d = await r.json();
             const arr = Array.isArray(d) ? d.filter(x => x.lat && x.lng && !isNaN(parseFloat(x.lat)) && !isNaN(parseFloat(x.lng))) : [];
+            _posicoesOperacionais = arr;
+            renderOperacaoResumo();
             const wrap = document.getElementById('liveWrap');
             if (!arr.length) { if (wrap) wrap.style.display = 'none'; return; }
             if (wrap) wrap.style.display = 'block';
@@ -724,7 +729,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             if (bounds.length === 1) { _liveMap.setView(bounds[0], 14); }
             else if (bounds.length > 1) { try { _liveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }
             document.getElementById('liveLista').innerHTML = arr.map(function (c) { return '🚗 <b>' + escHtml(c.motorista || '—') + '</b> · ' + escHtml(c.veiculo || '') + ' — ' + escHtml(c.nome || ''); }).join('<br>');
-        } catch (e) {}
+        } catch (e) { _posicoesOperacionais = []; renderOperacaoResumo(); }
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -787,6 +792,54 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 `• ${formatarData(c.a["Data Viagem"])} <b>${getHorario(c.a)}</b> — ${c.a["Nome"] || '-'} (${c.a["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio"})<br>` +
                 `• ${formatarData(c.b["Data Viagem"])} <b>${getHorario(c.b)}</b> — ${c.b["Nome"] || '-'} (${c.b["Sentido"] === "IN" ? "Rio→Búzios" : "Búzios→Rio"})</div>`
             ).join('');
+    }
+
+    // Painel de pendências para os traslados das próximas 24 horas.
+    function renderOperacaoResumo() {
+        const box = document.getElementById('operacaoResumo');
+        if (!box || !Array.isArray(transfers)) return;
+        const agora = new Date(), limite = new Date(agora.getTime() + 24 * 60 * 60 * 1000);
+        const posicoes = new Map((_posicoesOperacionais || []).map(p => [String(p.id || p.ID || ''), p]));
+        const itens = [];
+        transfers.filter(t => !isCancelled(t)).forEach(t => {
+            const inicio = inicioDateTime(t);
+            if (!inicio || inicio < agora || inicio > limite) return;
+            const id = String(t['ID'] || ''), status = getStatus(t);
+            const problemas = [];
+            if (!(t['Motorista'] || '').toString().trim()) problemas.push('Motorista não definido');
+            if (!(t['Veículo'] || '').toString().trim()) problemas.push('Veículo não definido');
+            if (status === 'active') problemas.push('Confirmação pendente');
+            itens.push({ t, id, inicio, problemas });
+        });
+        // Traslados em andamento sem posição reportada também precisam de atenção.
+        transfers.filter(t => !isCancelled(t) && emCurso(getStatus(t))).forEach(t => {
+            const id = String(t['ID'] || ''), existe = itens.find(x => x.id === id);
+            if (posicoes.has(id)) return;
+            const inicio = inicioDateTime(t);
+            const ehRecente = inicio && inicio <= agora && agora - inicio <= 4 * 60 * 60 * 1000;
+            if (ehRecente && !existe) itens.push({ t, id, inicio, problemas: ['Sem posição GPS recebida'] });
+            else if (ehRecente && existe) existe.problemas.push('Sem posição GPS recebida');
+        });
+        const pendencias = itens.filter(x => x.problemas.length).sort((a,b) => a.inicio-b.inicio);
+        box.style.display = 'block';
+        if (!pendencias.length) {
+            box.innerHTML = '<h3 style="margin:0 0 5px;color:#51694c;">✓ Operação em ordem</h3><div style="font-size:.86rem;color:#6a7e5a;">Sem pendências identificadas para os próximos traslados.</div>';
+            return;
+        }
+        box.innerHTML = '<h3 style="margin:0 0 10px;color:#8a6d1b;">⚠️ Atenção operacional · ' + pendencias.length + ' traslado(s)</h3>' +
+            pendencias.map(x => {
+                const t=x.t, nome=escHtml(t['Nome'] || 'Hóspede'), dir=t['Sentido']==='IN'?'Chegada':'Saída';
+                const problemas=x.problemas.map(escHtml).join(' · ');
+                return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;border-top:1px solid #eee5cf;font-size:.84rem;">' +
+                    '<div><b>' + escHtml(formatarData(t['Data Viagem'])) + ' ' + escHtml(getHorario(t)) + ' · ' + nome + '</b><div style="color:#8a6d1b;margin-top:2px;">' + escHtml(dir) + ' · ' + problemas + '</div></div>' +
+                    '<div style="display:flex;gap:7px;"><button class="editar-btn" data-ops-act="editar" data-id="' + escHtml(x.id) + '">Ajustar</button>' +
+                    (getStatus(t)==='active' ? '<button class="confirm-btn" data-ops-act="confirmar" data-id="' + escHtml(x.id) + '">Confirmar</button>' : '') + '</div></div>';
+            }).join('');
+        box.querySelectorAll('[data-ops-act]').forEach(b => b.addEventListener('click', function () {
+            const t = transferPorId(b.dataset.id); if (!t) return;
+            if (b.dataset.opsAct === 'editar') abrirEdicao(t);
+            if (b.dataset.opsAct === 'confirmar') enviarConfirmacao(t);
+        }));
     }
 
     // ==================== PRÓXIMOS TRASLADOS (HOJE / AMANHÃ) ====================
@@ -893,7 +946,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 if (dR && dR.ok === false) { alert('Não foi possível enviar: ' + (dR.erro || 'erro desconhecido')); return; }
             } catch (e) { alert('Falha de conexão ao enviar a confirmação.'); return; }
             t["Status"] = 'confirmed';
-            updateHistoryTable(); renderProximos();
+            updateHistoryTable(); renderProximos(); renderOperacaoResumo();
             alert("Confirmação enviada por e-mail ao hóspede (pela front@casasbrancas.com.br).");
             return;
         }
@@ -909,7 +962,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             if (win) win.location.href = url; else window.open(url, '_blank');
             t["Status"] = 'confirmed';
             postUpdate(id, { status: 'confirmed' });
-            updateHistoryTable(); renderProximos();
+            updateHistoryTable(); renderProximos(); renderOperacaoResumo();
         } catch (e) { if (win) win.close(); alert("Não foi possível gerar a confirmação agora."); }
     }
 
