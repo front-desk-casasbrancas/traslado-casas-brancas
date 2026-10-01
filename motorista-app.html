@@ -57,6 +57,25 @@
         .gate-erro { color:#b85c5a; font-size:0.8rem; margin-top:10px; display:none; }
         .occ-text { width:100%;min-height:110px;padding:12px;border:1px solid #d8cbb0;border-radius:10px;font:inherit;resize:vertical;text-align:left; }
         .occ-select { width:100%;padding:12px;border:1px solid #d8cbb0;border-radius:10px;font:inherit;margin:0 0 10px; }
+        .chat-driver-backdrop { position:fixed;inset:0;z-index:9000;background:rgba(30,28,23,.68);display:none;align-items:center;justify-content:center;padding:12px; }
+        .chat-driver { width:min(720px,100%);height:min(86vh,760px);background:#fff;border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.28); }
+        .chat-driver-head { padding:13px 16px;border-bottom:1px solid #eee7da;display:flex;justify-content:space-between;align-items:center;gap:10px; }
+        .chat-driver-head h3 { color:#76613d;font-size:1rem; }
+        .chat-driver-close { border:0;background:none;color:#777;font-size:1.5rem;cursor:pointer; }
+        .chat-driver-rooms { display:flex;gap:7px;padding:8px 12px;border-bottom:1px solid #eee7da;overflow-x:auto; }
+        .chat-driver-room { white-space:nowrap;border:1px solid #d8cbb0;border-radius:20px;background:#fff;color:#806a42;padding:7px 12px;cursor:pointer; }
+        .chat-driver-room.active { background:#b8995a;color:#fff; }
+        .chat-driver-messages { flex:1;overflow-y:auto;background:#f7f5ef;padding:14px;display:flex;flex-direction:column;gap:9px; }
+        .chat-driver-msg { max-width:88%;align-self:flex-start;background:#fff;border:1px solid #eee8dc;border-radius:13px 13px 13px 4px;padding:9px 11px;overflow-wrap:anywhere; }
+        .chat-driver-msg.mine { align-self:flex-end;background:#e8f2e9;border-radius:13px 13px 4px 13px; }
+        .chat-driver-meta { color:#898173;font-size:.68rem;margin-bottom:4px; }
+        .chat-driver-text { white-space:pre-wrap;line-height:1.4; }
+        .chat-driver-transfer { margin-top:6px;padding:7px;border:1px solid #ded5c3;border-radius:8px;background:#fff9; font-size:.77rem; }
+        .chat-driver-compose { display:grid;grid-template-columns:1fr auto auto;gap:7px;padding:10px;border-top:1px solid #eee7da; }
+        .chat-driver-compose textarea { grid-column:1/-1;width:100%;min-height:66px;border:1px solid #d8cbb0;border-radius:10px;padding:10px;font:inherit;resize:vertical; }
+        .chat-driver-compose button { border:0;border-radius:22px;padding:9px 12px;font-weight:600;cursor:pointer; }
+        .chat-driver-list { width:100%;text-align:left;padding:11px;border:0;border-bottom:1px solid #eee;background:#fff;cursor:pointer; }
+        @media(max-width:600px) { .chat-driver-backdrop { padding:0; } .chat-driver { width:100%;height:100%;max-height:none;border-radius:0; } }
     </style>
 </head>
 <body>
@@ -87,6 +106,7 @@
         <div class="fbtn on" data-f="proximos">Próximos</div>
         <div class="fbtn" data-f="hoje">Hoje</div>
         <div class="fbtn" data-f="todos">Todos</div>
+        <button class="fbtn" id="chatDriverOpen" type="button">💬 Chat <span id="chatDriverBadge" style="display:none;background:#2f7d61;color:#fff;border-radius:20px;padding:1px 6px;"></span></button>
     </div>
     <div id="lista"></div>
     <div class="upd" id="upd"></div>
@@ -116,6 +136,26 @@
         <button id="ocCancelar" style="background:none;color:#8a7a55;margin-top:8px;box-shadow:none;">Cancelar</button>
         <div class="gate-erro" id="ocErro"></div>
     </div>
+</div>
+
+<div class="chat-driver-backdrop" id="chatDriverOverlay">
+    <section class="chat-driver" aria-label="Chat interno">
+        <header class="chat-driver-head"><div><h3 id="chatDriverTitle">Chat interno</h3><small id="chatDriverSubtitle" style="color:#888;">Conversa privada com a recepção</small></div><button class="chat-driver-close" id="chatDriverClose" aria-label="Fechar chat">×</button></header>
+        <div class="chat-driver-rooms" id="chatDriverRooms" style="display:none;"></div>
+        <div class="chat-driver-messages" id="chatDriverMessages"><div style="margin:auto;color:#888;">Carregando conversa…</div></div>
+        <div class="chat-driver-compose">
+            <div id="chatDriverTransferPreview" style="grid-column:1/-1;display:none;border:1px solid #e1dacd;border-radius:9px;padding:7px 9px;font-size:.78rem;color:#6b614f;"></div>
+            <textarea id="chatDriverText" maxlength="2000" placeholder="Escreva para a recepção…" aria-label="Mensagem"></textarea>
+            <button id="chatDriverAttach" style="background:#f3ecdd;color:#806a42;">Vincular transfer</button>
+            <button id="chatDriverSend" style="background:#2f7d61;color:#fff;">Enviar</button>
+        </div>
+    </section>
+</div>
+<div class="chat-driver-backdrop" id="chatDriverPicker" style="z-index:9001;">
+    <section class="chat-driver" style="height:min(75vh,600px);">
+        <header class="chat-driver-head"><h3>Vincular transfer</h3><button class="chat-driver-close" id="chatDriverPickerClose" aria-label="Fechar">×</button></header>
+        <div id="chatDriverTransferList" style="overflow:auto;"></div>
+    </section>
 </div>
 
 
@@ -171,13 +211,101 @@
     ['gNome','gSenha'].forEach(function(id){ document.getElementById(id).addEventListener('keydown',function(e){ if(e.key==='Enter')entrar(); }); });
     document.getElementById('gNome').focus();
 
-    document.getElementById('sairBtn').addEventListener('click',function(){ motorista=''; chave=''; transfers=[]; if(timer){clearInterval(timer);timer=null;} document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='flex'; document.getElementById('gSenha').value=''; document.getElementById('gErro').style.display='none'; });
-    document.querySelectorAll('.fbtn').forEach(function(b){ b.addEventListener('click',function(){ filtro=b.getAttribute('data-f'); document.querySelectorAll('.fbtn').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); render(); }); });
+    document.getElementById('sairBtn').addEventListener('click',function(){ fecharChatMotorista(); motorista=''; chave=''; transfers=[]; if(timer){clearInterval(timer);timer=null;} document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='flex'; document.getElementById('gSenha').value=''; document.getElementById('gErro').style.display='none'; });
+    document.querySelectorAll('.fbtn').forEach(function(b){ b.addEventListener('click',function(){ if(!b.hasAttribute('data-f'))return; filtro=b.getAttribute('data-f'); document.querySelectorAll('.fbtn[data-f]').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); render(); }); });
+
+    // ==================== CHAT INTERNO DO MOTORISTA ====================
+    let driverChatRooms=[], driverChatThread='', driverChatCursor=1, driverChatMessages=[], driverChatTransferId='', driverChatPolling=null, driverChatBusy=false, driverChatSelf='';
+    async function dcPost(action, payload){
+        const body=Object.assign({action:action,authNome:motorista,authChave:chave},payload||{});
+        const r=await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body)});
+        return r.json();
+    }
+    function dcSeenKey(id){return 'cb_chat_seen_v1_'+id;}
+    function dcSeen(id){try{return localStorage.getItem(dcSeenKey(id))||'';}catch(e){return '';}}
+    function dcMarkSeen(id,date){try{localStorage.setItem(dcSeenKey(id),date||new Date().toISOString());}catch(e){}}
+    async function dcLoadRooms(){
+        const d=await dcPost('chatListar');
+        if(!d||!d.ok||!Array.isArray(d.threads))throw new Error((d&&d.error)||'Não foi possível abrir o chat.');
+        driverChatSelf=(d.identity&&d.identity.nome)||motorista;driverChatRooms=d.threads; dcRenderRooms(); dcUpdateBadge(); return driverChatRooms;
+    }
+    function dcRenderRooms(){
+        const box=document.getElementById('chatDriverRooms');
+        box.style.display=driverChatRooms.length>1?'flex':'none';
+        box.innerHTML=driverChatRooms.map(function(r){return '<button class="chat-driver-room '+(r.id===driverChatThread?'active':'')+'" data-dc-room="'+escHtml(r.id)+'">'+escHtml(r.nome)+'</button>';}).join('');
+        box.querySelectorAll('[data-dc-room]').forEach(function(b){b.addEventListener('click',function(){dcOpenRoom(b.dataset.dcRoom);});});
+    }
+    function dcUpdateBadge(){
+        const unread=driverChatRooms.some(function(r){return r.ultima&&r.ultima.autor!==driverChatSelf&&r.ultima.dataHora>dcSeen(r.id);});
+        const b=document.getElementById('chatDriverBadge');b.style.display=unread?'inline-block':'none';b.textContent=unread?'•':'';
+    }
+    async function dcOpen(){
+        document.getElementById('chatDriverOverlay').style.display='flex';document.body.style.overflow='hidden';
+        try{await dcLoadRooms();const def=driverChatRooms.find(function(r){return r.tipo==='motorista';})||driverChatRooms[0];if(def)await dcOpenRoom(def.id);}
+        catch(e){document.getElementById('chatDriverMessages').textContent=e.message||'Erro ao abrir o chat.';}
+        if(driverChatPolling)clearInterval(driverChatPolling);driverChatPolling=setInterval(dcPoll,15000);
+    }
+    async function dcOpenRoom(id){
+        const room=driverChatRooms.find(function(r){return r.id===id;});if(!room)return;
+        if(driverChatThread!==id){driverChatTransferId='';dcPreviewTransfer();}
+        driverChatThread=id;driverChatCursor=1;driverChatMessages=[];
+        document.getElementById('chatDriverTitle').textContent=room.tipo==='gerencial'?'Chat gerencial':'Chat com a recepção';
+        document.getElementById('chatDriverSubtitle').textContent=room.tipo==='gerencial'?'Sala interna da operação':'Conversa privada entre você e a recepção';
+        dcRenderRooms();dcRenderMessages();await dcPoll();
+    }
+    function dcRenderMessages(){
+        const box=document.getElementById('chatDriverMessages');
+        if(!driverChatMessages.length){box.innerHTML='<div style="margin:auto;color:#888;text-align:center;">Nenhuma mensagem ainda. Você pode iniciar a conversa.</div>';return;}
+        box.innerHTML=driverChatMessages.map(function(m){
+            const when=new Date(m.dataHora),time=isNaN(when.getTime())?'':when.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+            const t=m.transferId?transfers.find(function(x){return idOf(x)===String(m.transferId);}):null;
+            const ref=m.transferId?'<div class="chat-driver-transfer"><b>Transfer vinculado</b><br>'+escHtml(t?(fData(t['Data Viagem'])+' '+getHorario(t)+' · '+(t.Nome||'Hóspede')):('Transfer '+m.transferId))+(t?'<br><a href="transfer.html?id='+encodeURIComponent(m.transferId)+'" target="_blank" rel="noopener" style="color:#8b6e36;">Abrir detalhes</a>':'')+'</div>':'';
+            return '<div class="chat-driver-msg '+(m.autor===driverChatSelf?'mine':'')+'"><div class="chat-driver-meta">'+escHtml(m.autor)+' · '+escHtml(time)+'</div><div class="chat-driver-text">'+escHtml(m.texto)+'</div>'+ref+'</div>';
+        }).join('');box.scrollTop=box.scrollHeight;
+        const last=driverChatMessages[driverChatMessages.length-1];if(last&&last.autor!==driverChatSelf)dcMarkSeen(driverChatThread,last.dataHora);dcUpdateBadge();
+        const room=driverChatRooms.find(function(r){return r.id===driverChatThread;});if(room&&last)room.ultima=last;
+    }
+    async function dcPoll(){
+        if(!driverChatThread||driverChatBusy||document.hidden||document.getElementById('chatDriverOverlay').style.display==='none')return;
+        driverChatBusy=true;
+        try{const d=await dcPost('chatLer',{threadId:driverChatThread,cursor:driverChatCursor});if(!d||!d.ok)throw new Error((d&&d.error)||'Falha ao atualizar o chat.');
+            const seen=new Set(driverChatMessages.map(function(m){return m.id;}));(d.messages||[]).forEach(function(m){if(!seen.has(m.id))driverChatMessages.push(m);});driverChatCursor=d.cursor||driverChatCursor;dcRenderMessages();
+        }catch(e){if(!driverChatMessages.length)document.getElementById('chatDriverMessages').textContent=e.message||'Não foi possível carregar mensagens.';}
+        finally{driverChatBusy=false;}
+    }
+    function dcPreviewTransfer(){
+        const box=document.getElementById('chatDriverTransferPreview'),t=transfers.find(function(x){return idOf(x)===driverChatTransferId;});
+        if(!t){driverChatTransferId='';box.style.display='none';box.innerHTML='';return;}
+        box.style.display='block';box.innerHTML='<b>Transfer:</b> '+escHtml(fData(t['Data Viagem'])+' '+getHorario(t)+' · '+(t.Nome||'Hóspede'))+' <button id="dcRemoveTransfer" style="float:right;border:0;background:none;color:#8d5751;">Remover</button>';
+        document.getElementById('dcRemoveTransfer').addEventListener('click',function(){driverChatTransferId='';dcPreviewTransfer();});
+    }
+    function dcShowTransfers(){
+        const box=document.getElementById('chatDriverTransferList');
+        const list=transfers.slice().sort(function(a,b){return parseLocal(b['Data Viagem'])-parseLocal(a['Data Viagem']);});
+        box.innerHTML=list.length?list.map(function(t){return '<button class="chat-driver-list" data-dc-pick="'+escHtml(idOf(t))+'"><b>'+escHtml(fData(t['Data Viagem'])+' '+getHorario(t)+' · '+(t.Nome||'Hóspede'))+'</b><br><small>'+escHtml(t.Sentido==='IN'?'Chegada':'Saída')+' · '+escHtml(t['Veículo']||'Veículo não definido')+'</small></button>';}).join(''):'<div style="padding:16px;color:#888;">Nenhum transfer atribuído.</div>';
+        box.querySelectorAll('[data-dc-pick]').forEach(function(b){b.addEventListener('click',function(){driverChatTransferId=b.dataset.dcPick;dcPreviewTransfer();document.getElementById('chatDriverPicker').style.display='none';});});
+    }
+    function fecharChatMotorista(){
+        document.getElementById('chatDriverOverlay').style.display='none';document.getElementById('chatDriverPicker').style.display='none';document.body.style.overflow='';
+        if(driverChatPolling){clearInterval(driverChatPolling);driverChatPolling=null;}driverChatThread='';driverChatMessages=[];driverChatTransferId='';
+    }
+    document.getElementById('chatDriverOpen').addEventListener('click',dcOpen);
+    document.getElementById('chatDriverClose').addEventListener('click',fecharChatMotorista);
+    document.getElementById('chatDriverOverlay').addEventListener('click',function(e){if(e.target===this)fecharChatMotorista();});
+    document.getElementById('chatDriverAttach').addEventListener('click',function(){dcShowTransfers();document.getElementById('chatDriverPicker').style.display='flex';});
+    document.getElementById('chatDriverPickerClose').addEventListener('click',function(){document.getElementById('chatDriverPicker').style.display='none';});
+    document.getElementById('chatDriverSend').addEventListener('click',async function(){
+        const b=this,area=document.getElementById('chatDriverText'),texto=area.value.trim()||(driverChatTransferId?'Transfer vinculado para conversarmos.':'');if(!driverChatThread){alert('Abra uma conversa.');return;}if(!texto){alert('Escreva uma mensagem.');area.focus();return;}
+        b.disabled=true;b.textContent='Enviando…';try{const d=await dcPost('chatEnviar',{threadId:driverChatThread,texto:texto,transferId:driverChatTransferId});if(!d||!d.ok)throw new Error((d&&(d.erro||d.error))||'Não foi possível enviar.');area.value='';driverChatTransferId='';dcPreviewTransfer();await dcPoll();}
+        catch(e){alert(e.message||'Falha ao enviar.');}finally{b.disabled=false;b.textContent='Enviar';area.focus();}
+    });
+    document.getElementById('chatDriverText').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.getElementById('chatDriverSend').click();}});
 
     function iniciar(jaTemDados){
         document.getElementById('app').style.display='block';
         document.getElementById('ola').innerText='Olá, '+motorista+'!';
         try { if (window.cbRegistrarPushMotorista) window.cbRegistrarPushMotorista(motorista); } catch(e){}
+        dcLoadRooms().catch(function(){});
         if(jaTemDados){ document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleTimeString('pt-BR'); render(); }
         else { carregar(); }
         if(timer)clearInterval(timer);
