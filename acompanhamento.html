@@ -57,7 +57,7 @@
   function idxStatus(s){ if(s==='completed')return 3; if(s==='embarcou')return 2; if(s==='cheguei')return 1; if(s==='a_caminho'||s==='em_andamento')return 0; return -1; }
   function parseLocal(v){ let m=String(v).match(/(\d{4})-(\d{2})-(\d{2})/); return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(v); }
   function fData(v){ let d=parseLocal(v); return isNaN(d)?'-':String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear(); }
-  function horaCurta(v){ try{ let d=new Date(v); if(!isNaN(d)) return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){} return ''; }
+  function horaCurta(v){ const m=String(v||'').match(/(?:T|^)(\d{1,2}):(\d{2})/); if(m)return String(m[1]).padStart(2,'0')+':'+m[2]; try{ let d=new Date(v); if(!isNaN(d)) return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }catch(e){} return ''; }
 
   let _map=null,_marker=null;
   function montarMapa(d){
@@ -80,7 +80,7 @@
       const d=await (await fetch(WEBAPP_URL+'?action=transfer&id='+encodeURIComponent(ID))).json();
       if(!d||!d.ok){ document.getElementById('conteudo').innerHTML='<div class="vazio">Traslado não encontrado.</div>'; return; }
       render(d);
-      if(d.voo){ buscarVoo(d.voo); }
+      if(d.voo){ buscarVoo(d.voo, d.data); }
     }catch(e){ document.getElementById('conteudo').innerHTML='<div class="vazio">Não foi possível carregar agora.</div>'; }
   }
   function render(d){
@@ -107,16 +107,42 @@
       '<div class="card"><div class="timeline">'+steps+'</div></div>';
     if(temPos){ montarMapa(d); }
   }
-  async function buscarVoo(voo){
-    try{
-      const v=await (await fetch(WEBAPP_URL+'?action=flightstatus&voo='+encodeURIComponent(voo))).json();
-      if(v&&v.status&&v.status!=='sem_dados'&&!v.erro){
-        let txt='Status do voo: <b>'+escHtml(v.status)+'</b>';
-        if(v.atrasoChegada)txt+=' · atraso ~'+escHtml(v.atrasoChegada)+' min';
-        if(v.portao)txt+=' · portão '+escHtml(v.portao);
-        let vb=document.getElementById('voobox'); if(vb) vb.innerHTML='<div class="voo">'+txt+'</div>';
-      }
-    }catch(e){}
+  const vooCache = new Map();
+  function chaveDataVoo(valor){
+    const m=String(valor||'').match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(m)return m[1]+'-'+m[2]+'-'+m[3];
+    const d=parseLocal(valor); return isNaN(d)?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function mostrarStatusVoo(v){
+    const vb=document.getElementById('voobox'); if(!vb)return;
+    if(!v||v.erro||!v.status||v.status==='sem_dados'){
+      vb.innerHTML='<div class="voo">Status do voo ainda indisponível.</div>'; return;
+    }
+    let txt='Status do voo: <b>'+escHtml(v.status)+'</b>';
+    const atraso=v.atrasoChegada||v.atrasoPartida;
+    if(atraso&&parseInt(atraso,10)>0)txt+=' · atraso estimado de '+escHtml(atraso)+' min';
+    const portao=v.portaoChegada||v.portao||v.gate;
+    const terminal=v.terminalChegada||v.terminal||v.terminalDestino;
+    const prevista=v.chegadaPrevista||v.estimativaChegada||v.arrivalEstimated;
+    if(portao)txt+=' · portão '+escHtml(portao);
+    if(terminal)txt+=' · terminal '+escHtml(terminal);
+    if(prevista)txt+=' · previsão '+escHtml(horaCurta(prevista));
+    vb.innerHTML='<div class="voo">'+txt+'</div>';
+  }
+  async function buscarVoo(voo,data){
+    const dia=chaveDataVoo(data), chave=String(voo||'').toUpperCase().replace(/\s+/g,'')+'|'+dia;
+    const agora=Date.now(), guardado=vooCache.get(chave);
+    if(guardado&&guardado.d&&guardado.ate>agora){ mostrarStatusVoo(guardado.d); return; }
+    if(guardado&&guardado.promise){ try{mostrarStatusVoo(await guardado.promise);}catch(e){} return; }
+    const params=new URLSearchParams({action:'flightstatus',voo:String(voo||''),data:dia});
+    const promise=(async()=>{
+      try{const resp=await fetch(WEBAPP_URL+'?'+params.toString()); if(!resp.ok)throw new Error('HTTP '+resp.status); return await resp.json();}
+      catch(e){return {erro:true};}
+    })();
+    vooCache.set(chave,{ate:agora+15*60*1000,promise});
+    const v=await promise;
+    vooCache.set(chave,{ate:Date.now()+(v&&!v.erro?15:2)*60*1000,d:v});
+    mostrarStatusVoo(v);
   }
   function escHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
   let _poll=null;
