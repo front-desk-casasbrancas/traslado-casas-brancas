@@ -316,6 +316,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         </div>
         <div id="operacaoResumo" class="table-container" style="display:none;border-left:4px solid #b8995a;margin-bottom:20px;"></div>
         <div id="conflitosBox" style="display:none; background:#fff8e6; border:1px solid #e0c060; border-radius:14px; padding:14px 18px; margin-bottom:20px; color:#8a6d1b;"></div>
+        <div id="etaResumo" class="table-container" style="margin-bottom:20px;"><h3>Previsão interna de chegada</h3><div id="etaConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Aguardando posições dos motoristas.</div></div>
+        <div id="ocorrenciasBox" class="table-container" style="margin-bottom:20px;"><h3>Ocorrências recentes</h3><div id="ocorrenciasConteudo" style="font-size:.85rem;color:#777;margin-top:8px;">Carregando…</div></div>
         <div class="table-container">
             <h3>Próximos traslados</h3>
             <div id="proximosConteudo" class="proximos-grid" style="margin-top:12px;">
@@ -465,6 +467,18 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <div class="edit-acoes" id="editPosAjuste" style="display:none;">
             <button class="btn-nova-conf" id="btnNovaConf">Enviar nova confirmação (WhatsApp)</button>
         </div>
+    </div>
+</div>
+
+<div class="edit-overlay" id="ocorrenciaOverlay">
+    <div class="edit-card">
+        <h3>Registrar ocorrência</h3>
+        <div id="ocorrenciaResumo" style="font-size:.82rem;color:#7a8b6e;margin-bottom:8px;"></div>
+        <label>Categoria</label>
+        <select id="ocorrenciaCategoria"><option>Atraso</option><option>Hóspede não localizado</option><option>Mudança de endereço</option><option>Trânsito ou rota</option><option>Problema com veículo</option><option>Outro</option></select>
+        <label>Descrição</label>
+        <textarea id="ocorrenciaDescricao" rows="4" maxlength="1000" style="width:100%;padding:11px 14px;border:1px solid #e2d9cf;border-radius:12px;font:inherit;resize:vertical;"></textarea>
+        <div class="edit-acoes"><button class="btn-cancelar-edit" id="btnCancelarOcorrencia">Cancelar</button><button class="btn-ajustar" id="btnSalvarOcorrencia">Salvar ocorrência</button></div>
     </div>
 </div>
 
@@ -689,6 +703,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             carregarPagamentos();
             verificarAvaliacoesPendentes();
             carregarPosicoesAtivas();
+            carregarOcorrencias();
         } catch(e) {
             console.error(e);
             document.getElementById('errorDisplay').style.display = 'block';
@@ -708,6 +723,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             const arr = Array.isArray(d) ? d.filter(x => x.lat && x.lng && !isNaN(parseFloat(x.lat)) && !isNaN(parseFloat(x.lng))) : [];
             _posicoesOperacionais = arr;
             renderOperacaoResumo();
+            renderEtaResumo();
             const wrap = document.getElementById('liveWrap');
             if (!arr.length) { if (wrap) wrap.style.display = 'none'; return; }
             if (wrap) wrap.style.display = 'block';
@@ -729,7 +745,69 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             if (bounds.length === 1) { _liveMap.setView(bounds[0], 14); }
             else if (bounds.length > 1) { try { _liveMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 }); } catch (e) {} }
             document.getElementById('liveLista').innerHTML = arr.map(function (c) { return '🚗 <b>' + escHtml(c.motorista || '—') + '</b> · ' + escHtml(c.veiculo || '') + ' — ' + escHtml(c.nome || ''); }).join('<br>');
-        } catch (e) { _posicoesOperacionais = []; renderOperacaoResumo(); }
+        } catch (e) { _posicoesOperacionais = []; renderOperacaoResumo(); renderEtaResumo(); }
+    }
+
+    // Previsão de chegada sob demanda, restrita ao painel da recepção.
+    function renderEtaResumo() {
+        const box = document.getElementById('etaConteudo'); if (!box) return;
+        const ativos = transfers.filter(t => !isCancelled(t) && emCurso(getStatus(t)));
+        if (!ativos.length) { box.innerHTML = 'Nenhuma corrida em andamento.'; return; }
+        const posById = new Map((_posicoesOperacionais || []).map(p => [String(p.id), p]));
+        box.innerHTML = ativos.map(t => {
+            const id = String(t.ID || ''), p = posById.get(id), d = p && new Date(p.quando);
+            const recente = !!(d && !isNaN(d.getTime()) && Date.now() - d.getTime() <= 180000 && Date.now() - d.getTime() >= -60000);
+            const label = `${escHtml(t.Nome || 'Hóspede')} · ${escHtml(t.Motorista || 'Motorista')} · ${labelAndamento(getStatus(t))}`;
+            return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #eee;flex-wrap:wrap;"><span>${label}${p ? `<small style="display:block;color:#888;">GPS ${recent ? 'atualizado' : 'desatualizado'}: ${isNaN(d?.getTime()) ? 'horário indisponível' : d.toLocaleTimeString('pt-BR')}${p.veiculo ? ' · '+escHtml(p.veiculo) : ''}</small>` : '<small style="display:block;color:#888;">Aguardando posição do motorista</small>'}</span><button class="refresh-btn" data-eta-id="${escHtml(id)}" ${recent ? '' : 'disabled'} style="padding:8px 12px;">Consultar previsão</button><span class="eta-resultado" data-eta-result="${escHtml(id)}" style="flex-basis:100%;color:#6e6658;"></span></div>`;
+        }).join('') + '<small style="display:block;margin-top:9px;color:#888;">Estimativa apenas para a recepção. Consulta manual com GPS recente; o resultado não é enviado ao hóspede.</small>';
+        box.querySelectorAll('[data-eta-id]').forEach(b => b.addEventListener('click', consultarEta));
+    }
+    async function consultarEta(ev) {
+        const b = ev.currentTarget, id = b.dataset.etaId, out = Array.from(document.querySelectorAll('[data-eta-result]')).find(el => el.dataset.etaResult === id);
+        b.disabled = true; b.textContent = 'Calculando…'; if (out) out.textContent = '';
+        try {
+            const r = await fetch(WEBAPP_URL + '?action=eta&id=' + encodeURIComponent(id) + '&k=' + _k());
+            const d = await r.json();
+            if (!d || !d.ok) throw new Error((d && (d.erro || d.error)) || 'Não foi possível calcular agora.');
+            const eta = new Date(d.eta);
+            out.textContent = `Chegada estimada ${eta.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · ${d.duracaoTexto || ''}${d.distanciaTexto ? ' · '+d.distanciaTexto : ''} · ${d.comTransito ? 'com trânsito' : 'estimativa de rota sem trânsito ao vivo'} · GPS ${new Date(d.gpsAtualizadoEm).toLocaleTimeString('pt-BR')}`;
+        } catch (e) { if (out) out.textContent = e.message || 'Erro ao consultar previsão.'; }
+        finally { b.disabled = false; b.textContent = 'Consultar previsão'; }
+    }
+
+    let ocorrenciaTransferId = '';
+    function abrirOcorrencia(t) {
+        ocorrenciaTransferId = String(t.ID || '');
+        document.getElementById('ocorrenciaResumo').textContent = `${t.Nome || 'Hóspede'} · ${formatarData(t['Data Viagem'])} ${getHorario(t)}`;
+        document.getElementById('ocorrenciaCategoria').value = 'Atraso';
+        document.getElementById('ocorrenciaDescricao').value = '';
+        document.getElementById('ocorrenciaOverlay').classList.add('show');
+        document.getElementById('ocorrenciaDescricao').focus();
+    }
+    document.getElementById('btnCancelarOcorrencia').addEventListener('click', () => document.getElementById('ocorrenciaOverlay').classList.remove('show'));
+    document.getElementById('btnSalvarOcorrencia').addEventListener('click', async function () {
+        const b = this, descricao = document.getElementById('ocorrenciaDescricao').value.trim();
+        if (descricao.length < 3) { alert('Descreva a ocorrência com pelo menos 3 caracteres.'); return; }
+        b.disabled = true; b.textContent = 'Salvando…';
+        try {
+            const d = await postApi({ action:'registrarOcorrencia', id:ocorrenciaTransferId, categoria:document.getElementById('ocorrenciaCategoria').value, descricao });
+            if (!d || !d.ok) throw new Error((d && (d.erro || d.error)) || 'Não foi possível salvar.');
+            document.getElementById('ocorrenciaOverlay').classList.remove('show');
+            await carregarOcorrencias();
+        } catch (e) { alert(e.message || 'Erro ao salvar ocorrência.'); }
+        finally { b.disabled = false; b.textContent = 'Salvar ocorrência'; }
+    });
+    async function carregarOcorrencias() {
+        const box = document.getElementById('ocorrenciasConteudo'); if (!box || !window.CHAVE) return;
+        try {
+            const r = await fetch(WEBAPP_URL + '?action=ocorrencias&k=' + _k() + '&t=' + Date.now()), d = await r.json();
+            if (!Array.isArray(d)) throw new Error('Não foi possível carregar ocorrências.');
+            box.innerHTML = d.length ? d.slice(0,12).map(o => {
+                const t = transferPorId(o.transferId), nome = t ? (t.Nome || 'Hóspede') : 'Traslado';
+                const when = new Date(o.dataHora);
+                return `<div style="padding:9px 0;border-bottom:1px solid #eee;"><b>${escHtml(o.categoria)}</b> · ${escHtml(nome)} · ${isNaN(when.getTime())?'':when.toLocaleString('pt-BR')}<div style="color:#5a5446;margin-top:3px;">${escHtml(o.descricao)}</div><small style="color:#888;">${escHtml(o.perfil)}: ${escHtml(o.autor)}</small></div>`;
+            }).join('') : 'Nenhuma ocorrência registrada.';
+        } catch(e) { box.textContent = e.message || 'Erro ao carregar ocorrências.'; }
     }
 
     document.addEventListener('visibilitychange', function () {
@@ -1177,6 +1255,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td class="acoes-td">
                       <div class="acoes-cell">
                         <a class="abrir-link" href="transfer.html?id=${idEnc}" target="_blank">Abrir<\/a>
+                        <button class="editar-btn" data-act="ocorrencia" data-id="${_id}" ${cancelled ? 'disabled' : ''}>Ocorrência<\/button>
                         <button class="editar-btn" data-act="edit" data-id="${_id}" ${cancelled ? 'disabled' : ''}>Editar<\/button>
                         <button class="confirm-btn" data-act="confirmar" data-id="${_id}" ${disabled ? 'disabled' : ''}>Confirmar<\/button>
                         <button class="complete-btn ${completed ? 'completed' : ''}" data-act="completed" data-id="${_id}" ${disabled ? 'disabled' : ''}>${completed ? '✅ Finalizado' : 'Finalizar'}<\/button>
@@ -1191,6 +1270,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             let t = transferPorId(b.dataset.id); if (!t) return;
             let a = b.dataset.act;
             if (a === 'edit') abrirEdicao(t);
+            else if (a === 'ocorrencia') abrirOcorrencia(t);
             else if (a === 'confirmar') enviarConfirmacao(t);
             else if (a === 'completed') marcarFinalizado(t);
             else if (a === 'cancelled') marcarCancelado(t);
