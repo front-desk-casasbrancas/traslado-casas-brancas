@@ -1171,7 +1171,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Chegada" : "Saída"}<\/td>
                     <td>${endereco}<\/td>
-                    <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${vooNum}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
+                    <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${escHtml(vooNum)}" data-data="${escHtml(dataKey(t) || '')}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
                     <td class="acoes-td">
@@ -1595,12 +1595,16 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     // ==================== STATUS DE VOO ====================
     const vooCache = {};
-    async function consultarVoo(voo) {
+    async function consultarVoo(voo, data) {
         const agora = Date.now();
-        if (vooCache[voo] && (agora - vooCache[voo].ts < 5 * 60 * 1000)) return vooCache[voo].d;
+        const chave = String(voo || '').toUpperCase().replace(/\s+/g, '') + '|' + (data || '');
+        if (vooCache[chave] && (agora - vooCache[chave].ts < 15 * 60 * 1000)) return vooCache[chave].d;
         try {
-            const d = await (await fetch(WEBAPP_URL + '?action=flightstatus&voo=' + encodeURIComponent(voo))).json();
-            vooCache[voo] = { d, ts: agora };
+            const params = new URLSearchParams({ action: 'flightstatus', voo: voo, data: data || '' });
+            const resposta = await fetch(WEBAPP_URL + '?' + params.toString());
+            if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+            const d = await resposta.json();
+            vooCache[chave] = { d, ts: agora };
             return d;
         } catch (e) { return { erro: e.message }; }
     }
@@ -1621,9 +1625,17 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     // Status do voo SOB DEMANDA (clique) — economiza a cota da API gratuita
     async function verVooStatus(btn) {
         let voo = btn.getAttribute('data-voo'); if (!voo) return;
+        let data = btn.getAttribute('data-data') || '';
         btn.disabled = true; btn.innerText = 'consultando…';
-        let d = await consultarVoo(voo); let info = vooBadgeInfo(d);
-        if (info.t) { btn.outerHTML = '<span class="vb ' + info.c + '">' + info.t + '</span>'; }
+        let d = await consultarVoo(voo, data); let info = vooBadgeInfo(d);
+        if (info.t) {
+            let detalhe = '';
+            const atraso = Math.max(parseInt(d.atrasoChegada) || 0, parseInt(d.atrasoPartida) || 0);
+            if (atraso > 0) detalhe += ' · +' + atraso + ' min';
+            if (d.portao) detalhe += ' · Portão ' + escHtml(d.portao);
+            if (d.chegadaPrevista) detalhe += ' · Previsto ' + escHtml(String(d.chegadaPrevista).match(/(?:T|^)(\d{1,2}:\d{2})/)?.[1] || d.chegadaPrevista);
+            btn.outerHTML = '<span class="vb ' + info.c + '">' + escHtml(info.t) + escHtml(detalhe) + '</span>';
+        }
         else { btn.outerHTML = '<span style="font-size:0.66rem;color:#b85c5a;">' + (d && d.erro ? 'indisponível' : 'sem dados') + '</span>'; }
     }
     document.addEventListener('click', function (e) { let b = e.target.closest ? e.target.closest('.voo-check') : null; if (b) verVooStatus(b); });
