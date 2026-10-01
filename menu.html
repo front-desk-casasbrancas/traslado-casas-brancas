@@ -21,7 +21,7 @@
         body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; color: #34322c; min-height: 100vh; position: relative; }
         body::before { content: ''; position: fixed; inset: 0; z-index: -2; background: url('fundo-hotel.jpg') center 40% / cover no-repeat; }
         body::after { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(248,245,239,0.90), rgba(246,242,235,0.95)); }
-        .container { max-width: none; width: 100%; margin: 0 auto; padding: 14px 16px 30px; }
+        .container { max-width: none; width: 100%; margin: 0 auto; padding: 14px 16px 76px; }
         /* HERO */
         .hero { position: relative; overflow: hidden; border-radius: 24px; padding: 22px 26px; display: flex; justify-content: space-between; align-items: center; gap: 28px; flex-wrap: wrap; color: #fff; box-shadow: 0 16px 40px rgba(40,36,28,0.22); background-image: linear-gradient(100deg, rgba(30,28,23,0.80) 0%, rgba(30,28,23,0.50) 42%, rgba(30,28,23,0.12) 100%), url('fundo-hotel.jpg'); background-size: cover; background-position: center 38%; }
         .hero-left { position: relative; z-index: 1; }
@@ -112,6 +112,19 @@
         .ht-dia-condition { font-size:.58rem; color:rgba(255,255,255,.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         @media(max-width:860px) { .hero-tempo { width:100%; max-width:none; flex:0 1 auto; } }
         @media(max-width:520px) { .ht-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .ht-hour { flex-basis:72px; } }
+
+    
+        .rodape { position:fixed; left:18px; bottom:14px; z-index:9998; display:flex; align-items:center; gap:8px; margin:0; padding:8px 12px; border:1px solid rgba(184,153,90,.24); border-radius:999px; background:rgba(255,255,255,.86); box-shadow:0 5px 18px rgba(40,36,28,.1); color:#6f654f; }
+        .rodape img { width:30px; height:30px; flex:0 0 auto; margin:0; }
+        body #cbTechCredit { position:fixed !important; right:18px !important; bottom:14px !important; z-index:9998 !important; margin:0 !important; }
+        @media(max-width:600px) {
+            .container { padding-bottom:72px; }
+            .rodape { left:8px; bottom:8px; gap:6px; padding:6px 8px; font-size:.68rem; }
+            .rodape img { width:26px; height:26px; }
+            body #cbTechCredit { right:8px !important; bottom:8px !important; max-width:calc(50vw - 12px) !important; padding:6px 8px !important; gap:6px !important; }
+            body #cbTechCredit svg { width:26px !important; height:26px !important; }
+            body #cbTechCredit strong { font-size:10px !important; }
+        }
 
     </style></style></style>
 </head>
@@ -209,6 +222,13 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <div class="col">
             <div class="card"><h3>Traslados por dia (últimos 14 dias)</h3><div class="chart-box"><canvas id="chartLinha"></canvas></div></div>
             <div class="card"><h3>Veículos mais usados (mês)</h3><div class="chart-box donut"><canvas id="chartDonut"></canvas></div></div>
+            <div class="card">
+                <h3>Traslados — Hoje e Amanhã</h3>
+                <div style="display:flex;gap:18px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Hoje <span id="cHoje" style="color:#9a917c;font-weight:400;"></span></h4><div id="hojeLista"><div class="vazio">Carregando...</div></div></div>
+                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Amanhã <span id="cAmanha" style="color:#9a917c;font-weight:400;"></span></h4><div id="amanhaLista"><div class="vazio">Carregando...</div></div></div>
+                </div>
+            </div>
         </div>
         <div class="col">
             <div class="card">
@@ -246,13 +266,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <div class="tx"><b>Copiar link para o hóspede</b><span id="copiarExperienciaSub">Copia o endereço para enviar ao hóspede</span></div><span class="seta">⧉</span>
                 </a>
             </div>
-            <div class="card">
-                <h3>Traslados — Hoje e Amanhã</h3>
-                <div style="display:flex;gap:18px;flex-wrap:wrap;">
-                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Hoje <span id="cHoje" style="color:#9a917c;font-weight:400;"></span></h4><div id="hojeLista"><div class="vazio">Carregando...</div></div></div>
-                    <div style="flex:1;min-width:220px;"><h4 style="color:var(--gold-d);font-size:0.9rem;margin:0 0 8px;">Amanhã <span id="cAmanha" style="color:#9a917c;font-weight:400;"></span></h4><div id="amanhaLista"><div class="vazio">Carregando...</div></div></div>
-                </div>
-            </div>
+
         </div>
     </div>
 
@@ -561,7 +575,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         var pb = document.createElement('button');
         pb.id = 'cbPipBtn';
         pb.innerHTML = '🔳 Janela flutuante';
-        pb.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9999;background:#2b2a26;color:#cbb27a;border:1px solid #b8995a;border-radius:40px;padding:10px 16px;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(40,36,28,0.25);';
+        pb.style.cssText = 'position:fixed;left:16px;bottom:66px;z-index:9999;background:#2b2a26;color:#cbb27a;border:1px solid #b8995a;border-radius:40px;padding:10px 16px;font-size:0.85rem;cursor:pointer;box-shadow:0 8px 20px rgba(40,36,28,0.25);';
         pb.addEventListener('click', function () { pedirPermissaoNotif(); abrirPiP(); });
         document.body.appendChild(pb);
     }
