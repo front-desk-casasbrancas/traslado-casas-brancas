@@ -414,7 +414,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <div class="last-update" id="lastUpdate">Carregando dados...</div>
         <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
             <label style="font-size:0.8rem; color:#5a6e4a; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="checkbox" id="autoRefresh" checked> Atualizar automaticamente
+                <input type="checkbox" id="autoRefresh"> Atualizar automaticamente
             </label>
             <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
         </div>
@@ -2107,7 +2107,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
   document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastLoad>30*60*1000)loadWeather(false);});
 })();
 </script>
-<script src="cb-versao.js"></script>
+<script src="cb-versao.js?v=2026.10.02-1"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script>
