@@ -511,11 +511,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     });
 
     carregar();
-    // Auto-atualiza a cada 60s para refletir mudanças feitas no dashboard (sem interromper edição em andamento).
-    setInterval(() => {
-        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('motorista-input')) return;
-        carregar();
-    }, 60000);
 </script>
 <!-- ===== Notificações push (Firebase) — Empresa (Marcelo aceita corridas) ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
