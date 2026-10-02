@@ -15,9 +15,9 @@
     <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192-v4.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
@@ -1797,14 +1797,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         setTimeout(() => { try { win.print(); } catch(e) {} }, 600);
     }
 
-    // ==================== AUTO-ATUALIZAÇÃO ====================
-    function {
-        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
-        if (document.getElementById('autoRefresh')?.checked) {
-            autoRefreshTimer = setInterval(carregarDados, AUTO_REFRESH_MIN * 60 * 1000);
-        }
-    }
-
     // ==================== EDIÇÃO DE TRANSFER ====================
     function regiaoKey(t) {
         let r = (t["Região"] || t["Regiao"] || "").toString().toLowerCase();
@@ -2099,9 +2091,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
   document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastLoad>30*60*1000)loadWeather(false);});
 })();
 </script>
-<script src="cb-versao.js?v=2026.10.02-1"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+
+
+
 <script>
 (function(){
     var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
