@@ -47,6 +47,8 @@
         .btn-foto { background:#fff; border:1px solid #cfc4a8; color:#8a7a55; }
         .btn:disabled { opacity:0.5; }
         .vazio { background:#fff; border:1px dashed #d8cbb0; border-radius:16px; padding:26px; text-align:center; color:#8a8270; }
+        .connection-status { margin:0 0 10px;padding:10px 12px;border-radius:10px;background:#fff3cd;color:#715b1e;border:1px solid #ead99d;font-size:.82rem;text-align:center;line-height:1.4; }
+        .pending-status { margin-top:8px;padding:6px 9px;border-radius:8px;background:#fff5da;color:#806a42;font-size:.76rem;font-weight:600; }
         .upd { text-align:center; font-size:0.74rem; color:#8a8270; margin-top:14px; }
         /* GATE */
         .gate { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px; background-image:linear-gradient(rgba(30,28,23,0.72),rgba(30,28,23,0.72)), url('fundo-hotel.jpg'); background-size:cover; background-position:center; }
@@ -108,9 +110,11 @@
         <div class="fbtn on" data-f="proximos">Próximos</div>
         <div class="fbtn" data-f="hoje">Hoje</div>
         <div class="fbtn" data-f="todos">Todos</div>
+        <button class="fbtn" id="refreshList" type="button">↻ Atualizar lista</button>
         <button class="fbtn" id="chatDriverOpen" type="button">💬 Chat <span id="chatDriverBadge" style="display:none;background:#2f7d61;color:#fff;border-radius:20px;padding:1px 6px;"></span></button>
     </div>
     <div id="lista"></div>
+    <div class="connection-status" id="connectionStatus" role="status" aria-live="polite" style="display:none"></div>
     <div class="upd" id="upd"></div>
 </div>
 <input type="file" id="fotoInput" accept="image/*" capture="environment" style="display:none">
@@ -167,6 +171,8 @@
     // que só devolve os transfers em que ESTE motorista foi marcado.
 
     let motorista = "", chave = "", transfers = [], filtro = "proximos", timer = null, perfilRecepcao = false;
+    const DRIVER_QUEUE_KEY="cb-driver-pending-status-v1";
+    let syncQueueBusy=false;
 
     function credencialPost(){ return perfilRecepcao ? {k:chave} : {authNome:motorista,authChave:chave}; }
     async function buscarTransfersMotorista(){ return (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'motorista',nome:motorista,chave:chave})})).json(); }
@@ -210,6 +216,7 @@
         }
         btn.disabled=false; btn.innerText='Entrar';
     }
+    document.getElementById('refreshList').addEventListener('click',carregar);
     document.getElementById('gBtn').addEventListener('click',entrar);
     document.getElementById('gRecepcaoBtn').addEventListener('click',entrarComoRecepcao);
     async function entrarComoRecepcao(){
@@ -329,15 +336,92 @@
         timer = null;
     }
 
+    function todasAtualizacoesPendentes(){
+        try{const q=JSON.parse(localStorage.getItem(DRIVER_QUEUE_KEY)||"[]");return Array.isArray(q)?q:[];}catch(e){return [];}
+    }
+    function filaDesteMotorista(){
+        return todasAtualizacoesPendentes().filter(x=>String(x.motorista||"").toLowerCase()===String(motorista||"").toLowerCase());
+    }
+    function salvarFilaDesteMotorista(fila){
+        const outras=todasAtualizacoesPendentes().filter(x=>String(x.motorista||"").toLowerCase()!==String(motorista||"").toLowerCase());
+        try{localStorage.setItem(DRIVER_QUEUE_KEY,JSON.stringify(outras.concat(fila)));}catch(e){}
+        atualizarAvisoConexao();
+    }
+    function aplicarFilaLocal(){
+        const q=filaDesteMotorista();
+        q.forEach(item=>{
+            const t=transfers.find(x=>idOf(x)===String(item.id));
+            if(t){t["Status"]=item.status;if(item.obs)t["ObsMotorista"]=item.obs;}
+        });
+    }
+    function temStatusPendente(id){return filaDesteMotorista().some(x=>String(x.id)===String(id));}
+    function atualizarAvisoConexao(mensagem){
+        const el=document.getElementById("connectionStatus");if(!el)return;
+        const q=filaDesteMotorista();
+        if(!navigator.onLine){el.textContent="Sem conexão. Os traslados já carregados continuam disponíveis; atualizações de status ficam aguardando sincronização.";el.style.display="block";return;}
+        if(mensagem){el.textContent=mensagem;el.style.display="block";return;}
+        if(q.length){el.textContent=q.length+" atualização(ões) aguardando sincronização segura com o servidor.";el.style.display="block";return;}
+        el.textContent="";el.style.display="none";
+    }
+    function statusOrdem(s){
+        return ({active:0,confirmed:0,a_caminho:1,em_andamento:1,cheguei:2,embarcou:3,completed:4})[String(s||"active").toLowerCase()]||0;
+    }
+    async function sincronizarFilaStatus(){
+        if(syncQueueBusy||!navigator.onLine||perfilRecepcao||!motorista||!chave)return;
+        let fila=filaDesteMotorista();if(!fila.length){atualizarAvisoConexao();return;}
+        syncQueueBusy=true;atualizarAvisoConexao("Sincronizando atualizações pendentes…");
+        const auth={authNome:motorista,authChave:chave};
+        try{
+            for(const item of fila.slice()){
+                let atual=await buscarTransfersMotorista();
+                if(!Array.isArray(atual))throw new Error("Não foi possível confirmar sua sessão.");
+                let remoto=atual.find(x=>idOf(x)===String(item.id));
+                if(!remoto||getStatus(remoto)==="cancelled"){
+                    atualizarAvisoConexao("Há uma atualização pendente em um traslado que não aparece mais na sua lista. Confira com a recepção.");
+                    throw new Error("Traslado pendente não localizado.");
+                }
+                if(statusOrdem(getStatus(remoto))>=statusOrdem(item.status)){
+                    fila=fila.filter(x=>x.key!==item.key);salvarFilaDesteMotorista(fila);continue;
+                }
+                const corpo=Object.assign({action:"update",id:item.id,status:item.status},auth);
+                if(item.obs)corpo.obsMotorista=item.obs;
+                let resposta=await fetch(WEBAPP_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(corpo)});
+                let d=await resposta.json();
+                if(!(d&&(d.success===true||d.ok===true))){
+                    atual=await buscarTransfersMotorista();
+                    remoto=Array.isArray(atual)?atual.find(x=>idOf(x)===String(item.id)):null;
+                    if(!remoto||statusOrdem(getStatus(remoto))<statusOrdem(item.status)){
+                        throw new Error((d&&(d.error||d.erro))||"O servidor não confirmou uma atualização pendente.");
+                    }
+                }
+                fila=fila.filter(x=>x.key!==item.key);salvarFilaDesteMotorista(fila);
+            }
+            const atual=await buscarTransfersMotorista();
+            if(Array.isArray(atual))transfers=atual.filter(x=>getStatus(x)!=="cancelled");
+            aplicarFilaLocal();
+            document.getElementById("upd").innerText="Sincronizado: "+new Date().toLocaleTimeString("pt-BR");
+        }catch(e){
+            atualizarAvisoConexao("Algumas atualizações ainda não foram confirmadas. Elas continuam salvas neste aparelho e serão tentadas novamente quando houver conexão.");
+        }finally{
+            syncQueueBusy=false;atualizarAvisoConexao();render();
+        }
+    }
+    function guardarStatusPendente(t,st,obs){
+        const fila=filaDesteMotorista(),item={key:(Date.now().toString(36)+"-"+Math.random().toString(36).slice(2)),motorista:motorista,id:idOf(t),status:st,obs:typeof obs==="string"?obs.trim():"",criadoEm:new Date().toISOString()};
+        fila.push(item);salvarFilaDesteMotorista(fila);t["Status"]=st;if(item.obs)t["ObsMotorista"]=item.obs;render();
+    }
     async function carregar(){
         if(!motorista || !chave) return;
+        if(!navigator.onLine){atualizarAvisoConexao();render();return;}
         try{
             const d = await buscarTransfersMotorista();
-            if(!Array.isArray(d)) return; // acesso negado / erro: mantém o que já tinha
+            if(!Array.isArray(d)) return;
             transfers = d.filter(function(t){ return getStatus(t)!=='cancelled'; });
+            aplicarFilaLocal();
             document.getElementById('upd').innerText = 'Atualizado: '+new Date().toLocaleTimeString('pt-BR');
-            render();
-        }catch(e){ document.getElementById('upd').innerText='Erro ao atualizar.'; }
+            atualizarAvisoConexao();render();
+            if(filaDesteMotorista().length)sincronizarFilaStatus();
+        }catch(e){document.getElementById('upd').innerText='Erro ao atualizar.';atualizarAvisoConexao();}
     }
 
     // Fluxo: (a iniciar) -> a_caminho -> cheguei -> embarcou -> completed
@@ -381,7 +465,7 @@
             let fotoBtn = (!perfilRecepcao && emCurso(s)) ? '<button class="btn btn-foto" data-act="foto" data-id="'+escHtml(_id)+'">📷 Foto</button>' : '';
             let ocorrenciaBtn = emCurso(s) ? '<button class="btn btn-foto" data-act="ocorrencia" data-id="'+escHtml(_id)+'">⚠️ Ocorrência</button>' : '';
             return '<div class="card '+(emCurso(s)?'andamento':(s==='completed'?'completed':''))+'">'+
-                '<div class="ch"><div><div class="hr">'+escHtml(getHorario(t))+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+
+                '<div class="ch"><div><div class="hr">'+escHtml(getHorario(t))+'</div><div class="dt">'+fData(t["Data Viagem"])+'</div></div>'+statusTag(t)+'</div>'+(temStatusPendente(_id)?'<div class="pending-status">⏳ Status aguardando sincronização</div>':'')+
                 '<div class="nome-h">'+escHtml(t["Nome"]||'-')+(t["Reserva"]?' <span style="font-size:0.72rem;color:#8a8270;">· Reserva '+escHtml(t["Reserva"])+'</span>':'')+'</div>'+
                 '<div class="linha"><b>'+sent+'</b> · '+escHtml(t["Veículo"]||'-')+'</div>'+
                 (end?'<div class="linha">📍 '+escHtml(end)+'</div>':'')+
@@ -460,17 +544,21 @@
         rd.readAsDataURL(f);
     });
 
-    function mudarStatus(t, st, obs){
-        t["Status"]=st;
-        // authNome/authChave: o servidor confere que é ESTE motorista antes de gravar
-        var corpo=Object.assign({action:'update', id:idOf(t), status:st},credencialPost());
-        if(typeof obs==='string' && obs.trim()){ corpo.obsMotorista=obs.trim(); t["ObsMotorista"]=obs.trim(); }
-        fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(corpo)})
-            .then(function(r){return r.json();})
-            .then(function(d){ if(d&&d.error) alert('Erro ao gravar: '+d.error); })
-            .catch(function(e){ console.error(e); });
-        render();
-        setTimeout(carregar,1500);
+    async function mudarStatus(t, st, obs){
+        const anterior=getStatus(t),observacao=(typeof obs==="string"?obs.trim():"");
+        if(perfilRecepcao){alert("A recepção não pode alterar o status pelo app do motorista.");return;}
+        if(!navigator.onLine){guardarStatusPendente(t,st,observacao);atualizarAvisoConexao();return;}
+        const corpo=Object.assign({action:"update",id:idOf(t),status:st},credencialPost());
+        if(observacao){corpo.obsMotorista=observacao;t["ObsMotorista"]=observacao;}
+        try{
+            const r=await fetch(WEBAPP_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(corpo)});
+            const d=await r.json();
+            if(!(d&&(d.success===true||d.ok===true)))throw new Error((d&&(d.error||d.erro))||"O servidor não confirmou a alteração.");
+            t["Status"]=st;document.getElementById("upd").innerText="Atualizado: "+new Date().toLocaleTimeString("pt-BR");render();
+        }catch(e){
+            if(!navigator.onLine||e instanceof TypeError){guardarStatusPendente(t,st,observacao);atualizarAvisoConexao();}
+            else{t["Status"]=anterior;alert(e.message||"Não foi possível atualizar o status.");render();}
+        }
     }
 
     // ===== Troca de senha (validada e gravada no servidor; ninguém mais vê) =====
@@ -499,6 +587,8 @@
         b.disabled=false; b.innerText='Salvar nova senha';
     });
 
+    window.addEventListener("offline",function(){atualizarAvisoConexao();});
+    window.addEventListener("online",function(){atualizarAvisoConexao();sincronizarFilaStatus();});
     // ===== PWA: app instalável próprio (id distinto) + service worker + auto-update =====
     try{
         var _m={ id:'casasbrancas-motorista', name:'Casas Brancas Motorista', short_name:'CB Motorista',
