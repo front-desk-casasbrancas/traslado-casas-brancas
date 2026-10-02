@@ -413,9 +413,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     <div class="header-actions">
         <div class="last-update" id="lastUpdate">Carregando dados...</div>
         <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-            <label style="font-size:0.8rem; color:#5a6e4a; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="checkbox" id="autoRefresh"> Atualizar automaticamente
-            </label>
             <button class="refresh-btn" id="refreshBtn">Atualizar Dados da Planilha</button>
         </div>
     </div>
@@ -649,13 +646,11 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     // Chave validada no login (janela acima); enviada em toda chamada ao servidor.
     function _k() { return encodeURIComponent(window.CHAVE || ''); }
     function escHtml(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-    const AUTO_REFRESH_MIN = 5; // intervalo de auto-atualização (minutos)
 
     let transfers = [];
     let monthlyChart, vehicleChart;
     let currentPeriodo = 'todos';
     let pagamentos = [];
-    let autoRefreshTimer = null;
     let editando = null;
 
     // Catálogo de preços (mesma tabela do formulário) — usado na edição de veículo
@@ -1803,7 +1798,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     }
 
     // ==================== AUTO-ATUALIZAÇÃO ====================
-    function setupAutoRefresh() {
+    function {
         if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
         if (document.getElementById('autoRefresh')?.checked) {
             autoRefreshTimer = setInterval(carregarDados, AUTO_REFRESH_MIN * 60 * 1000);
@@ -2013,7 +2008,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     document.querySelectorAll('.periodo-btn').forEach(btn => btn.addEventListener('click', () => updateComissaoTab(btn.getAttribute('data-periodo'))));
     document.getElementById('refreshBtn').addEventListener('click', carregarDados);
     document.getElementById('exportarPdfBtn').addEventListener('click', exportarComissaoPDF);
-    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
 
     ['filtroBusca', 'filtroData', 'filtroStatus', 'filtroSentido'].forEach(id => {
         let el = document.getElementById(id);
@@ -2048,8 +2042,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let pgM = document.getElementById('pgMes'); if (pgM && !pgM.value) pgM.value = mesStr;
         let pgD = document.getElementById('pgData'); if (pgD && !pgD.value) pgD.value = now.toISOString().slice(0, 10);
     })();
-
-    setupAutoRefresh();
     carregarDados();
 </script>
 <script>
