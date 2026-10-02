@@ -50,7 +50,7 @@
   .env-btn{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#fff;border:none;padding:8px 16px;border-radius:30px;font-weight:600;font-size:0.82rem;cursor:pointer;white-space:nowrap;}
   .env-btn:active{opacity:.85;}
   .env-ok{color:#2f7d8c;font-size:0.74rem;font-weight:600;}
-</style>
+.tema-nota{font-size:.8rem;color:#817967;margin:-3px 0 12px;line-height:1.45}.tema-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}.tema-pill{border:1px solid #eee5d3;border-radius:11px;padding:11px 12px;background:#fcfbf8;display:flex;justify-content:space-between;align-items:center;gap:10px}.tema-pill strong{font-size:.86rem;font-weight:600;color:#554d3d}.tema-pill span{font-size:.78rem;color:#9c7d3f;font-weight:700;white-space:nowrap}.tema-vazio{color:#8a8270;padding:12px 0;font-size:.86rem}</style>
 </head>
 <body>
 <div class="gate" id="gate">
@@ -74,6 +74,7 @@
   <div class="resumo" id="resumo"></div>
   <div class="card"><h3>Enviar avaliação — últimos 3 dias</h3><div id="enviar"><div class="vazio">Carregando...</div></div></div>
   <div class="card"><h3>Média por motorista</h3><div id="porMot"></div></div>
+  <div class="card"><h3>Assuntos mencionados nos comentários</h3><p class="tema-nota">Contagem simples por palavras-chave nos últimos dois meses. Confira cada comentário antes de tomar uma decisão.</p><div id="temas"></div></div>
   <div class="card"><h3>Comentários recentes</h3><div id="lista"></div></div>
   <div class="meta" id="upd" style="text-align:center;"></div>
 </div>
@@ -115,12 +116,38 @@
     }catch(e){ document.getElementById('lista').innerHTML='<div class="vazio">Erro ao carregar.</div>'; }
   }
 
+    const TEMAS_AVALIACAO = [
+      { nome:"Pontualidade e horário", termos:["pontual","atras","horario","hora","punctual","late","on time","puntual","retras"] },
+      { nome:"Cordialidade e atendimento", termos:["cordial","simpatic","educad","atenc","gentil","friendly","polite","kind","amable","atencion"] },
+      { nome:"Comunicação", termos:["comunic","avis","mensagem","responde","contato","contact","message","communication","comunicacion"] },
+      { nome:"Veículo e conforto", termos:["veiculo","carro","confort","limp","espac","vehicle","comfort","clean","vehiculo"] },
+      { nome:"Viagem e rota", termos:["viagem","trajeto","transito","rota","estrada","trip","route","traffic","viaje","ruta","trafico"] }
+    ];
+    function normalizarComentario(v){
+      return String(v||"").toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+    }
+    function renderTemas(arr){
+      const comentarios=(arr||[]).map(a=>normalizarComentario(a["Comentario"])).filter(Boolean);
+      if(!comentarios.length){
+        document.getElementById("temas").innerHTML='<div class="tema-vazio">Ainda não há comentários suficientes para identificar assuntos.</div>';
+        return;
+      }
+      const resumo=TEMAS_AVALIACAO.map(t=>({
+        nome:t.nome,
+        qtd:comentarios.filter(c=>t.termos.some(p=>c.includes(p))).length
+      })).filter(t=>t.qtd>0).sort((a,b)=>b.qtd-a.qtd);
+      document.getElementById("temas").innerHTML=resumo.length
+        ? '<div class="tema-list">'+resumo.map(t=>'<div class="tema-pill"><strong>'+escHtml(t.nome)+'</strong><span>'+t.qtd+' comentário(s)</span></div>').join('')+'</div>'
+        : '<div class="tema-vazio">Nenhum dos assuntos monitorados foi identificado. Leia os comentários completos abaixo.</div>';
+    }
+
   let dadosAval = [];
   function render(arr){
     dadosAval = arr || [];
     if(!arr.length){
       document.getElementById('resumo').innerHTML='<div class="kpi"><div class="lab">Avaliações</div><div class="val">0</div></div>';
       document.getElementById('porMot').innerHTML='<div class="vazio">Ainda sem avaliações.</div>';
+      document.getElementById('temas').innerHTML='<div class="tema-vazio">Os assuntos mais citados aparecerão quando houver comentários.</div>';
       document.getElementById('lista').innerHTML='<div class="vazio">Os comentários dos clientes aparecerão aqui.</div>';
       return;
     }
@@ -129,6 +156,7 @@
     document.getElementById('resumo').innerHTML=
       '<div class="kpi"><div class="lab">Avaliações (2 meses)</div><div class="val">'+arr.length+'</div></div>'+
       '<div class="kpi"><div class="lab">Média geral</div><div class="val">'+media+' <span style="font-size:1rem;">★</span></div></div>';
+    renderTemas(arr);
     // por motorista (nomes consolidados)
     let pm={};
     arr.forEach(a=>{ let k=chaveMot(a["Motorista"]); if(!pm[k])pm[k]={disp:nomeDisp(a["Motorista"]),n:0,soma:0}; pm[k].n++; pm[k].soma+=parseInt(a["Nota"],10)||0; });
@@ -175,36 +203,45 @@
         '<div class="meta">'+dataStr+' · Reserva '+(t["Reserva"]||'-')+' · '+sentido+(destino?(' · '+destino):'')+'</div>'+ja+'</div>'+
         '<button class="env-btn" data-i="'+i+'">📲 Enviar</button></div>';
     }).join('');
-    box.querySelectorAll('.env-btn').forEach(b=>b.addEventListener('click',()=>enviarAval(lista[+b.getAttribute('data-i')])));
+    box.querySelectorAll('.env-btn').forEach(b=>b.addEventListener('click',()=>enviarAval(lista[+b.getAttribute('data-i')],b)));
   }
 
-  function enviarAval(t){
+  const enviosEmAndamento = new Set();
+  async function enviarAval(t,botao){
     const id=t["ID"]; if(!id){ alert('Transfer sem ID.'); return; }
+    if(enviosEmAndamento.has(id)) return;
     const lang=(t["Idioma"]||'pt').toString().toLowerCase();
-    const txt = lang==='en' ? 'We hope you had a wonderful trip.\nCould you share with us how your experience was?\nHere is our review link:\n'
-              : (lang==='es' ? 'Esperamos que haya tenido un excelente viaje.\n¿Podría compartirnos cómo fue su experiencia?\nAquí está nuestro enlace de evaluación:\n'
-              : 'Esperamos que tenha tido uma ótima viagem.\nPoderia nos compartilhar como foi sua experiência?\nSegue nosso link de avaliação:\n');
+    const txt = lang==='en' ? 'We hope you had a wonderful trip.\\nCould you share with us how your experience was?\\nHere is our review link:\\n'
+              : (lang==='es' ? 'Esperamos que haya tenido un excelente viaje.\\n¿Podría compartirnos cómo fue su experiencia?\\nAquí está nuestro enlace de evaluación:\\n'
+              : 'Esperamos que tenha tido uma ótima viagem.\\nPoderia nos compartilhar como foi sua experiência?\\nSegue nosso link de avaliação:\\n');
     const url=AVALIACAO_URL+encodeURIComponent(id);
     const email=(t["Email"]||'').toString().trim();
     let canal=(t["Contato"]||'').toString().toLowerCase();
     if(canal!=='email' && canal!=='whatsapp') canal = email ? 'email' : 'whatsapp';
-    if(canal==='email'){
-      if(!email){ alert('Este hóspede não tem e-mail cadastrado. Envie por WhatsApp.'); return; }
-      if(!confirm('Enviar avaliação por e-mail para '+email+'?')) return;
-      fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'Email',email:email})})
-        .then(r=>r.json()).then(d=>{ if(d&&(d.error||d.ok===false)) alert('Erro ao enviar: '+(d.error||d.erro)); })
-        .catch(e=>console.error(e));
-      alert('Avaliação enviada por e-mail (front@casasbrancas.com.br).');
-    } else {
-      const tel=waPhone(t["Telefone"]);
-      if(!tel){ alert('Sem telefone válido para WhatsApp.'); return; }
-      window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt+url),'_blank');
-      fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'WhatsApp',telefone:t["Telefone"]})})
-        .then(r=>r.json()).then(d=>{ if(d&&(d.error||d.ok===false)) alert('Erro ao registrar o envio: '+(d.error||d.erro)); })
-        .catch(e=>console.error(e));
+    enviosEmAndamento.add(id);
+    if(botao){botao.disabled=true;botao.textContent='Enviando…';}
+    try{
+      if(canal==='email'){
+        if(!email){ alert('Este hóspede não tem e-mail cadastrado. Envie por WhatsApp.'); return; }
+        if(!confirm('Enviar avaliação por e-mail para '+email+'?')) return;
+        const d=await (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'Email',email:email})})).json();
+        if(!d||d.ok!==true) throw new Error((d&&(d.erro||d.error))||'O servidor não confirmou o envio do e-mail.');
+        alert('E-mail de avaliação enviado.');
+      }else{
+        const tel=waPhone(t["Telefone"]);
+        if(!tel){ alert('Sem telefone válido para WhatsApp.'); return; }
+        const janela=window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(txt+url),'_blank');
+        if(!janela){ alert('Permita a abertura do WhatsApp para continuar.'); return; }
+        const d=await (await fetch(WEBAPP_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'enviarAvaliacao',k:window.CHAVE||'',id:id,metodo:'WhatsApp',telefone:t["Telefone"]})})).json();
+        if(!d||d.ok!==true) throw new Error((d&&(d.erro||d.error))||'O WhatsApp foi aberto, mas o registro do convite não foi confirmado.');
+      }
+      t["AvaliacaoConviteEm"]=new Date().toISOString();
+      await carregarEnvio();
+    }catch(e){ alert(e.message||'Não foi possível registrar o envio. Tente novamente.'); }
+    finally{
+      enviosEmAndamento.delete(id);
+      if(botao){botao.disabled=false;botao.textContent='📲 Enviar';}
     }
-    t["AvaliacaoConviteEm"]=new Date().toISOString();
-    carregarEnvio();
   }
 
   // ===== Relatório (PDF via impressão) =====
@@ -215,7 +252,7 @@
     const media = (soma/arr.length).toFixed(1);
     let pm={}; arr.forEach(a=>{ let k=chaveMot(a["Motorista"]); if(!pm[k])pm[k]={disp:nomeDisp(a["Motorista"]),n:0,soma:0}; pm[k].n++; pm[k].soma+=parseInt(a["Nota"],10)||0; });
     const linhasMot = Object.values(pm).sort((x,y)=>(y.soma/y.n)-(x.soma/x.n)).map(d=>'<tr><td>'+d.disp+'</td><td style="text-align:center">'+d.n+'</td><td style="text-align:center">'+(d.soma/d.n).toFixed(1)+' ★</td></tr>').join('');
-    const linhasCom = arr.slice().sort((a,b)=>new Date(b["Data"])-new Date(a["Data"])).map(a=>'<tr><td>'+fData(a["Data"])+'</td><td>'+(a["Hospede"]||'-')+'</td><td>'+nomeDisp(a["Motorista"])+'</td><td style="text-align:center">'+(parseInt(a["Nota"],10)||0)+' ★</td><td>'+((a["Comentario"]||'').toString().replace(/</g,'&lt;')||'—')+'</td></tr>').join('');
+    const linhasCom = arr.slice().sort((a,b)=>new Date(b["Data"])-new Date(a["Data"])).map(a=>'<tr><td>'+fData(a["Data"])+'</td><td>'+escHtml(a["Hospede"]||'-')+'</td><td>'+escHtml(nomeDisp(a["Motorista"]))+'</td><td style="text-align:center">'+(parseInt(a["Nota"],10)||0)+' ★</td><td>'+(escHtml(a["Comentario"]||'—'))+'</td></tr>').join('');
     const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Avaliações - Casas Brancas</title>' +
       '<style>body{font-family:Arial,sans-serif;color:#2b2a26;padding:30px;}h1{color:#9c7d3f;font-size:1.3rem;margin-bottom:2px;}.sub{color:#8a7a55;font-size:0.85rem;margin-bottom:16px;}.kpis{margin:10px 0 18px;font-size:0.95rem;}.kpis b{color:#9c7d3f;}table{width:100%;border-collapse:collapse;margin:8px 0 20px;font-size:0.85rem;}th,td{border-bottom:1px solid #ddd;padding:7px;text-align:left;}th{background:#f3ecdd;color:#9c7d3f;}h3{margin:10px 0 4px;color:#2b2a26;}@media print{.noprint{display:none;}}</style></head><body>' +
       '<h1>Casas Brancas — Relatório de Avaliações</h1>' +
