@@ -508,10 +508,10 @@
         var _b=new Blob([JSON.stringify(_m)],{type:'application/manifest+json'});
         var _l=document.createElement('link'); _l.rel='manifest'; _l.href=URL.createObjectURL(_b); document.head.appendChild(_l);
     }catch(e){}
+    // Mantém o service worker necessário para o funcionamento do app, GPS e notificações.
+    // Não força atualização nem recarrega a tela durante o uso operacional.
     if('serviceWorker' in navigator){
-        navigator.serviceWorker.register('sw.js').then(function(r){ if(r.waiting)r.waiting.postMessage('skipWaiting'); setInterval(function(){ r.update(); }, 30*60*1000); }).catch(function(){});
-        
-        document.addEventListener('visibilitychange', function(){ if(!document.hidden && navigator.serviceWorker.controller){ navigator.serviceWorker.getRegistration().then(function(r){ if(r)r.update(); }); } });
+        navigator.serviceWorker.register('sw.js').catch(function(){});
     }
 </script>
 <!-- ===== GPS ao vivo (só com o app aberto; Android e iPhone) ===== -->
