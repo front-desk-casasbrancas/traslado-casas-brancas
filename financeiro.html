@@ -123,9 +123,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     <div class="header-actions">
         <div class="last-update" id="lastUpdate">Carregando dados...</div>
         <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap;">
-            <label style="font-size:0.8rem; color:#8a7a55; display:flex; align-items:center; gap:6px; cursor:pointer;">
-                <input type="checkbox" id="autoRefresh"> Atualizar automaticamente
-            </label>
             <button class="refresh-btn" id="refreshBtn">Atualizar Dados</button>
         </div>
     </div>
@@ -213,11 +210,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 <script>
     const WEBAPP_URL = window.WEBAPP_URL;
     function _k() { return encodeURIComponent(window.CHAVE || ''); }
-    const AUTO_REFRESH_MIN = 5;
     let transfers = [];
     let pagamentos = [];
     let currentPeriodo = 'todos';
-    let autoRefreshTimer = null;
 
     // ===== COMISSÃO (regra única) =====
     // 15% sobre o valor dos traslados, menos 6% de taxa de cartão sobre a comissão.
@@ -520,12 +515,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         }
     }
 
-    // ===== AUTO-ATUALIZAÇÃO =====
-    function setupAutoRefresh() {
-        if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
-        if (document.getElementById('autoRefresh')?.checked) autoRefreshTimer = setInterval(carregarDados, AUTO_REFRESH_MIN * 60 * 1000);
-    }
-
     // ===== EVENTOS =====
     document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
         let id = btn.getAttribute('data-tab');
@@ -538,7 +527,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     document.getElementById('refreshBtn').addEventListener('click', carregarDados);
     document.getElementById('exportarPdfBtn').addEventListener('click', exportarComissaoPDF);
     document.getElementById('exportarMotoristaBtn').addEventListener('click', exportarMotoristaPDF);
-    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
     ['filtroBusca', 'filtroData', 'filtroStatus', 'filtroSentido'].forEach(id => { let el = document.getElementById(id); if (el) { el.addEventListener('input', updateHistoryTable); el.addEventListener('change', updateHistoryTable); } });
     document.getElementById('limparFiltros').addEventListener('click', () => {
         document.getElementById('filtroBusca').value = ''; document.getElementById('filtroData').value = '';
@@ -554,8 +542,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let pgM = document.getElementById('pgMes'); if (pgM && !pgM.value) pgM.value = mesStr;
         let pgD = document.getElementById('pgData'); if (pgD && !pgD.value) pgD.value = now.toISOString().slice(0, 10);
     })();
-
-    setupAutoRefresh();
     carregarDados();
 </script>
 <script src="cb-versao.js?v=2026.10.02-1"></script>
