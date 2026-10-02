@@ -1486,8 +1486,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 let idEnc = encodeURIComponent(t["ID"]);
                 let rsv = t["Reserva"] ? `<br><span style="font-size:0.72rem;color:#8a8270;">Reserva/Quarto: ${t["Reserva"]}<\/span>` : '';
                 const obsTransfer=(t["Observações"]||"").toString();
-                const prefMatch=obsTransfer.match(/Interesses em Búzios:\\s*([^\\n]+)/i);
-                const preferenciasHtml=prefMatch?'<br><span style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:8px;background:#f6f1e5;color:#806a42;font-size:.72rem;">✦ Interesses: '+escHtml(prefMatch[1])+'<\\/span>':'';
+                const prefMatch=obsTransfer.match(/Interesses em Búzios:\s*([^\n]+)/i);
+                const preferenciasHtml=prefMatch?'<br><span style="display:inline-block;margin-top:4px;padding:3px 7px;border-radius:8px;background:#f6f1e5;color:#806a42;font-size:.72rem;">✦ Interesses: '+escHtml(prefMatch[1])+'<\/span>':'';
                 let pessoasV = (t["Pessoas"] !== undefined && t["Pessoas"] !== '') ? t["Pessoas"] : '';
                 let malasV = (t["Malas"] !== undefined && t["Malas"] !== '') ? t["Malas"] : '';
                 let pm = (pessoasV !== '' || malasV !== '') ? `<br><span style="font-size:0.72rem;color:#8a8270;">👥 ${pessoasV !== '' ? pessoasV : '-'} · 🧳 ${malasV !== '' ? malasV : '-'}<\/span>` : '';
