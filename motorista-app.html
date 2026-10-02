@@ -212,7 +212,9 @@
             }
         }catch(e){
             motorista=''; chave='';
-            document.getElementById('gErro').style.display='block';
+            const erro=document.getElementById('gErro');
+            erro.innerText=!navigator.onLine?'Sem conexão. Conecte-se à internet para validar seu acesso e carregar a escala.':'Não foi possível conectar. Tente novamente.';
+            erro.style.display='block';
         }
         btn.disabled=false; btn.innerText='Entrar';
     }
@@ -334,6 +336,7 @@
         else { carregar(); }
         if(timer)clearInterval(timer);
         timer = null;
+        if(filaDesteMotorista().length)sincronizarFilaStatus();
     }
 
     function todasAtualizacoesPendentes(){
@@ -556,7 +559,7 @@
             if(!(d&&(d.success===true||d.ok===true)))throw new Error((d&&(d.error||d.erro))||"O servidor não confirmou a alteração.");
             t["Status"]=st;document.getElementById("upd").innerText="Atualizado: "+new Date().toLocaleTimeString("pt-BR");render();
         }catch(e){
-            if(!navigator.onLine||e instanceof TypeError){guardarStatusPendente(t,st,observacao);atualizarAvisoConexao();}
+            if(!navigator.onLine||e instanceof TypeError||e instanceof SyntaxError){guardarStatusPendente(t,st,observacao);atualizarAvisoConexao();}
             else{t["Status"]=anterior;alert(e.message||"Não foi possível atualizar o status.");render();}
         }
     }
@@ -589,6 +592,7 @@
 
     window.addEventListener("offline",function(){atualizarAvisoConexao();});
     window.addEventListener("online",function(){atualizarAvisoConexao();sincronizarFilaStatus();});
+    atualizarAvisoConexao();
     // ===== PWA: app instalável próprio (id distinto) + service worker + auto-update =====
     try{
         var _m={ id:'casasbrancas-motorista', name:'Casas Brancas Motorista', short_name:'CB Motorista',
