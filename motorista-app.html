@@ -326,7 +326,7 @@
         if(jaTemDados){ document.getElementById('upd').innerText='Atualizado: '+new Date().toLocaleTimeString('pt-BR'); render(); }
         else { carregar(); }
         if(timer)clearInterval(timer);
-        timer =
+        timer = null;
     }
 
     async function carregar(){
