@@ -1,68 +1,14 @@
-/*
-  Sistema de Traslados — atualizacao automatica do aplicativo
-  Confere se a versao da pagina corresponde a publicada e atualiza automaticamente.
-*/
+/* Identidade visual e selo de versão do app. Sem recarga nem atualização automática. */
 (function () {
-  var avisoEl = null;
-  var timerAviso = null;
-  var recarregando = false;
-  var versaoPagina = (document.querySelector('meta[name="cb-build"]') || {}).content || '';
-  var usuarioEditou = false;
-  var ignorarPendencias = false;
-
-  function campoEditavel(el) {
-    return el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) &&
-      !el.readOnly && !el.disabled && el.type !== 'password' && !el.closest('#authGate');
-  }
-
-  function temAlteracoesPendentes() {
-    if (ignorarPendencias) return false;
-    if (typeof window.cbHasUnsavedChanges === 'function') {
-      try { return !!window.cbHasUnsavedChanges(); } catch (e) {}
-    }
-    return usuarioEditou;
-  }
-
-  document.addEventListener('input', function (e) { if (campoEditavel(e.target)) usuarioEditou = true; }, true);
-  document.addEventListener('change', function (e) { if (campoEditavel(e.target)) usuarioEditou = true; }, true);
-
-  function recarregar() {
-    if (recarregando) return;
-    if (temAlteracoesPendentes()) { mostrarAviso(true); return; }
-    recarregando = true;
-    setTimeout(function () { location.reload(); }, 150);
-  }
-
-  function mostrarAviso(adiado) {
-    if (!document.body) return;
-    if (!avisoEl) {
-      avisoEl = document.createElement('button');
-      avisoEl.type = 'button';
-      avisoEl.id = 'cbAtualizacaoAviso';
-      avisoEl.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10002;background:#9c7d3f;color:#fff;padding:10px 18px;border:0;border-radius:40px;font:600 13px Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;';
-      avisoEl.addEventListener('click', function () {
-        ignorarPendencias = true;
-        usuarioEditou = false;
-        recarregar();
-      });
-      document.body.appendChild(avisoEl);
-    }
-    avisoEl.textContent = adiado ? 'Atualização pronta — salve os dados e toque aqui' : 'Nova versão — atualizando…';
-    avisoEl.hidden = false;
-    if (timerAviso) clearTimeout(timerAviso);
-    if (!adiado) timerAviso = setTimeout(recarregar, 1500);
-  }
-
   function selo(v) {
     var el = document.getElementById('cbVersao');
     if (!el) {
       el = document.createElement('div');
       el.id = 'cbVersao';
-      el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
       document.body.appendChild(el);
     }
-    el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.6;background:rgba(255,255,255,.55);padding:3px 7px;border-radius:20px;pointer-events:none;';
-    el.textContent = 'v' + v;
+    el.style.cssText = 'position:fixed;left:50%;right:auto;bottom:12px;transform:translateX(-50%);z-index:9998;font:600 10px/1 Arial,sans-serif;color:#9a917e;opacity:.72;background:rgba(255,255,255,.72);padding:4px 8px;border-radius:20px;pointer-events:none;';
+    el.textContent = v ? 'v' + v : '';
   }
 
   function assinatura() {
@@ -77,29 +23,15 @@
     document.body.appendChild(footer);
   }
 
-  function checar() {
-    fetch('versao.json?t=' + Date.now(), { cache: 'no-store' })
-      .then(function (r) { if (!r.ok) throw new Error('versao indisponivel'); return r.json(); })
-      .then(function (j) {
-        if (!j || !j.v) return;
-        selo(j.v);
-        if (versaoPagina && j.v !== versaoPagina) recarregar();
-      })
-      .catch(function () {});
-  }
-
   function iniciar() {
     assinatura();
-    if ('serviceWorker' in navigator) {
-      // A troca do service worker não recarrega a tela sozinha: evita piscar enquanto a equipe usa o app.
-      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (r) {
-        r.update().catch(function () {});
-      }).catch(function () {});
-    }
-    checar();
-    setInterval(checar, 60 * 1000);
-    document.addEventListener('visibilitychange', function () { if (!document.hidden) checar(); });
-    window.addEventListener('focus', checar);
+    var build = (document.querySelector('meta[name="cb-build"]') || {}).content || '';
+    selo(build);
+    /* Consulta uma vez para mostrar a versão publicada; não agenda atualizações nem recarrega a tela. */
+    fetch('versao.json', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) return null; return r.json(); })
+      .then(function (j) { if (j && j.v) selo(j.v); })
+      .catch(function () {});
   }
 
   if (document.readyState !== 'loading') iniciar();
