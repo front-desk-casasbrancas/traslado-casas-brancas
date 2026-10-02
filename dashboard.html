@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-8">
+    <meta name="cb-build" content="2026.10.02-3">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -15,9 +15,9 @@
     <meta name="theme-color" content="#2b2a26">
     <link rel="apple-touch-icon" href="icon-192-v4.png">
     <script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
@@ -649,6 +649,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     let transfers = [];
     let monthlyChart, vehicleChart;
+    let carregamentoEmCurso = false;
     let currentPeriodo = 'todos';
     let pagamentos = [];
     let editando = null;
@@ -931,31 +932,58 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     // ==================== CARREGAR DADOS ====================
     async function carregarDados() {
-        if (!window.CHAVE) return; // aguarda o login validar a chave no servidor
+        if (!window.CHAVE || carregamentoEmCurso) return;
+        carregamentoEmCurso = true;
+        const botao = document.getElementById('refreshBtn');
+        const controlador = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const limiteTempo = controlador ? setTimeout(() => controlador.abort(), 30000) : null;
+        if (botao) { botao.disabled = true; botao.textContent = 'Atualizando…'; }
         try {
-            const response = await fetch(WEBAPP_URL + '?k=' + _k());
+            const response = await fetch(WEBAPP_URL + '?k=' + _k(), controlador ? { signal: controlador.signal } : {});
+            if (!response.ok) throw new Error('O servidor respondeu com erro (' + response.status + ').');
             const dados = await response.json();
             if (!Array.isArray(dados)) {
                 if (dados && dados.error === 'acesso negado') { if (window.reabrirLogin) window.reabrirLogin(); return; }
                 throw new Error((dados && dados.error) || 'resposta inválida do servidor');
             }
             transfers = dados;
-            montarNavegadorMeses();
-            document.getElementById('lastUpdate').innerHTML = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length} traslados)`;
-            updateDashboard();
-            renderProximos();
-            renderConflitos();
-            renderOperacaoResumo();
-            updateHistoryTable();
-            updateComissaoTab(currentPeriodo);
+            const erroTela = document.getElementById('errorDisplay');
+            if (erroTela) { erroTela.style.display = 'none'; erroTela.textContent = ''; }
+            const ultimaAtualizacao = document.getElementById('lastUpdate');
+            if (ultimaAtualizacao) ultimaAtualizacao.textContent = 'Atualizado: ' + new Date().toLocaleString('pt-BR') + ' (' + transfers.length + ' traslados)';
+            const etapas = [
+                ['Navegação por mês', montarNavegadorMeses],
+                ['Indicadores e gráficos', updateDashboard],
+                ['Próximos traslados', renderProximos],
+                ['Conflitos de agenda', renderConflitos],
+                ['Resumo operacional', renderOperacaoResumo],
+                ['Lista de transfers', updateHistoryTable],
+                ['Comissões', () => updateComissaoTab(currentPeriodo)],
+                ['Avaliações pendentes', verificarAvaliacoesPendentes]
+            ];
+            const falhas = [];
+            etapas.forEach(([nome, executar]) => {
+                try { executar(); }
+                catch (erroEtapa) { console.error('Falha no bloco ' + nome + ':', erroEtapa); falhas.push(nome); }
+            });
+            if (falhas.length && erroTela) {
+                erroTela.style.display = 'block';
+                erroTela.textContent = 'Dados carregados. Alguns blocos precisam ser atualizados: ' + falhas.join(', ') + '.';
+            }
             carregarPagamentos();
-            verificarAvaliacoesPendentes();
             carregarPosicoesAtivas();
             carregarOcorrencias();
-        } catch(e) {
+        } catch (e) {
             console.error(e);
-            document.getElementById('errorDisplay').style.display = 'block';
-            document.getElementById('errorDisplay').innerHTML = 'Erro ao carregar dados: ' + e.message;
+            const erroTela = document.getElementById('errorDisplay');
+            if (erroTela) {
+                erroTela.style.display = 'block';
+                erroTela.textContent = e.name === 'AbortError' ? 'A atualização demorou mais de 30 segundos. Verifique a conexão e tente novamente.' : 'Erro ao carregar dados: ' + e.message;
+            }
+        } finally {
+            clearTimeout(limiteTempo);
+            carregamentoEmCurso = false;
+            if (botao) { botao.disabled = false; botao.textContent = 'Atualizar Dados da Planilha'; }
         }
     }
 
@@ -1231,30 +1259,72 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 }
             }
         });
-        drawMonthlyChart(monthlyData);
-        drawVehicleChart(vehicleCount);
+        // Uma falha de biblioteca ou de desenho de gráfico não pode bloquear os outros painéis.
+        try { drawMonthlyChart(monthlyData); } catch (e) { console.error('Gráfico mensal:', e); mostrarFalhaGrafico('monthlyChart'); }
+        try { drawVehicleChart(vehicleCount); } catch (e) { console.error('Gráfico de veículos:', e); mostrarFalhaGrafico('vehicleChart'); }
     }
 
     function drawMonthlyChart(data) {
-        const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-        if (!ctx) return;
+        const canvas = document.getElementById('monthlyChart');
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') { drawMonthlyFallback(canvas, data); return; }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { drawMonthlyFallback(canvas, data); return; }
         if (monthlyChart) monthlyChart.destroy();
-        monthlyChart = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#b8995a' }] },
-            options: { responsive: true }
-        });
+        monthlyChart = new Chart(ctx, { type: 'bar', data: { labels: Object.keys(data), datasets: [{ label: 'Traslados', data: Object.values(data), backgroundColor: '#b8995a' }] }, options: { responsive: true } });
     }
 
     function drawVehicleChart(data) {
-        const ctx = document.getElementById('vehicleChart')?.getContext('2d');
-        if (!ctx) return;
+        const canvas = document.getElementById('vehicleChart');
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') { drawVehicleFallback(canvas, data); return; }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { drawVehicleFallback(canvas, data); return; }
         if (vehicleChart) vehicleChart.destroy();
-        vehicleChart = new Chart(ctx, {
-            type: 'pie',
-            data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#b8995a','#cbb27a','#8a6f3c','#7fa8b0','#dccba0','#a89b7d'] }] },
-            options: { responsive: true }
-        });
+        vehicleChart = new Chart(ctx, { type: 'pie', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data), backgroundColor: ['#b8995a','#cbb27a','#8a6f3c','#7fa8b0','#dccba0','#a89b7d'] }] }, options: { responsive: true } });
+    }
+
+    function prepararCanvasFallback(canvas) {
+        const largura = Math.max(280, canvas.clientWidth || 500), altura = 250, escala = window.devicePixelRatio || 1;
+        canvas.style.width = '100%'; canvas.style.height = altura + 'px';
+        canvas.width = Math.round(largura * escala); canvas.height = Math.round(altura * escala);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        ctx.setTransform(escala, 0, 0, escala, 0, 0);
+        return { ctx: ctx, largura: largura, altura: altura };
+    }
+
+    function drawMonthlyFallback(canvas, data) {
+        const preparado = prepararCanvasFallback(canvas); if (!preparado) return;
+        const ctx = preparado.ctx, w = preparado.largura, h = preparado.altura;
+        const labels = Object.keys(data), values = Object.values(data).map(v => Number(v) || 0);
+        ctx.clearRect(0, 0, w, h);
+        if (!values.length) { ctx.fillStyle = '#8a8270'; ctx.font = '12px Segoe UI, Arial'; ctx.textAlign = 'center'; ctx.fillText('Sem dados para exibir', w / 2, h / 2); return; }
+        const left = 38, right = 12, top = 16, bottom = 48, plotH = h - top - bottom, max = Math.max(1, ...values);
+        ctx.font = '11px Segoe UI, Arial'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 4; i++) { const y = top + plotH - plotH * i / 4; ctx.strokeStyle = '#e9e2d5'; ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(w - right, y); ctx.stroke(); ctx.fillStyle = '#8a8270'; ctx.fillText(String(Math.round(max * i / 4)), left - 8, y); }
+        const slot = (w - left - right) / values.length, barW = Math.max(4, Math.min(36, slot * .62));
+        values.forEach((value, i) => { const bh = plotH * value / max, x = left + slot * i + (slot - barW) / 2, y = top + plotH - bh; ctx.fillStyle = '#b8995a'; ctx.fillRect(x, y, barW, Math.max(1, bh)); ctx.fillStyle = '#675f50'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; const label = labels[i].length > 10 ? labels[i].slice(0, 9) + '…' : labels[i]; ctx.fillText(label, x + barW / 2, top + plotH + 8, Math.max(24, slot - 2)); });
+    }
+
+    function drawVehicleFallback(canvas, data) {
+        const preparado = prepararCanvasFallback(canvas); if (!preparado) return;
+        const ctx = preparado.ctx, w = preparado.largura, h = preparado.altura;
+        const labels = Object.keys(data), values = Object.values(data).map(v => Number(v) || 0), total = values.reduce((a, b) => a + b, 0);
+        ctx.clearRect(0, 0, w, h);
+        if (!values.length || total <= 0) { ctx.fillStyle = '#8a8270'; ctx.font = '12px Segoe UI, Arial'; ctx.textAlign = 'center'; ctx.fillText('Sem dados para exibir', w / 2, h / 2); return; }
+        const colors = ['#b8995a','#cbb27a','#8a6f3c','#7fa8b0','#dccba0','#a89b7d'], mobile = w < 430, radius = mobile ? 62 : 92, cx = mobile ? 70 : Math.min(120, w * .28), cy = h / 2;
+        let angle = -Math.PI / 2;
+        values.forEach((value, i) => { const next = angle + value / total * Math.PI * 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, radius, angle, next); ctx.closePath(); ctx.fillStyle = colors[i % colors.length]; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke(); angle = next; });
+        const legendX = cx + radius + 18, legendY = Math.max(16, cy - (Math.min(labels.length, 10) * 18) / 2);
+        ctx.font = '11px Segoe UI, Arial'; ctx.textBaseline = 'middle';
+        labels.slice(0, 10).forEach((label, i) => { const y = legendY + i * 18; if (y > h - 8) return; ctx.fillStyle = colors[i % colors.length]; ctx.fillRect(legendX, y - 5, 10, 10); ctx.fillStyle = '#675f50'; ctx.textAlign = 'left'; const short = label.length > 34 ? label.slice(0, 31) + '…' : label; ctx.fillText(short + ' (' + values[i] + ')', legendX + 16, y, Math.max(30, w - legendX - 28)); });
+    }
+
+    function mostrarFalhaGrafico(canvasId) {
+        const canvas = document.getElementById(canvasId); if (!canvas) return;
+        if (canvasId === 'monthlyChart') drawMonthlyFallback(canvas, {});
+        else drawVehicleFallback(canvas, {});
     }
 
     // ==================== CONFIRMAÇÃO WHATSAPP ====================
@@ -2096,7 +2166,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 </script>
 
 
-
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="cb-versao.js?v=2026.10.02-3"></script>
 <script>
 (function(){
     var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
