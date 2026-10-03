@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-5">
+    <meta name="cb-build" content="2026.10.03-1">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Solicitação de Traslado</title>
@@ -1331,6 +1331,7 @@
                 card.className = "veiculo-card";
                 card.setAttribute("data-preco", veic.preco);
                 card.setAttribute("data-nome", veic.nome);
+                card.setAttribute("data-categoria", categoria);
                 card.setAttribute("data-cap", capacidadeNum(veic.capacidade));
                 let obsHtml = veic.obs ? `<div style="font-size:0.65rem; color:#8b9a7a;">${veic.obs}</div>` : "";
                 let foto = fotoVeiculo(veic.nome);
@@ -1707,7 +1708,8 @@
         mensagem += `Horário: ${hora}\n`;
         mensagem += `Local de partida: ${localPartida}\n`;
         mensagem += `Destino: ${endereco}\n`;
-        if (voo && voo !== "-") mensagem += `Voo: ${voo} - ${ciaAerea}\n`;
+        if (voo && voo !== "-") mensagem += `Voo: ${voo}\n`;
+        if (ciaAerea && ciaAerea !== "-") mensagem += `Companhia Aérea: ${ciaAerea}\n`;
         mensagem += `\n`;
         // Segundo trecho (ida e volta) — vira um traslado separado na planilha
         if (idaVoltaAtivo()) {
@@ -1720,7 +1722,8 @@
             mensagem += `Horário: ${document.getElementById("horaEmbarqueV")?.value || "-"}\n`;
             mensagem += `Local de partida: ${document.getElementById("localPartidaV")?.value || "-"}\n`;
             mensagem += `Destino: ${document.getElementById("enderecoV")?.value || "-"}\n`;
-            if (vooV && vooV !== "-") mensagem += `Voo: ${vooV} - ${ciaV}\n`;
+            if (vooV && vooV !== "-") mensagem += `Voo: ${vooV}\n`;
+            if (ciaV && ciaV !== "-") mensagem += `Companhia Aérea: ${ciaV}\n`;
             mensagem += `Madrugada: ${madrugadaVolta() ? t.madrugadaYes : t.madrugadaNo}\n`;
             if (altaVolta()) mensagem += `Adicional alta temporada (volta): R$ 100\n`;
             adicionaisDaData(document.getElementById("dataViagemV")?.value).forEach(regra => { mensagem += `Adicional ${regra.nome} (volta): R$ ${regra.valor.toLocaleString("pt-BR")}\n`; });
@@ -1811,6 +1814,25 @@
             return;
         }
 
+        // Embarque e destino precisam ficar gravados em campos separados.
+        const sufixosLocal = idaVoltaAtivo() ? ['', 'V'] : [''];
+        for (const sfxLocal of sufixosLocal) {
+            const partidaEl = document.getElementById('localPartida' + sfxLocal);
+            const destinoEl = document.getElementById('endereco' + sfxLocal);
+            const partidaOk = !!(partidaEl && partidaEl.value.trim());
+            const destinoOk = !!(destinoEl && destinoEl.value.trim());
+            marcarErro('localPartida' + sfxLocal, !partidaOk);
+            marcarErro('endereco' + sfxLocal, !destinoOk);
+            if (!partidaOk || !destinoOk) {
+                const msgLocal = { pt: 'Informe o local de embarque e o destino de cada trecho.', en: 'Enter the pickup location and destination for each trip.', es: 'Indique el lugar de recogida y el destino de cada trayecto.' }[currentLang] || 'Informe o local de embarque e o destino de cada trecho.';
+                mostrarFeedback(msgLocal, 'error');
+                const foco = !partidaOk ? partidaEl : destinoEl;
+                foco?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                foco?.focus();
+                return;
+            }
+        }
+
         // Ida e volta: a data da volta não pode ser anterior à da ida
         if (idaVoltaAtivo()) {
             const dIda = document.getElementById('dataViagem')?.value || '';
@@ -1833,9 +1855,9 @@
 
     function montarRevisao() {
         const L = {
-            pt: { rev: 'Confira seus dados', sub: 'Revise antes de enviar.', voltar: 'Voltar e editar', reserva: 'Reserva/Quarto', contato: 'Contato', sentido: 'Sentido', data: 'Data', hora: 'Horário', partida: 'Local de partida', local: 'Destino', voo: 'Voo', cia: 'Cia aérea', veic: 'Veículo', pax: 'Passageiros', ad: 'adultos', cr: 'crianças', malas: 'Malas', valor: 'Valor total', nome: 'Nome' },
-            en: { rev: 'Review your details', sub: 'Please review before sending.', voltar: 'Back to edit', reserva: 'Reservation/Room', contato: 'Contact', sentido: 'Direction', data: 'Date', hora: 'Time', partida: 'Pickup location', local: 'Destination', voo: 'Flight', cia: 'Airline', veic: 'Vehicle', pax: 'Passengers', ad: 'adults', cr: 'children', malas: 'Luggage', valor: 'Total', nome: 'Name' },
-            es: { rev: 'Revise sus datos', sub: 'Revise antes de enviar.', voltar: 'Volver y editar', reserva: 'Reserva/Habitación', contato: 'Contacto', sentido: 'Sentido', data: 'Fecha', hora: 'Hora', partida: 'Lugar de salida', local: 'Destino', voo: 'Vuelo', cia: 'Aerolínea', veic: 'Vehículo', pax: 'Pasajeros', ad: 'adultos', cr: 'niños', malas: 'Equipaje', valor: 'Total', nome: 'Nombre' }
+            pt: { rev: 'Confira seus dados', sub: 'Revise antes de enviar.', voltar: 'Voltar e editar', reserva: 'Reserva/Quarto', contato: 'Contato', sentido: 'Sentido', data: 'Data', hora: 'Horário', partida: 'Local de partida', local: 'Destino', voo: 'Voo', cia: 'Cia aérea', veic: 'Veículo', pax: 'Passageiros', ad: 'adultos', cr: 'crianças', malas: 'Malas', valor: 'Valor total', nome: 'Nome', cat: 'Categoria', airline: 'Companhia Aérea' },
+            en: { rev: 'Review your details', sub: 'Please review before sending.', voltar: 'Back to edit', reserva: 'Reservation/Room', contato: 'Contact', sentido: 'Direction', data: 'Date', hora: 'Time', partida: 'Pickup location', local: 'Destination', voo: 'Flight', cia: 'Airline', veic: 'Vehicle', pax: 'Passengers', ad: 'adults', cr: 'children', malas: 'Luggage', valor: 'Total', nome: 'Name', cat: 'Category', airline: 'Airline' },
+            es: { rev: 'Revise sus datos', sub: 'Revise antes de enviar.', voltar: 'Volver y editar', reserva: 'Reserva/Habitación', contato: 'Contacto', sentido: 'Sentido', data: 'Fecha', hora: 'Hora', partida: 'Lugar de salida', local: 'Destino', voo: 'Vuelo', cia: 'Aerolínea', veic: 'Vehículo', pax: 'Pasajeros', ad: 'adultos', cr: 'niños', malas: 'Equipaje', valor: 'Total', nome: 'Nombre', cat: 'Categoría', airline: 'Aerolínea' }
         }[currentLang] || {};
         const t = translations[currentLang];
         const metodo = metodoContato();
@@ -1859,13 +1881,13 @@
         function row(lbl, val) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #eef0e8;"><span style="color:#8a8270;">' + lbl + '</span><b style="text-align:right;">' + (val || '-') + '</b></div>'; }
         function tituloTrecho(txt) { return '<div style="margin:12px 0 4px;font-weight:700;font-size:0.78rem;color:#8a7a55;letter-spacing:.4px;">' + txt + '</div>'; }
         let html = row(L.nome, nome) + row(L.reserva, reserva) + row(L.contato, contato) +
-            row(L.veic, veic) + row(L.pax, ad + ' ' + L.ad + (cr ? ' + ' + cr + ' ' + L.cr : '')) +
+            row(L.veic, veic) + row(L.cat, document.querySelector('.veiculo-card.selected')?.getAttribute('data-categoria') || '-') + row(L.pax, ad + ' ' + L.ad + (cr ? ' + ' + cr + ' ' + L.cr : '')) +
             row(L.malas, malas);
         // Trecho de ida
         html += (temVolta ? tituloTrecho(t.labelIda.toUpperCase()) : '') +
             row(L.sentido, sent) + row(L.data, dataBR) + row(L.hora, hora) +
             row(L.partida, localPartida) + row(L.local, local) +
-            (voo ? row(L.voo, voo + (cia ? ' / ' + cia : '')) : '');
+            (voo ? row(L.voo, voo) : '') + (cia ? row(L.airline, cia) : '');
         // Trecho de volta (só quando marcado)
         if (temVolta) {
             const sentV = sentidoVolta() === 'IN' ? 'Chegada' : 'Saída';
@@ -1878,7 +1900,7 @@
                 row(L.hora, document.getElementById('horaEmbarqueV')?.value || '-') +
                 row(L.partida, document.getElementById('localPartidaV')?.value || '-') +
                 row(L.local, document.getElementById('enderecoV')?.value || '-') +
-                (vooV ? row(L.voo, vooV + (ciaV ? ' / ' + ciaV : '')) : '');
+                (vooV ? row(L.voo, vooV) : '') + (ciaV ? row(L.airline, ciaV) : '');
         }
         html += row(temVolta ? t.totalTrechos : L.valor, valor);
         document.getElementById('revisaoBody').innerHTML = html;
@@ -1981,7 +2003,9 @@
                 obs: observacoesComPreferencias(),
                 pagamento: document.getElementById("pagamento")?.value,
                 localPartida: document.getElementById("localPartida" + sfx)?.value || "",
-                endereco: document.getElementById("endereco" + sfx)?.value || "",
+                destino: document.getElementById("endereco" + sfx)?.value || "",
+                endereco: document.getElementById("endereco" + sfx)?.value || "", // legado
+                categoria: document.querySelector(".veiculo-card.selected")?.getAttribute("data-categoria") || "",
                 voo: document.getElementById("voo" + sfx)?.value || "",
                 ciaAerea: document.getElementById("ciaAerea" + sfx)?.value || "",
                 idioma: currentLang,
@@ -2221,6 +2245,6 @@
     if (history.length > 1) { var _an = document.getElementById('appnav'); if (_an) _an.style.display = 'flex'; }
 </script>
 
-<script src="cb-versao.js?v=2026.10.02-1"></script>
+<script src="cb-versao.js?v=2026.10.03-1"></script>
 </body>
 </html>
