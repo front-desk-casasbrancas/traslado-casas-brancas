@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.01-5">
+    <meta name="cb-build" content="2026.10.03-1">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Transfer</title>
@@ -168,9 +168,11 @@
         const st = getStatus(t);
         const sentido = t["Sentido"] === "IN" ? "Chegada" : "Saída";
         const wa = waLink(t["Telefone"]);
-        const voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
-        const endereco = t["Endereço"] || t["Endereco"] || '';
-        const mapsBtn = endereco ? `<a class="btn-sec" style="background:#2f7d8c;color:#fff;" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco + ', Búzios RJ')}" target="_blank">📍 Abrir no Maps</a>` : '';
+        const voo = t["Voo"] || "-";
+        const cia = t["Cia Aérea"] || t["Cia Aerea"] || "-";
+        const embarque = t["LocalEmbarque"] || t["Local de embarque"] || "";
+        const destino = t["Destino"] || t["Endereço"] || t["Endereco"] || "";
+        const mapsBtn = embarque ? `<a class="btn-sec" style="background:#2f7d8c;color:#fff;" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(embarque)}" target="_blank" rel="noopener">📍 Abrir local de embarque no Maps</a>` : '';
         const zapBtn = wa ? `<a class="btn-sec" style="background:#25d366;color:#fff;" href="${wa}?text=${encodeURIComponent('Olá ' + (t["Nome"]||'') + ', aqui é o seu motorista da Casas Brancas.')}" target="_blank">💬 WhatsApp do hóspede</a>` : '';
 
         const badges = {
@@ -198,9 +200,15 @@
             linha('Reserva', t["Reserva"] || '-') +
             linha('Telefone', (t["Telefone"] || '-') + (wa ? ` &nbsp;<a class="wa" href="${wa}" target="_blank">WhatsApp</a>` : '')) +
             linha('Sentido', sentido) +
-            linha('Endereço / Local', endereco || '-') +
+            linha('Local de embarque', embarque || '(não informado)') +
+            linha('Destino', destino || '-') +
             linha('Voo', voo) +
+            linha('Companhia Aérea', cia) +
             linha('Veículo', t["Veículo"] || '-') +
+            linha('Categoria', t["Categoria"] || '-') +
+            linha('Pessoas', t["Pessoas"] || '-') +
+            linha('Malas', t["Malas"] || '-') +
+            linha('Valor', 'R$ ' + (Number(t["Valor Total"]) || 0).toLocaleString('pt-BR')) +
             linha('Motorista', t["Motorista"] || '(a definir)') +
             linha('Observações', t["Observações"] || t["Observacoes"] || '-') +
             (t["Modificacao"] ? `<div class="obs-mod">⚠️ ${t["Modificacao"]}</div>` : '') +
@@ -250,6 +258,6 @@
             .catch(function(){ atual["Status"] = st; render(); });
     }
 </script>
-<script src="cb-versao.js"></script>
+<script src="cb-versao.js?v=2026.10.03-1"></script>
 </body>
 </html>
