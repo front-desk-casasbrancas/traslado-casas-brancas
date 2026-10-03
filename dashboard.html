@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.02-3">
+    <meta name="cb-build" content="2026.10.03-1">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -515,7 +515,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
                     <thead>
-                        <tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Endereço / Local</th><th>Voo</th><th>Veículo</th><th>Valor</th><th>Ações</th></tr>
+                        <tr><th>Data Viagem</th><th>Horário</th><th>Hóspede</th><th>Telefone</th><th>Sentido</th><th>Embarque / Destino</th><th>Voo</th><th>Veículo</th><th>Valor</th><th>Ações</th></tr>
                     </thead>
                     <tbody id="historyBody">
                         <tr><td colspan="10" style="text-align: center;">Carregando...</td></tr>
@@ -588,8 +588,12 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <input type="date" id="editData">
         <label>Horário</label>
         <input type="time" id="editHora">
-        <label>Destino / Endereço</label>
-        <input type="text" id="editDestino" placeholder="Ex.: Aeroporto GIG">
+        <label>Local de embarque</label>
+        <input type="text" id="editLocalPartida" placeholder="Ex.: Hotel Casas Brancas ou Aeroporto GIG">
+        <label>Destino</label>
+        <input type="text" id="editDestino" placeholder="Ex.: Hotel Casas Brancas ou Aeroporto GIG">
+        <label>Categoria</label>
+        <input type="text" id="editCategoria" readonly>
         <label>Voo</label>
         <input type="text" id="editVoo">
         <label>Companhia aérea</label>
@@ -1546,7 +1550,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             items.forEach(t => {
                 let data = formatarData(t["Data Viagem"]);
                 let horario = getHorario(t);
-                let endereco = t["Endereço"] || t["Endereco"] || '-';
+                let embarque = t["LocalEmbarque"] || t["Local de embarque"] || "(não informado)";
+                let destino = t["Destino"] || t["Endereço"] || t["Endereco"] || "-";
                 let voo = [t["Voo"], t["Cia Aérea"] || t["Cia Aerea"]].filter(x => x && x !== '-').join(' / ') || '-';
                 let vooNum = (t["Voo"] || '').toString().replace(/\s+/g, '').toUpperCase();
                 let ehHoje = dataKey(t) === dateKeyFromDate(new Date());
@@ -1573,7 +1578,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <td>${t["Nome"] || '-'}${rsv}${pm}${preferenciasHtml}${avalNota}<\\/td>
                     <td>${t["Telefone"] || '-'}<\/td>
                     <td>${t["Sentido"] === "IN" ? "Chegada" : "Saída"}<\/td>
-                    <td>${endereco}<\/td>
+                    <td><strong>Embarque:</strong> ${escHtml(embarque)}<br><strong>Destino:</strong> ${escHtml(destino)}<\/td>
                     <td>${voo}${ehHoje && vooNum ? ` <button class="voo-check" data-voo="${escHtml(vooNum)}" data-data="${escHtml(dataKey(t) || '')}" style="font-size:0.64rem;border:1px solid #cfc4a8;background:#fff;color:#8a7a55;border-radius:30px;padding:2px 8px;cursor:pointer;white-space:nowrap;">✈️ Ver status<\/button>` : ''}<\/td>
                     <td>${t["Veículo"] || '-'}<\/td>
                     <td>R$ ${(parseFloat(t["Valor Total"]) || 0).toLocaleString('pt-BR')}<\/td>
@@ -1895,7 +1900,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let html = '';
         for (let [categoria, lista] of Object.entries(cat)) {
             html += `<optgroup label="${categoria}">`;
-            lista.forEach(v => { html += `<option value="${v.nome}::${v.preco}">${v.nome} — R$ ${v.preco.toLocaleString('pt-BR')}</option>`; });
+            lista.forEach(v => { html += `<option value="${v.nome}::${v.preco}::${categoria}">${v.nome} — R$ ${v.preco.toLocaleString('pt-BR')}</option>`; });
             html += `</optgroup>`;
         }
         return html;
@@ -1928,7 +1933,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         document.getElementById('editData').value = toISODate(editando["Data Viagem"]);
         let h = getHorario(editando);
         document.getElementById('editHora').value = (h && h !== '-') ? h : '';
-        document.getElementById('editDestino').value = editando["Endereço"] || editando["Endereco"] || '';
+        document.getElementById('editLocalPartida').value = editando["LocalEmbarque"] || editando["Local de embarque"] || '';
+        document.getElementById('editDestino').value = editando["Destino"] || editando["Endereço"] || editando["Endereco"] || '';
+        document.getElementById('editCategoria').value = editando["Categoria"] || '';
         document.getElementById('editVoo').value = editando["Voo"] || '';
         document.getElementById('editCia').value = editando["Cia Aérea"] || editando["Cia Aerea"] || '';
         document.getElementById('editPessoas').value = (editando["Pessoas"] !== undefined && editando["Pessoas"] !== '') ? editando["Pessoas"] : '';
@@ -1936,7 +1943,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         document.getElementById('editMotorista').value = editando["Motorista"] || '';
         let sel = document.getElementById('editVeiculo');
         sel.innerHTML = montarOpcoesVeiculo(regiaoKey(editando));
-        for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"]) { o.selected = true; break; } }
+        for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"] && (!editando["Categoria"] || o.value.split("::")[2] === editando["Categoria"])) { o.selected = true; break; } }
+        if (sel.selectedOptions && sel.selectedOptions[0]) document.getElementById('editCategoria').value = sel.selectedOptions[0].value.split("::")[2] || editando["Categoria"] || '';
         recalcularTotalEdit();
         // Mostra o valor atual do transfer (permitindo edição manual)
         const evv = document.getElementById('editValor');
@@ -1950,7 +1958,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let id = editando["ID"];
         let novaData = document.getElementById('editData').value;
         let novaHora = document.getElementById('editHora').value;
-        let novoDestino = document.getElementById('editDestino').value;
+        let novoEmbarque = document.getElementById('editLocalPartida').value.trim();
+        let novoDestino = document.getElementById('editDestino').value.trim();
+        let novaCategoria = document.getElementById('editCategoria').value.trim();
         let novoVeiculo = (document.getElementById('editVeiculo').value || "").split("::")[0];
         let total = parseFloat(document.getElementById('editValor').value);
         if (isNaN(total)) total = recalcularTotalEdit();
@@ -1971,7 +1981,10 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         editando["Sentido"] = novoSentido;
         editando["Data Viagem"] = novaData;
         editando["Horario"] = novaHora;
+        editando["LocalEmbarque"] = novoEmbarque;
+        editando["Destino"] = novoDestino;
         editando["Endereço"] = novoDestino;
+        editando["Categoria"] = novaCategoria;
         editando["Voo"] = novoVoo;
         editando["Cia Aérea"] = novaCia;
         editando["Veículo"] = novoVeiculo;
@@ -1980,7 +1993,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         if (!isNaN(novasMalas)) editando["Malas"] = novasMalas;
         editando["Valor Total"] = total;
         editando["Modificacao"] = "Modificado em " + new Date().toLocaleString('pt-BR');
-        let payload = { dataViagem: novaData, horario: novaHora, endereco: novoDestino, veiculo: novoVeiculo, valorTotal: total,
+        let payload = { dataViagem: novaData, horario: novaHora, localPartida: novoEmbarque, destino: novoDestino, endereco: novoDestino, categoria: novaCategoria, veiculo: novoVeiculo, valorTotal: total,
             nome: novoNome, reserva: novaReserva, telefone: novoTelefone, email: novoEmail, sentido: novoSentido,
             voo: novoVoo, ciaAerea: novaCia, motorista: novoMotorista };
         if (!isNaN(novasPessoas)) payload.pessoas = novasPessoas;
@@ -2094,7 +2107,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         updateHistoryTable();
     });
 
-    document.getElementById('editVeiculo').addEventListener('change', recalcularTotalEdit);
+    document.getElementById('editVeiculo').addEventListener('change', function() { recalcularTotalEdit(); var o=this.selectedOptions&&this.selectedOptions[0]; document.getElementById('editCategoria').value=o?(o.value.split("::")[2]||''):''; });
     document.getElementById('editValor').addEventListener('input', atualizarTotalManual);
     document.getElementById('btnFecharEdit').addEventListener('click', fecharEdicao);
     document.getElementById('editOverlay').addEventListener('click', function(e) { if (e.target === this) fecharEdicao(); });
@@ -2175,7 +2188,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-<script src="cb-versao.js?v=2026.10.02-3"></script>
+<script src="cb-versao.js?v=2026.10.03-1"></script>
 <script>
 (function(){
     var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
