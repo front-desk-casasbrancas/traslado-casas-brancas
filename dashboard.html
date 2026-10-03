@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.03-1">
+    <meta name="cb-build" content="2026.10.03-2">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -1944,7 +1944,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let sel = document.getElementById('editVeiculo');
         sel.innerHTML = montarOpcoesVeiculo(regiaoKey(editando));
         for (let o of sel.options) { if (o.value.split("::")[0] === editando["Veículo"] && (!editando["Categoria"] || o.value.split("::")[2] === editando["Categoria"])) { o.selected = true; break; } }
-        if (sel.selectedOptions && sel.selectedOptions[0]) document.getElementById('editCategoria').value = sel.selectedOptions[0].value.split("::")[2] || editando["Categoria"] || '';
+        if (sel.selectedOptions && sel.selectedOptions[0]) document.getElementById('editCategoria').value = editando["Categoria"] || '';
         recalcularTotalEdit();
         // Mostra o valor atual do transfer (permitindo edição manual)
         const evv = document.getElementById('editValor');
@@ -2188,7 +2188,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-<script src="cb-versao.js?v=2026.10.03-1"></script>
+<script src="cb-versao.js?v=2026.10.03-2"></script>
 <script>
 (function(){
     var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
