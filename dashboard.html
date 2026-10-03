@@ -183,6 +183,9 @@
         .edit-overlay { position: fixed; inset: 0; background: rgba(30,28,23,0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 18px; }
         .edit-overlay.show { display: flex; }
         .edit-card { background: #fff; border-radius: 18px; padding: 24px; max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .edit-transfer-card { position: relative; }
+        .edit-close { position: sticky; top: 0; float: right; z-index: 2; width: 34px; height: 34px; margin: -10px -10px 0 10px; border: 1px solid #e8e1d4; border-radius: 50%; background: rgba(255,255,255,.96); color: #76613d; font-size: 1.45rem; line-height: 1; cursor: pointer; }
+        .edit-close:hover { background: #f5eedf; }
         .edit-card h3 { color: var(--gold-d); margin-bottom: 14px; }
         .edit-card label { display: block; font-size: 0.78rem; color: #8a7a55; margin: 12px 0 5px; }
         .edit-card input, .edit-card select { width: 100%; padding: 11px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font-size: 0.9rem; }
@@ -567,7 +570,8 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 </div>
 
 <div class="edit-overlay" id="editOverlay">
-    <div class="edit-card">
+    <div class="edit-card edit-transfer-card">
+        <button type="button" class="edit-close" id="btnFecharEdit" aria-label="Fechar janela de edição" title="Fechar">×</button>
         <h3>Ajustar transfer</h3>
         <div id="editResumo" style="font-size:0.82rem;color:#7a8b6e;margin-bottom:6px;"></div>
         <label>Nome do hóspede</label>
@@ -2092,6 +2096,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     document.getElementById('editVeiculo').addEventListener('change', recalcularTotalEdit);
     document.getElementById('editValor').addEventListener('input', atualizarTotalManual);
+    document.getElementById('btnFecharEdit').addEventListener('click', fecharEdicao);
+    document.getElementById('editOverlay').addEventListener('click', function(e) { if (e.target === this) fecharEdicao(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { fecharEdicao(); } });
     document.getElementById('btnAjustar').addEventListener('click', aplicarEdicao);
     document.getElementById('btnCancelarEdit').addEventListener('click', fecharEdicao);
     document.getElementById('btnNovaConf').addEventListener('click', () => { if (editando) enviarConfirmacao(editando); fecharEdicao(); });
