@@ -7,7 +7,7 @@
 -->
 <html lang="pt-BR">
 <head>
-    <meta name="cb-build" content="2026.10.03-2">
+    <meta name="cb-build" content="2026.10.04-1">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Casas Brancas - Dashboard</title>
@@ -189,6 +189,9 @@
         .edit-card h3 { color: var(--gold-d); margin-bottom: 14px; }
         .edit-card label { display: block; font-size: 0.78rem; color: #8a7a55; margin: 12px 0 5px; }
         .edit-card input, .edit-card select { width: 100%; padding: 11px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font-size: 0.9rem; }
+        .email-confirm-card { max-width: 720px; }
+        .email-confirm-card textarea { width: 100%; min-height: 260px; resize: vertical; padding: 12px 14px; border: 1px solid #e2d9cf; border-radius: 12px; font: inherit; font-size: 0.9rem; line-height: 1.55; }
+        .email-confirm-note { margin-top: 10px; color: #7a8b6e; font-size: 0.82rem; }
         .chat-layout { display:grid; grid-template-columns:minmax(220px,300px) minmax(0,1fr); gap:14px; min-height:560px; }
         .chat-rooms { background:#fff; border:1px solid #e8e1d4; border-radius:16px; overflow:hidden; }
         .chat-rooms-head,.chat-room-head { padding:14px 16px; border-bottom:1px solid #eee8dc; }
@@ -628,6 +631,18 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         <label>Descrição</label>
         <textarea id="ocorrenciaDescricao" rows="4" maxlength="1000" style="width:100%;padding:11px 14px;border:1px solid #e2d9cf;border-radius:12px;font:inherit;resize:vertical;"></textarea>
         <div class="edit-acoes"><button class="btn-cancelar-edit" id="btnCancelarOcorrencia">Cancelar</button><button class="btn-ajustar" id="btnSalvarOcorrencia">Salvar ocorrência</button></div>
+    </div>
+</div>
+
+<div class="edit-overlay" id="emailConfirmacaoOverlay" role="dialog" aria-modal="true" aria-labelledby="emailConfirmacaoTitulo">
+    <div class="edit-card email-confirm-card">
+        <h3 id="emailConfirmacaoTitulo">Revisar confirmação por e-mail</h3>
+        <div id="emailConfirmacaoResumo" style="font-size:0.82rem;color:#7a8b6e;margin-bottom:8px;"></div>
+        <label for="emailConfirmacaoPara">Destinatário</label><input type="email" id="emailConfirmacaoPara" readonly>
+        <label for="emailConfirmacaoAssunto">Assunto</label><input type="text" id="emailConfirmacaoAssunto" maxlength="180">
+        <label for="emailConfirmacaoTexto">Mensagem</label><textarea id="emailConfirmacaoTexto" maxlength="12000"></textarea>
+        <div class="email-confirm-note">A confirmação só será enviada quando você clicar em “Enviar confirmação”.</div>
+        <div class="edit-acoes"><button type="button" class="btn-cancelar-edit" id="emailConfirmacaoFechar">Fechar</button><button type="button" class="btn-ajustar" id="emailConfirmacaoEnviar">Enviar confirmação</button></div>
     </div>
 </div>
 
@@ -1335,6 +1350,63 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         else drawVehicleFallback(canvas, {});
     }
 
+    // Rascunho revisável: carregar/editar nunca dispara o envio.
+    let emailConfirmacaoAlvo = null, emailConfirmacaoEnviando = false;
+    function assuntoConfirmacaoEmail(t) {
+        const lang = String(t && t.Idioma || 'pt').toLowerCase();
+        return lang === 'en' ? 'Your transfer is confirmed - Casas Brancas' : lang === 'es' ? 'Confirmación de su traslado - Casas Brancas' : 'Confirmação do seu traslado - Casas Brancas';
+    }
+    async function abrirConfirmacaoEmail(t) {
+        const email = String(t['Email'] || '').trim();
+        if (!email) { alert('Hóspede optou por e-mail, mas não há e-mail cadastrado.'); return; }
+        const enviar = document.getElementById('emailConfirmacaoEnviar');
+        emailConfirmacaoAlvo = transferPorId(t['ID']) || t;
+        document.getElementById('emailConfirmacaoPara').value = email;
+        document.getElementById('emailConfirmacaoAssunto').value = assuntoConfirmacaoEmail(emailConfirmacaoAlvo);
+        document.getElementById('emailConfirmacaoTexto').value = 'Carregando confirmação…';
+        document.getElementById('emailConfirmacaoResumo').innerText = (emailConfirmacaoAlvo['Nome'] || 'Hóspede') + ' · ' + (emailConfirmacaoAlvo['Sentido'] === 'IN' ? 'Rio → Búzios' : 'Búzios → Rio') + ' · ' + (formatarData(emailConfirmacaoAlvo['Data Viagem']) || '');
+        enviar.disabled = true;
+        document.getElementById('emailConfirmacaoOverlay').classList.add('show');
+        try {
+            const url = WEBAPP_URL + '?action=confirmacaoTexto&id=' + encodeURIComponent(emailConfirmacaoAlvo['ID']) + '&k=' + _k() + '&t=' + Date.now();
+            const resposta = await fetch(url, { cache: 'no-store' }), d = await resposta.json();
+            if (!resposta.ok || !d || !d.ok || !d.texto) throw new Error((d && (d.error || d.erro)) || 'Não foi possível preparar a confirmação.');
+            document.getElementById('emailConfirmacaoTexto').value = d.texto;
+            document.getElementById('emailConfirmacaoPara').value = d.email || email;
+            document.getElementById('emailConfirmacaoAssunto').value = d.assunto || assuntoConfirmacaoEmail(emailConfirmacaoAlvo);
+            enviar.disabled = false;
+            document.getElementById('emailConfirmacaoAssunto').focus();
+        } catch (e) {
+            alert(e.message || 'Não foi possível preparar a confirmação.');
+            fecharConfirmacaoEmail();
+        }
+    }
+    function fecharConfirmacaoEmail() {
+        if (emailConfirmacaoEnviando) return;
+        document.getElementById('emailConfirmacaoOverlay').classList.remove('show');
+        emailConfirmacaoAlvo = null;
+    }
+    async function confirmarEmailEnviar() {
+        if (!emailConfirmacaoAlvo || emailConfirmacaoEnviando) return;
+        const assunto = document.getElementById('emailConfirmacaoAssunto').value.trim();
+        const texto = document.getElementById('emailConfirmacaoTexto').value.trim();
+        if (!assunto || !texto) { alert('Preencha o assunto e a mensagem antes de enviar.'); return; }
+        emailConfirmacaoEnviando = true;
+        const botao = document.getElementById('emailConfirmacaoEnviar');
+        botao.disabled = true; botao.textContent = 'Enviando…';
+        try {
+            const d = await postApi({ action: 'confirmarEmail', id: emailConfirmacaoAlvo['ID'], assunto: assunto, texto: texto });
+            if (!d || d.error || d.ok === false) throw new Error((d && (d.erro || d.error)) || 'Não foi possível enviar a confirmação.');
+            emailConfirmacaoAlvo['Status'] = 'confirmed';
+            updateHistoryTable(); renderProximos();
+            if (typeof renderOperacaoResumo === 'function') renderOperacaoResumo();
+            document.getElementById('emailConfirmacaoOverlay').classList.remove('show');
+            emailConfirmacaoAlvo = null;
+            alert('Confirmação enviada por e-mail ao hóspede.');
+        } catch (e) { alert(e.message || 'Falha de conexão ao enviar a confirmação.'); }
+        finally { emailConfirmacaoEnviando = false; botao.disabled = false; botao.textContent = 'Enviar confirmação'; }
+    }
+
     // ==================== CONFIRMAÇÃO WHATSAPP ====================
     async function enviarConfirmacao(t) {
         let id = t["ID"];
@@ -1342,18 +1414,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         let email = (t["Email"] || "").toString().trim();
         let usarEmail = (metodo === 'email') || (!t["Telefone"] && email);
 
-        if (usarEmail) {
-            if (!email) { alert("Hóspede optou por e-mail, mas não há e-mail cadastrado."); return; }
-            try {
-                const dR = await postApi({ action: 'confirmarEmail', id: id });
-                if (dR && dR.error) { alert('Erro ao enviar: ' + dR.error); return; }
-                if (dR && dR.ok === false) { alert('Não foi possível enviar: ' + (dR.erro || 'erro desconhecido')); return; }
-            } catch (e) { alert('Falha de conexão ao enviar a confirmação.'); return; }
-            t["Status"] = 'confirmed';
-            updateHistoryTable(); renderProximos(); renderOperacaoResumo();
-            alert("Confirmação enviada por e-mail ao hóspede (pela front@casasbrancas.com.br).");
-            return;
-        }
+        if (usarEmail) { await abrirConfirmacaoEmail(t); return; }
 
         // WhatsApp: abre o NOSSO WhatsApp já com o texto padronizado (no idioma do hóspede)
         let telLimpo = formatWhatsAppPhone(t["Telefone"]);
@@ -2114,6 +2175,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { fecharEdicao(); } });
     document.getElementById('btnAjustar').addEventListener('click', aplicarEdicao);
     document.getElementById('btnCancelarEdit').addEventListener('click', fecharEdicao);
+    document.getElementById('emailConfirmacaoFechar').addEventListener('click', fecharConfirmacaoEmail);
+    document.getElementById('emailConfirmacaoEnviar').addEventListener('click', confirmarEmailEnviar);
+    document.getElementById('emailConfirmacaoOverlay').addEventListener('click', e => { if (e.target.id === 'emailConfirmacaoOverlay') fecharConfirmacaoEmail(); });
     document.getElementById('btnNovaConf').addEventListener('click', () => { if (editando) enviarConfirmacao(editando); fecharEdicao(); });
 
     // Pagamento de comissão / recibo / relatório por motorista
@@ -2188,7 +2252,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-<script src="cb-versao.js?v=2026.10.03-2"></script>
+<script src="cb-versao.js?v=2026.10.04-1"></script>
 <script>
 (function(){
     var VAPID='BHgpoEExQiRqmEehIi20IQ2EEbWBE5XQiPFI2Jrhr_NlSG4bSigmD-kLlxeYGtgurL7XqRHaOAlVCvpTJNxkTus';
