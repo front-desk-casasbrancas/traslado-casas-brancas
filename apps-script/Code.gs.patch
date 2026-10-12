@@ -1,0 +1,42 @@
+--- Code.gs (implantado)
++++ Code.gs (corrigido)
+@@
+   // Cancelado -> remove o evento
+   if (status === "cancelled") {
+-    if (eventoId) {
+-      try { const ev0 = cal.getEventById(eventoId); if (ev0) ev0.deleteEvent(); } catch (e) {}
+-      aba.getRange(linha, colEvento).setValue("");
+-    }
+-    return;
++    var calendarios = [cal];
++    try {
++      var calPadrao = CalendarApp.getDefaultCalendar();
++      if (calPadrao) calendarios.push(calPadrao);
++    } catch (eCalPadrao) {}
++    return cancelarEventoDoTransfer_(calendarios, eventoId, aba, linha, colEvento);
+   }
+@@
+-  let statusNovo = null;
++  let statusNovo = null;
++  const statusAnterior = cab.indexOf("Status") >= 0 ? valores[i][cab.indexOf("Status")] : "active";
+   if (dados.status !== undefined) {
+@@
+-  // Log de auditoria (quem mudou o quê)
+-  try { logAuditoria(id, dados, valores[i], cab); } catch (eL) { Logger.log("Log: " + eL); }
+-
+   // Sincroniza a agenda (mover/atualizar/cancelar)
+-  try { sincronizarEvento(aba, linha, dados); } catch (e) { Logger.log("Evento update: " + e); }
++  try {
++    sincronizarEvento(aba, linha, dados);
++  } catch (e) {
++    Logger.log("Evento update: " + e);
++    if (statusNovo === "cancelled") {
++      // Não confirma o cancelamento se a agenda não confirmou a exclusão.
++      aba.getRange(linha, col("Status")).setValue(statusAnterior || "active");
++      return jsonOut({ ok: false, error: "Não foi possível remover o evento da agenda: " + e });
++    }
++  }
+   aba.getRange(linha, col("EventoAtualizado")).setValue(new Date());
++
++  // Só registra a alteração depois que a sincronização crítica foi confirmada.
++  try { logAuditoria(id, dados, valores[i], cab); } catch (eL) { Logger.log("Log: " + eL); }
