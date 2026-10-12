@@ -4,12 +4,12 @@
   Criacao: 2025-2026. Desenvolvido para a operacao de traslados.
   Aviso de autoria: este arquivo integra obra de software de autoria do autor acima.
 */
-const CACHE = 'cb-transfers-v39';
+const CACHE = 'cb-transfers-v40';
 const ASSETS = [
   'menu.html', 'index.html', 'dashboard.html', 'motorista.html', 'motorista-app.html', 'transfer.html', 'financeiro.html',
   'acompanhamento.html', 'avaliacao.html', 'avaliacoes.html', 'config.html', 'servicos.html',
   'cardapio-74.html', 'cardapio-osteria.html', 'cardapio-spa.html',
-  'icon-192-v4.png', 'icon-512-v4.png', 'manifest.json', 'cb-versao.js', 'versao.json'
+  'icon-192-v4.png', 'icon-512-v4.png', 'manifest.json', 'cb-versao.js', 'transfer-update.js', 'versao.json'
 ];
 
 self.addEventListener('message', (e) => { if (e.data === 'skipWaiting') self.skipWaiting(); });
