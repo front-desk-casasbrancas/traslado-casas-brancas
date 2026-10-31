@@ -43,10 +43,18 @@
     return terms.every(function (term) { return target.indexOf(term) !== -1; });
   }
 
+  function matchesTransferListScope(transfer, query, transferDate, selectedYear, selectedMonth) {
+    if (!matchesTransferSearch(transfer, query)) return false;
+    if (normalizeSearchValue(query)) return true;
+    if (!transferDate || isNaN(transferDate.getTime())) return true;
+    return transferDate.getFullYear() === selectedYear && transferDate.getMonth() === selectedMonth;
+  }
+
   return {
     SEARCH_FIELDS: SEARCH_FIELDS.slice(),
     normalizeSearchValue: normalizeSearchValue,
     buildTransferSearchText: buildTransferSearchText,
-    matchesTransferSearch: matchesTransferSearch
+    matchesTransferSearch: matchesTransferSearch,
+    matchesTransferListScope: matchesTransferListScope
   };
 }));

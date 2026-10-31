@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const {
   normalizeSearchValue,
   buildTransferSearchText,
-  matchesTransferSearch
+  matchesTransferSearch,
+  matchesTransferListScope
 } = require('../transfer-search.js');
 
 const transfer = {
@@ -44,4 +45,20 @@ test('aceita vários termos mesmo quando estão em campos diferentes', () => {
 
 test('consulta vazia não elimina nenhum transfer', () => {
   assert.equal(matchesTransferSearch(transfer, '   '), true);
+});
+
+test('busca por nome ou reserva ignora o mês e ano selecionados', () => {
+  const dataTransfer = new Date(2026, 9, 30);
+  assert.equal(matchesTransferListScope(transfer, 'joao', dataTransfer, 2025, 0), true);
+  assert.equal(matchesTransferListScope(transfer, '9831', dataTransfer, 2025, 0), true);
+});
+
+test('sem busca, mantém o filtro de mês e ano', () => {
+  const dataTransfer = new Date(2026, 9, 30);
+  assert.equal(matchesTransferListScope(transfer, '', dataTransfer, 2026, 9), true);
+  assert.equal(matchesTransferListScope(transfer, '', dataTransfer, 2025, 0), false);
+});
+
+test('busca global ainda rejeita transfers que não correspondem ao termo', () => {
+  assert.equal(matchesTransferListScope(transfer, 'reserva-inexistente', new Date(2026, 9, 30), 2025, 0), false);
 });

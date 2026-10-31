@@ -1588,12 +1588,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
         let f = getFiltros();
         let lista = transfers.filter(t => {
-            if (f.busca) {
-                if (!window.TransferSearch || !window.TransferSearch.matchesTransferSearch(t, f.busca)) return false;
-            }
             if (f.data && dataKey(t) !== f.data) return false;
             const dataTransfer = parseLocal(t["Data Viagem"]);
-            if (!isNaN(dataTransfer.getTime()) && (dataTransfer.getFullYear() !== f.ano || dataTransfer.getMonth() !== f.mes)) return false;
+            if (!window.TransferSearch || !window.TransferSearch.matchesTransferListScope(t, f.busca, dataTransfer, f.ano, f.mes)) return false;
             if (f.sentido !== 'todos' && (t["Sentido"] || '') !== f.sentido) return false;
             if (f.status === 'ativos' && (isCompleted(t) || isCancelled(t))) return false;
             if (f.status === 'finalizados' && !isCompleted(t)) return false;
