@@ -4,7 +4,8 @@ const {
   normalizeSearchValue,
   buildTransferSearchText,
   matchesTransferSearch,
-  matchesTransferListScope
+  matchesTransferListScope,
+  currentListPeriod
 } = require('../transfer-search.js');
 
 const transfer = {
@@ -61,4 +62,8 @@ test('sem busca, mantém o filtro de mês e ano', () => {
 
 test('busca global ainda rejeita transfers que não correspondem ao termo', () => {
   assert.equal(matchesTransferListScope(transfer, 'reserva-inexistente', new Date(2026, 9, 30), 2025, 0), false);
+});
+
+test('inicia a lista no mês e ano atuais, não na data mais futura', () => {
+  assert.deepEqual(currentListPeriod(new Date(2026, 9, 30)), { year: 2026, month: 9 });
 });

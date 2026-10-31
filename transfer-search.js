@@ -50,11 +50,17 @@
     return transferDate.getFullYear() === selectedYear && transferDate.getMonth() === selectedMonth;
   }
 
+  function currentListPeriod(currentDate) {
+    var date = currentDate instanceof Date && !isNaN(currentDate.getTime()) ? currentDate : new Date();
+    return { year: date.getFullYear(), month: date.getMonth() };
+  }
+
   return {
     SEARCH_FIELDS: SEARCH_FIELDS.slice(),
     normalizeSearchValue: normalizeSearchValue,
     buildTransferSearchText: buildTransferSearchText,
     matchesTransferSearch: matchesTransferSearch,
-    matchesTransferListScope: matchesTransferListScope
+    matchesTransferListScope: matchesTransferListScope,
+    currentListPeriod: currentListPeriod
   };
 }));

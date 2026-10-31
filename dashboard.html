@@ -1545,11 +1545,10 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         const tabs = document.getElementById('filtroMesTabs');
         if (!select || !tabs) return;
         const datas = transfers.map(t => parseLocal(t['Data Viagem'])).filter(d => !isNaN(d.getTime()));
-        const anos = [...new Set(datas.map(d => d.getFullYear()))].sort((a, b) => b - a);
-        if (!anos.length) anos.push(new Date().getFullYear());
-        const maisRecente = [...datas].sort((a, b) => b - a)[0];
-        if (!anos.includes(filtroAnoLista)) filtroAnoLista = maisRecente ? maisRecente.getFullYear() : anos[0];
-        if (filtroMesLista === null) filtroMesLista = maisRecente ? maisRecente.getMonth() : new Date().getMonth();
+        const periodoAtual = window.TransferSearch.currentListPeriod(new Date());
+        const anos = [...new Set(datas.map(d => d.getFullYear()).concat(periodoAtual.year))].sort((a, b) => b - a);
+        if (filtroAnoLista === null || !anos.includes(filtroAnoLista)) filtroAnoLista = periodoAtual.year;
+        if (filtroMesLista === null) filtroMesLista = periodoAtual.month;
         select.innerHTML = anos.map(ano => `<option value="${ano}">${ano}</option>`).join('');
         select.value = String(filtroAnoLista);
         tabs.innerHTML = nomesMesesLista.map((mes, indice) => `<button type="button" class="month-tab${indice === filtroMesLista ? ' active' : ''}" data-mes="${indice}" role="tab" aria-selected="${indice === filtroMesLista}">${mes}</button>`).join('');
