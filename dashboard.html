@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="transfer-update.js"></script>
+    <script src="transfer-search.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --gold:#b8995a; --gold-d:#9c7d3f; --gold-l:#cbb27a; --ink:#2b2a26; --sea:#2f7d8c; }
@@ -258,7 +259,8 @@
             background: #fff;
             color: #34322c;
         }
-        .filtros-bar input.busca { flex: 1; min-width: 180px; }
+        .filtros-bar input.busca { flex: 1; min-width: 240px; }
+        .filtros-status { flex-basis: 100%; min-height: 1.2em; color: #8a8270; font-size: 0.78rem; }
         .month-navigator { margin-bottom: 16px; padding: 12px; background: #f8f3e9; border: 1px solid #e5d8be; border-radius: 12px; }
         .month-navigator-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; color: var(--gold-d); font-size: 0.82rem; font-weight: 600; }
         .month-navigator-head select { padding: 7px 10px; border: 1px solid #d8cbb0; border-radius: 8px; background: #fff; color: #34322c; font-size: 0.85rem; }
@@ -501,7 +503,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 <div class="month-tabs" id="filtroMesTabs" role="tablist" aria-label="Meses do ano"></div>
             </div>
             <div class="filtros-bar">
-                <input type="text" id="filtroBusca" class="busca" placeholder="Buscar por nome ou telefone...">
+                <input type="search" id="filtroBusca" class="busca" placeholder="Buscar hóspede, reserva, rota, motorista ou data..." aria-label="Buscar transfers" autocomplete="off">
                 <input type="date" id="filtroData" title="Filtrar por data da viagem">
                 <select id="filtroStatus" title="Filtrar por status">
                     <option value="todos">Todos os status</option>
@@ -515,6 +517,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                     <option value="OUT">Saída</option>
                 </select>
                 <button class="refresh-btn" id="limparFiltros" style="background:#8b7a5c;">Limpar</button>
+                <div id="filtrosStatus" class="filtros-status" role="status" aria-live="polite"></div>
             </div>
             <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
                 <table id="historyTable">
@@ -1565,7 +1568,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     function getFiltros() {
         return {
-            busca: (document.getElementById('filtroBusca')?.value || '').toLowerCase().trim(),
+            busca: (document.getElementById('filtroBusca')?.value || '').trim(),
             data: document.getElementById('filtroData')?.value || '',
             status: document.getElementById('filtroStatus')?.value || 'todos',
             sentido: document.getElementById('filtroSentido')?.value || 'todos',
@@ -1576,16 +1579,17 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
 
     function updateHistoryTable() {
         let tbody = document.getElementById('historyBody');
+        let statusBusca = document.getElementById('filtrosStatus');
         if (!transfers.length) {
             tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado encontrado<\/td><\/tr>';
+            if (statusBusca) statusBusca.textContent = '';
             return;
         }
 
         let f = getFiltros();
         let lista = transfers.filter(t => {
             if (f.busca) {
-                let alvo = ((t["Nome"] || '') + ' ' + (t["Telefone"] || '')).toLowerCase();
-                if (!alvo.includes(f.busca)) return false;
+                if (!window.TransferSearch || !window.TransferSearch.matchesTransferSearch(t, f.busca)) return false;
             }
             if (f.data && dataKey(t) !== f.data) return false;
             const dataTransfer = parseLocal(t["Data Viagem"]);
@@ -1598,9 +1602,13 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         });
 
         if (!lista.length) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum traslado com esses filtros<\/td><\/tr>';
+            let termo = f.busca ? ' para “' + escHtml(f.busca) + '”' : ' com esses filtros';
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Nenhum transfer encontrado' + termo + '.<\/td><\/tr>';
+            if (statusBusca) statusBusca.textContent = 'Nenhum resultado encontrado.';
             return;
         }
+
+        if (statusBusca) statusBusca.textContent = lista.length + (lista.length === 1 ? ' transfer encontrado.' : ' transfers encontrados.');
 
         // Ordenar por data da viagem (mais antigo primeiro)
         let sorted = [...lista].sort((a,b) => parseLocal(a["Data Viagem"]) - parseLocal(b["Data Viagem"]));
