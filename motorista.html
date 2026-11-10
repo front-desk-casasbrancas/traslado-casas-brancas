@@ -99,8 +99,7 @@
         .fin-marcelo .fin-lin.desc { color:#b85c5a; }
         .fin-marcelo .fin-com { font-size:1.15rem; font-weight:700; color:#9c7d3f; margin-top:8px; padding-top:8px; border-top:1px dashed #e2d3ad; display:flex; justify-content:space-between; gap:10px; }
         .fin-marcelo .fin-bt { font-size:0.84rem; font-weight:600; color:#2f7d8c; margin-top:9px; padding-top:9px; border-top:1px dashed #b9d8de; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-        .fin-marcelo .fin-bt-btn { border:1px solid #8ebfc8; background:#eef7f8; color:#2f7d8c; border-radius:40px; padding:5px 10px; font-size:0.7rem; font-weight:700; cursor:pointer; white-space:nowrap; }
-        .fin-marcelo .fin-bt-btn:disabled { opacity:0.65; cursor:wait; }
+        .fin-marcelo .fin-bt-restrito { color:#8a8270; font-size:0.7rem; font-weight:600; }
         @media (max-width: 768px) { .motorista-input { width: 110px; } }
     </style>
 </head>
@@ -210,6 +209,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
     let quick = 'todos';
     let btResumoPorPeriodo = {};
     let btAutorizado = false;
+    let btResumoSolicitado = false;
 
     // ===== COMISSÃO (regra única) =====
     // 15% sobre o valor dos traslados, menos 6% de taxa de cartão sobre a comissão.
@@ -314,15 +314,15 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
         const resumoBt = btResumoPorPeriodo[periodo];
         const valorBt = btAutorizado && resumoBt
             ? '<strong>' + moedaBR(Number(resumoBt.comissao) || 0) + '</strong>'
-            : '<button type="button" class="fin-bt-btn">Acesso Marcelo</button>';
+            : '<span class="fin-bt-restrito">Acesso restrito</span>';
         return '<div class="fin-box">' +
             '<div class="fin-tit">' + titulo + '</div>' +
             '<div class="fin-lin"><span>Traslados</span><span>' + qtd + '</span></div>' +
             '<div class="fin-lin"><span>Total em traslados</span><span>' + moedaBR(total) + '</span></div>' +
+            '<div class="fin-bt"><span>Búzios Technology (5%)</span><span>' + valorBt + '</span></div>' +
             '<div class="fin-lin"><span>Comissão (15%)</span><span>' + moedaBR(bruta) + '</span></div>' +
             '<div class="fin-lin desc"><span>Taxa de cartão (−6%)</span><span>− ' + moedaBR(bruta - liq) + '</span></div>' +
             '<div class="fin-com"><span>Comissão líquida</span><span>' + moedaBR(liq) + '</span></div>' +
-            '<div class="fin-bt"><span>Búzios Technology (5%)</span><span>' + valorBt + '</span></div>' +
         '</div>';
     }
     function periodosFinanceiros() {
@@ -333,10 +333,9 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             anterior: prev.getFullYear() + '-' + String(prev.getMonth() + 1).padStart(2, '0')
         };
     }
-    async function liberarResumoBuziosTechnology() {
-        const chaveMarcelo = window.prompt('Senha exclusiva do Marcelo:');
-        if (!chaveMarcelo) return;
-        document.querySelectorAll('.fin-bt-btn').forEach(b => { b.disabled = true; b.textContent = 'Verificando…'; });
+    async function carregarResumoBuziosTechnology() {
+        if (btResumoSolicitado || !window.CHAVE) return;
+        btResumoSolicitado = true;
         const periodos = periodosFinanceiros();
         try {
             const resposta = await fetch(WEBAPP_URL, {
@@ -344,7 +343,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({
                     action: 'resumoComissaoBuziosTechnology',
-                    kMarcelo: chaveMarcelo,
+                    kMarcelo: window.CHAVE,
                     periodos: [periodos.atual, periodos.anterior]
                 })
             });
@@ -358,7 +357,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             btAutorizado = false;
             btResumoPorPeriodo = {};
             renderFinMarcelo();
-            alert('Não foi possível liberar a comissão da Búzios Technology. Use a senha exclusiva do Marcelo.');
         }
     }
     function renderFinMarcelo() {
@@ -389,7 +387,6 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
                 blocoFin('Mês atual · ' + nomeAtual, aQ, aT, ym) +
                 blocoFin('Mês anterior · ' + nomePrev, pQ, pT, ymPrev) +
             '</div>';
-        document.querySelectorAll('.fin-bt-btn').forEach(btn => btn.addEventListener('click', liberarResumoBuziosTechnology));
     }
 
     // ===== CARREGAR =====
@@ -401,6 +398,7 @@ window.WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxCySxE0y7k6430bbRT
             transfers = Array.isArray(d) ? d : [];
             document.getElementById('lastUpdate').innerText = `Atualizado: ${new Date().toLocaleString('pt-BR')} (${transfers.length})`;
             render();
+            carregarResumoBuziosTechnology();
         } catch (e) {
             console.error(e);
             const err = document.getElementById('errorDisplay');

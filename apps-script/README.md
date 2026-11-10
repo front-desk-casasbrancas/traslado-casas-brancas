@@ -38,12 +38,14 @@ O fluxo é somente de saída por e-mail. Ele não deve ser ligado ao `doGet`, ao
 
 ### Visualização exclusiva na escala do Marcelo
 
-A escala de motoristas pode mostrar a linha `Búzios Technology (5%)`, mas não calcula nem recebe o valor durante o carregamento normal. A linha permanece bloqueada como `Acesso Marcelo` até uma segunda autenticação, independente da senha da recepção.
+A linha `Búzios Technology (5%)` aparece no topo de cada cartão mensal da escala. O valor não é calculado no navegador: a mesma senha usada para abrir a escala é validada novamente no servidor como `CHAVE_MARCELO`. Enquanto a escala ainda usar a senha compartilhada da recepção, a linha mostra apenas `Acesso restrito`.
 
-1. Configure uma senha exclusiva na propriedade de script `CHAVE_MARCELO`.
-2. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
-3. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
-4. A senha fica apenas em memória durante a requisição e não é gravada no navegador.
+1. Separe a autenticação de `motorista.html` da propriedade compartilhada `CHAVE_RECEPCAO`; alterar `CHAVE_RECEPCAO` afetaria menu, dashboard e avaliações.
+2. Configure a senha exclusiva da escala na propriedade de script `CHAVE_MARCELO` e faça a rota de login da escala validar essa propriedade.
+3. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
+4. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
+
+Não publique a exibição do valor antes de separar a senha da escala. Até lá, o código mantém o valor bloqueado.
 
 ### Lembrete mensal de pagamento
 

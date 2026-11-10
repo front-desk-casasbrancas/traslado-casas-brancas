@@ -74,12 +74,13 @@ test('não grava o fechamento confidencial na planilha compartilhada', () => {
   assert.doesNotMatch(source, /appendRow|setValue|setValues|insertSheet|getSheetByName\(['"]Pagamentos/i);
 });
 
-test('a escala não calcula os 5% no navegador e exige autorização do Marcelo', () => {
+test('a escala coloca os 5% no topo sem calculá-los no navegador', () => {
   const escala = fs.readFileSync(path.join(__dirname, '..', 'motorista.html'), 'utf8');
 
   assert.match(escala, /resumoComissaoBuziosTechnology/);
-  assert.match(escala, /kMarcelo/);
-  assert.match(escala, /Acesso Marcelo/);
+  assert.match(escala, /kMarcelo:\s*window\.CHAVE/);
+  assert.match(escala, /Acesso restrito/);
+  assert.doesNotMatch(escala, /prompt\('Senha exclusiva do Marcelo/);
   assert.doesNotMatch(escala, /PCT_BUZIOS|\*\s*0\.05|0\.05\s*\*/);
 });
 
