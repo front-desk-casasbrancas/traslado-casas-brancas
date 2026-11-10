@@ -45,6 +45,16 @@ A escala de motoristas pode mostrar a linha `Búzios Technology (5%)`, mas não 
 3. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
 4. A senha fica apenas em memória durante a requisição e não é gravada no navegador.
 
+### Lembrete mensal de pagamento
+
+O lembrete é um evento discreto de dia inteiro no dia 09 de cada mês, com o título `Revisar pagamento das comissões` e a descrição `Lembrete: pagamento previsto para amanhã, dia 10.`. Ele não contém valores, percentuais ou o nome da Búzios Technology.
+
+1. Configure a propriedade `FECHAMENTO_COMISSOES_CALENDAR_ID` com o ID da agenda aprovada.
+2. Execute uma única vez `instalarLembreteMensalPagamentoComissoesDia09()`.
+3. A função cria uma série mensal e guarda seu ID para impedir duplicidade.
+
+O evento não é criado automaticamente durante a implantação do código.
+
 ### Validação e ativação
 
 1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.

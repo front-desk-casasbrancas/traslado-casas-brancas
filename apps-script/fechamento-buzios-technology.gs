@@ -4,6 +4,8 @@ var BT_FECHAMENTO_CONFIG = {
   fusoHorario: 'America/Sao_Paulo',
   propriedadeEmailMarcelo: 'FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO',
   propriedadeChaveMarcelo: 'CHAVE_MARCELO',
+  propriedadeAgendaComissoes: 'FECHAMENTO_COMISSOES_CALENDAR_ID',
+  propriedadeSerieLembrete: 'FECHAMENTO_COMISSOES_LEMBRETE_SERIE_ID',
   propriedadeEnvioAtivo: 'FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO',
   propriedadeUltimoPeriodo: 'FECHAMENTO_BUZIOS_TECH_ULTIMO_PERIODO_ENVIADO'
 };
@@ -58,6 +60,33 @@ function instalarTriggerFechamentoBuziosTechnologyDia05() {
   if (existente) return { ok: true, criado: false, motivo: 'trigger_ja_existe' };
   ScriptApp.newTrigger(nomeFuncao).timeBased().onMonthDay(5).atHour(9).create();
   return { ok: true, criado: true };
+}
+
+function instalarLembreteMensalPagamentoComissoesDia09() {
+  var props = PropertiesService.getScriptProperties();
+  var calendarId = String(props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeAgendaComissoes) || '').trim();
+  if (!calendarId) {
+    throw new Error('Configure FECHAMENTO_COMISSOES_CALENDAR_ID com a agenda aprovada antes de criar o lembrete.');
+  }
+  var agenda = CalendarApp.getCalendarById(calendarId);
+  if (!agenda) throw new Error('A agenda configurada não foi encontrada ou não permite edição.');
+
+  var serieId = props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeSerieLembrete) || '';
+  if (serieId) {
+    try {
+      var existente = agenda.getEventSeriesById(serieId);
+      if (existente) return { ok: true, criado: false, motivo: 'lembrete_ja_existe' };
+    } catch (eSerie) {}
+  }
+
+  var definicao = btDefinicaoLembretePagamento_();
+  var inicio = btProximoDia09_(new Date());
+  var recorrencia = CalendarApp.newRecurrence().addMonthlyRule().onlyOnMonthDays([9]);
+  var serie = agenda.createAllDayEventSeries(definicao.titulo, inicio, recorrencia, {
+    description: definicao.descricao
+  });
+  props.setProperty(BT_FECHAMENTO_CONFIG.propriedadeSerieLembrete, serie.getId());
+  return { ok: true, criado: true, inicio: btDataIso_(inicio) };
 }
 
 function btEnviarFechamento_(opcoes) {
@@ -187,6 +216,19 @@ function btPeriodoAnterior_(data) {
   var mes = data.getMonth();
   if (mes === 0) { ano -= 1; mes = 12; }
   return ano + '-' + String(mes).padStart(2, '0');
+}
+
+function btProximoDia09_(data) {
+  var proximo = new Date(data.getFullYear(), data.getMonth(), 9);
+  if (data.getDate() > 9) proximo = new Date(data.getFullYear(), data.getMonth() + 1, 9);
+  return proximo;
+}
+
+function btDefinicaoLembretePagamento_() {
+  return {
+    titulo: 'Revisar pagamento das comissões',
+    descricao: 'Lembrete: pagamento previsto para amanhã, dia 10.'
+  };
 }
 
 function btVencimento_(periodo) {

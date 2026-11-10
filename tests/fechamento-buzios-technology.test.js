@@ -12,17 +12,17 @@ const headers = ['ID', 'Data Viagem', 'Valor Total', 'Pagamento', 'Status'];
 
 test('calcula 5% separadamente e não herda a taxa de 6% do hotel', () => {
   const rows = [
-    ['1', '2026-10-03', 7730, 'Cartão de crédito (diretamente ao motorista)', 'completed'],
-    ['2', '2026-10-31', 5170, 'PIX', 'confirmed'],
-    ['3', '2026-10-24', 5000, 'Dinheiro', 'completed'],
-    ['4', '2026-10-18', 990, 'Cartão de crédito (diretamente ao motorista)', 'cancelled']
+    ['1', '2026-10-03', 1000, 'Cartão de crédito (diretamente ao motorista)', 'completed'],
+    ['2', '2026-10-31', 2000, 'PIX', 'confirmed'],
+    ['3', '2026-10-24', 3000, 'Dinheiro', 'completed'],
+    ['4', '2026-10-18', 400, 'Cartão de crédito (diretamente ao motorista)', 'cancelled']
   ];
 
   const result = sandbox.btCalcularFechamento_(headers, rows, '2026-10');
 
   assert.equal(result.quantidade, 3);
-  assert.equal(result.totalTransfers, 17900);
-  assert.equal(result.comissao, 895);
+  assert.equal(result.totalTransfers, 6000);
+  assert.equal(result.comissao, 300);
   assert.equal(result.taxaCartaoAplicada, 0);
 });
 
@@ -104,4 +104,22 @@ test('o backend só devolve a comissão com a chave exclusiva do Marcelo', () =>
   const result = sandbox.resumoComissaoBuziosTechnologyParaMarcelo_('segredo-exclusivo', ['2026-10']);
   assert.equal(result[0].comissao, 50);
   assert.deepEqual(Object.keys(result[0]).sort(), ['comissao', 'periodo']);
+});
+
+test('agenda o lembrete no próximo dia 09', () => {
+  const dezembro = sandbox.btProximoDia09_(new Date(2026, 10, 10));
+  assert.equal(dezembro.getFullYear(), 2026);
+  assert.equal(dezembro.getMonth(), 11);
+  assert.equal(dezembro.getDate(), 9);
+
+  const mesmoMes = sandbox.btProximoDia09_(new Date(2026, 10, 5));
+  assert.equal(mesmoMes.getMonth(), 10);
+  assert.equal(mesmoMes.getDate(), 9);
+});
+
+test('o lembrete da agenda é discreto e não expõe valores confidenciais', () => {
+  const lembrete = sandbox.btDefinicaoLembretePagamento_();
+  assert.equal(lembrete.titulo, 'Revisar pagamento das comissões');
+  assert.match(lembrete.descricao, /amanhã, dia 10/);
+  assert.doesNotMatch(lembrete.titulo + ' ' + lembrete.descricao, /Búzios|Technology|5%|R\$/i);
 });
