@@ -34,18 +34,20 @@ O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independent
 - envia exclusivamente ao e-mail confirmado do Marcelo, sem cópia;
 - não grava o valor da Búzios Technology na planilha nem o expõe no app financeiro.
 
-O fluxo é somente de saída por e-mail. Ele não deve ser ligado ao `doGet`, ao `doPost`, à aba `Pagamentos`, ao dashboard, ao financeiro ou ao menu compartilhados com o Casas Brancas. As funções de pré-visualização existem apenas para validação manual no editor do Apps Script.
+O fechamento completo é somente de saída por e-mail e não deve ser ligado ao `doGet`, à aba `Pagamentos`, ao dashboard, ao financeiro ou ao menu compartilhados com o Casas Brancas. A única resposta adicionada ao `doPost` é o resumo protegido da escala, limitado a `periodo` e `comissao` após validar `CHAVE_MARCELO`. As funções de pré-visualização existem apenas para validação manual no editor do Apps Script.
 
 ### Visualização exclusiva na escala do Marcelo
 
 A linha `Búzios Technology (5%)` aparece no topo de cada cartão mensal da escala. O valor não é calculado no navegador: a mesma senha usada para abrir a escala é validada novamente no servidor como `CHAVE_MARCELO`. Enquanto a escala ainda usar a senha compartilhada da recepção, a linha mostra apenas `Acesso restrito`.
 
-1. Separe a autenticação de `motorista.html` da propriedade compartilhada `CHAVE_RECEPCAO`; alterar `CHAVE_RECEPCAO` afetaria menu, dashboard e avaliações.
-2. Configure a senha exclusiva da escala na propriedade de script `CHAVE_MARCELO` e faça a rota de login da escala validar essa propriedade.
-3. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
+1. Adicione `escala-marcelo.gs` ao projeto vinculado à planilha.
+2. Execute `criarCampoChaveEscalaMarcelo()`. A função cria `CHAVE_MARCELO=CONFIGURAR_ANTES_DE_USAR`, um valor propositalmente inválido.
+3. Em **Configurações do projeto → Propriedades do script**, substitua esse valor pela nova senha exclusiva da escala.
+4. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
+5. Publique uma nova versão do web app sem alterar a URL usada pelo front-end.
 4. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
 
-Não publique a exibição do valor antes de separar a senha da escala. Até lá, o código mantém o valor bloqueado.
+O novo módulo separa login, leitura, alteração de motorista e confirmação da empresa da propriedade compartilhada `CHAVE_RECEPCAO`. Não altere `CHAVE_RECEPCAO`, pois ela continua sendo usada por menu, dashboard e avaliações.
 
 ### Lembrete mensal de pagamento
 

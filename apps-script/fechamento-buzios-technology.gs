@@ -10,8 +10,9 @@ var BT_FECHAMENTO_CONFIG = {
   propriedadeUltimoPeriodo: 'FECHAMENTO_BUZIOS_TECH_ULTIMO_PERIODO_ENVIADO'
 };
 
-// Fluxo confidencial: não conectar estas funções ao doGet/doPost do aplicativo,
-// à aba Pagamentos ou a qualquer resposta consumida pelas telas do Casas Brancas.
+// Fluxo confidencial: não expor o fechamento completo no doGet/doPost, na aba
+// Pagamentos ou nas telas do Casas Brancas. O endpoint protegido da escala pode
+// devolver somente período e comissão após validar CHAVE_MARCELO.
 
 function previsualizarFechamentoBuziosTechnology() {
   return btMontarFechamentoDaPlanilha_(btPeriodoAnterior_(new Date()));

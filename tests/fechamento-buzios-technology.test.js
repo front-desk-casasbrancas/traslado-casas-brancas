@@ -78,8 +78,9 @@ test('a escala coloca os 5% no topo sem calculá-los no navegador', () => {
   const escala = fs.readFileSync(path.join(__dirname, '..', 'motorista.html'), 'utf8');
 
   assert.match(escala, /resumoComissaoBuziosTechnology/);
-  assert.match(escala, /kMarcelo:\s*window\.CHAVE/);
-  assert.match(escala, /Acesso restrito/);
+  assert.match(escala, /kMarcelo:\s*window\.CHAVE_MARCELO/);
+  assert.match(escala, /autenticarEscalaMarcelo/);
+  assert.match(escala, /dadosEscalaMarcelo/);
   assert.doesNotMatch(escala, /prompt\('Senha exclusiva do Marcelo/);
   assert.doesNotMatch(escala, /PCT_BUZIOS|\*\s*0\.05|0\.05\s*\*/);
 });
