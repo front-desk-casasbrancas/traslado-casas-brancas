@@ -65,7 +65,7 @@ function instalarTriggerFechamentoBuziosTechnologyDia05() {
 
 function instalarLembreteMensalPagamentoComissoesDia09() {
   var props = PropertiesService.getScriptProperties();
-  var calendarId = String(props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeAgendaComissoes) || '').trim();
+  var calendarId = String(props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeAgendaComissoes) || (typeof ID_CALENDARIO !== 'undefined' ? ID_CALENDARIO : '')).trim();
   if (!calendarId) {
     throw new Error('Configure FECHAMENTO_COMISSOES_CALENDAR_ID com a agenda aprovada antes de criar o lembrete.');
   }
@@ -120,7 +120,8 @@ function btEnviarFechamento_(opcoes) {
 }
 
 function btMontarFechamentoDaPlanilha_(periodo) {
-  var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(BT_FECHAMENTO_CONFIG.abaTransfers);
+  var planilha = (typeof ID_PLANILHA !== 'undefined') ? SpreadsheetApp.openById(ID_PLANILHA) : SpreadsheetApp.getActiveSpreadsheet();
+  var aba = planilha.getSheetByName(BT_FECHAMENTO_CONFIG.abaTransfers);
   if (!aba) throw new Error('Aba obrigatória não encontrada: ' + BT_FECHAMENTO_CONFIG.abaTransfers);
   var valores = aba.getDataRange().getValues();
   if (!valores.length) throw new Error('A aba de transfers está vazia.');
@@ -273,3 +274,4 @@ function btTextoIgual_(a, b) {
   for (var i = 0; i < limite; i++) diferente |= (esquerda.charCodeAt(i) || 0) ^ (direita.charCodeAt(i) || 0);
   return diferente === 0;
 }
+
