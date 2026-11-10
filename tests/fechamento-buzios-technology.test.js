@@ -61,3 +61,16 @@ test('aceita somente um endereço confirmado para o Marcelo', () => {
   assert.throws(() => sandbox.btLerEmailMarcelo_(props('marcelo@example.com,financeiro@example.com')), /sem cópias/);
 });
 
+test('não expõe a comissão da Búzios Technology nas telas do Casas Brancas', () => {
+  const arquivosCompartilhados = ['financeiro.html', 'dashboard.html', 'menu.html'];
+  const telas = arquivosCompartilhados
+    .map(file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8'))
+    .join('\n');
+
+  assert.doesNotMatch(telas, /Búzios Technology|BUZIOS_TECH|percentualComissao/i);
+});
+
+test('não grava o fechamento confidencial na planilha compartilhada', () => {
+  assert.doesNotMatch(source, /appendRow|setValue|setValues|insertSheet|getSheetByName\(['"]Pagamentos/i);
+});
+

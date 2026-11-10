@@ -34,6 +34,8 @@ O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independent
 - envia exclusivamente ao e-mail confirmado do Marcelo, sem cópia;
 - não grava o valor da Búzios Technology na planilha nem o expõe no app financeiro.
 
+O fluxo é somente de saída por e-mail. Ele não deve ser ligado ao `doGet`, ao `doPost`, à aba `Pagamentos`, ao dashboard, ao financeiro ou ao menu compartilhados com o Casas Brancas. As funções de pré-visualização existem apenas para validação manual no editor do Apps Script.
+
 ### Validação e ativação
 
 1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.
