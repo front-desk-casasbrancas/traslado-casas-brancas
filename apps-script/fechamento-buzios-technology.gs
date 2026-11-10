@@ -2,7 +2,7 @@ var BT_FECHAMENTO_CONFIG = {
   abaTransfers: 'Página1',
   percentualComissao: 0.05,
   fusoHorario: 'America/Sao_Paulo',
-  propriedadeDestinatarios: 'FECHAMENTO_BUZIOS_TECH_EMAILS',
+  propriedadeEmailMarcelo: 'FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO',
   propriedadeEnvioAtivo: 'FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO',
   propriedadeUltimoPeriodo: 'FECHAMENTO_BUZIOS_TECH_ULTIMO_PERIODO_ENVIADO'
 };
@@ -31,7 +31,7 @@ function instalarTriggerFechamentoBuziosTechnologyDia05() {
   if (props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeEnvioAtivo) !== 'true') {
     throw new Error('Ative explicitamente FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO=true somente após a validação.');
   }
-  btLerDestinatarios_(props);
+  btLerEmailMarcelo_(props);
   var nomeFuncao = 'enviarFechamentoBuziosTechnology';
   var existente = ScriptApp.getProjectTriggers().some(function (trigger) {
     return trigger.getHandlerFunction() === nomeFuncao;
@@ -53,11 +53,11 @@ function btEnviarFechamento_(opcoes) {
     if (props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeUltimoPeriodo) === opcoes.periodo) {
       return { ok: true, enviado: false, motivo: 'periodo_ja_enviado', periodo: opcoes.periodo };
     }
-    var destinatarios = btLerDestinatarios_(props);
+    var emailMarcelo = btLerEmailMarcelo_(props);
     var fechamento = btMontarFechamentoDaPlanilha_(opcoes.periodo);
     var mensagem = btMontarMensagem_(fechamento);
     MailApp.sendEmail({
-      to: destinatarios.join(','),
+      to: emailMarcelo,
       subject: mensagem.assunto,
       body: mensagem.texto,
       htmlBody: mensagem.html,
@@ -154,14 +154,13 @@ function btMontarMensagem_(fechamento) {
   return { assunto: assunto, texto: texto, html: html };
 }
 
-function btLerDestinatarios_(props) {
-  var bruto = props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeDestinatarios) || '';
-  var emails = bruto.split(/[;,\s]+/).map(function (email) { return email.trim(); }).filter(Boolean);
-  if (!emails.length) throw new Error('Configure FECHAMENTO_BUZIOS_TECH_EMAILS antes de ativar o envio.');
-  emails.forEach(function (email) {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Destinatário inválido: ' + email);
-  });
-  return emails;
+function btLerEmailMarcelo_(props) {
+  var email = String(props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeEmailMarcelo) || '').trim();
+  if (!email) throw new Error('Configure FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO antes de ativar o envio.');
+  if (/[;,\s]/.test(email) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('Configure somente o e-mail confirmado do Marcelo, sem cópias ou destinatários adicionais.');
+  }
+  return email;
 }
 
 function btPeriodoAnterior_(data) {

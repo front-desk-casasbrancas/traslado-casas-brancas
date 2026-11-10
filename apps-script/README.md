@@ -30,13 +30,15 @@ O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independent
 - usa `Pagamento` apenas para apresentar o resumo por forma de pagamento;
 - prepara o envio no dia 05, com vencimento no dia 10;
 - para outubro de 2026, usa excepcionalmente vencimento em 11/11/2026;
-- impede duplicidade por mês e não contém destinatário fixo.
+- impede duplicidade por mês e não contém destinatário fixo;
+- envia exclusivamente ao e-mail confirmado do Marcelo, sem cópia;
+- não grava o valor da Búzios Technology na planilha nem o expõe no app financeiro.
 
 ### Validação e ativação
 
 1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.
 2. Execute `previsualizarFechamentoBuziosTechnologyOutubro2026()` e confira o objeto retornado antes de configurar qualquer envio.
-3. Cadastre os destinatários confirmados na propriedade de script `FECHAMENTO_BUZIOS_TECH_EMAILS`, separados por vírgula. Não use um endereço presumido.
+3. Cadastre somente o e-mail confirmado do Marcelo na propriedade de script `FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO`. A configuração rejeita listas, cópias e múltiplos destinatários. Não use um endereço presumido.
 4. Depois da aprovação do fechamento e dos destinatários, defina `FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO` como `true`.
 5. Para a exceção de outubro, execute uma única vez `enviarFechamentoBuziosTechnologyOutubro2026()`.
 6. Execute `instalarTriggerFechamentoBuziosTechnologyDia05()` para os meses seguintes. O instalador recusa a criação enquanto o envio estiver desativado ou sem destinatários.

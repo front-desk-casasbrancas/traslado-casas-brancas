@@ -53,3 +53,11 @@ test('separa o resumo por forma de pagamento sem expor dados de hóspedes', () =
   assert.doesNotMatch(message.texto, /\bID\b|hóspede/i);
 });
 
+test('aceita somente um endereço confirmado para o Marcelo', () => {
+  const props = value => ({ getProperty: () => value });
+
+  assert.equal(sandbox.btLerEmailMarcelo_(props('marcelo@example.com')), 'marcelo@example.com');
+  assert.throws(() => sandbox.btLerEmailMarcelo_(props('')), /EMAIL_MARCELO/);
+  assert.throws(() => sandbox.btLerEmailMarcelo_(props('marcelo@example.com,financeiro@example.com')), /sem cópias/);
+});
+
