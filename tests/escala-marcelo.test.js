@@ -48,9 +48,14 @@ test('atualiza somente a coluna Motorista do transfer autorizado', () => {
     getRange: (linha, coluna) => ({ setValue: valor => { escrito = { linha, coluna, valor }; } })
   };
   sandbox.PropertiesService = { getScriptProperties: () => props('senha-exclusiva-segura') };
-  sandbox.SpreadsheetApp = { getActiveSpreadsheet: () => ({ getSheetByName: () => aba }) };
+  sandbox.ID_PLANILHA = 'planilha-ficticia';
+  sandbox.SpreadsheetApp = { openById: () => ({ getSheetByName: () => aba }) };
+  sandbox.LockService = { getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }) };
+  sandbox.sincronizarEvento = () => {};
+  sandbox.Logger = { log: () => {} };
 
   const result = sandbox.atualizarMotoristaEscalaMarcelo_('senha-exclusiva-segura', 'transfer-ficticio', 'Marcelo');
   assert.equal(result.ok, true);
   assert.deepEqual(escrito, { linha: 2, coluna: 2, valor: 'Marcelo' });
 });
+
