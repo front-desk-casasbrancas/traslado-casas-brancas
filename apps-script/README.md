@@ -20,3 +20,26 @@ Os cancelamentos antigos tiveram `EventoID` apagado pelo código anterior. Esses
 ```text
 node --test tests/*.test.js
 ```
+
+## Fechamento da Búzios Technology
+
+O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independente da comissão do hotel:
+
+- calcula 5% sobre os transfers não cancelados do mês anterior;
+- mantém a comissão de 15% do hotel e sua taxa de cartão fora desse cálculo;
+- usa `Pagamento` apenas para apresentar o resumo por forma de pagamento;
+- prepara o envio no dia 05, com vencimento no dia 10;
+- para outubro de 2026, usa excepcionalmente vencimento em 11/11/2026;
+- impede duplicidade por mês e não contém destinatário fixo.
+
+### Validação e ativação
+
+1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.
+2. Execute `previsualizarFechamentoBuziosTechnologyOutubro2026()` e confira o objeto retornado antes de configurar qualquer envio.
+3. Cadastre os destinatários confirmados na propriedade de script `FECHAMENTO_BUZIOS_TECH_EMAILS`, separados por vírgula. Não use um endereço presumido.
+4. Depois da aprovação do fechamento e dos destinatários, defina `FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO` como `true`.
+5. Para a exceção de outubro, execute uma única vez `enviarFechamentoBuziosTechnologyOutubro2026()`.
+6. Execute `instalarTriggerFechamentoBuziosTechnologyDia05()` para os meses seguintes. O instalador recusa a criação enquanto o envio estiver desativado ou sem destinatários.
+
+Nenhuma dessas configurações ou funções de ativação é executada automaticamente pelo código versionado.
+
