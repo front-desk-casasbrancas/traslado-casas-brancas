@@ -38,26 +38,37 @@ function dadosEscalaMarcelo_(chave) {
 
 function atualizarMotoristaEscalaMarcelo_(chave, id, motorista) {
   autenticarEscalaMarcelo_(chave);
-  var aba = escalaAbaTransfers_();
-  var alvo = escalaLocalizarTransfer_(aba, id, ['Motorista']);
-  aba.getRange(alvo.linha, alvo.colunas.Motorista).setValue(String(motorista || '').trim());
-  return { ok: true };
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    var aba = escalaAbaTransfers_();
+    var alvo = escalaLocalizarTransfer_(aba, id, ['Motorista']);
+    var nome = String(motorista || '').trim();
+    aba.getRange(alvo.linha, alvo.colunas.Motorista).setValue(nome);
+    try { sincronizarEvento(aba, alvo.linha, { motorista: nome }); } catch (eAgenda) { Logger.log('Agenda da escala: ' + eAgenda); }
+    return { ok: true };
+  } finally {
+    try { lock.releaseLock(); } catch (eLock) {}
+  }
 }
 
 function confirmarEmpresaEscalaMarcelo_(chave, id) {
   autenticarEscalaMarcelo_(chave);
-  var aba = escalaAbaTransfers_();
-  var alvo = escalaLocalizarTransfer_(aba, id, ['ConfirmadoEmpresa']);
-  var agora = new Date();
-  aba.getRange(alvo.linha, alvo.colunas.ConfirmadoEmpresa).setValue(agora);
-  return {
-    ok: true,
-    quando: Utilities.formatDate(agora, 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm')
-  };
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    var aba = escalaAbaTransfers_();
+    var alvo = escalaLocalizarTransfer_(aba, id, ['ConfirmadoEmpresa']);
+    var quando = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'dd/MM/yyyy HH:mm');
+    aba.getRange(alvo.linha, alvo.colunas.ConfirmadoEmpresa).setValue(quando);
+    return { ok: true, quando: quando };
+  } finally {
+    try { lock.releaseLock(); } catch (eLock) {}
+  }
 }
 
 function escalaAbaTransfers_() {
-  var aba = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ESCALA_MARCELO_CONFIG.abaTransfers);
+  var aba = SpreadsheetApp.openById(ID_PLANILHA).getSheetByName(ESCALA_MARCELO_CONFIG.abaTransfers);
   if (!aba) throw new Error('Aba obrigatória não encontrada: ' + ESCALA_MARCELO_CONFIG.abaTransfers);
   return aba;
 }
@@ -89,3 +100,4 @@ function escalaTextoIgual_(a, b) {
   for (var i = 0; i < limite; i++) diferente |= (esquerda.charCodeAt(i) || 0) ^ (direita.charCodeAt(i) || 0);
   return diferente === 0;
 }
+
