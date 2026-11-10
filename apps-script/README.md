@@ -36,6 +36,15 @@ O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independent
 
 O fluxo é somente de saída por e-mail. Ele não deve ser ligado ao `doGet`, ao `doPost`, à aba `Pagamentos`, ao dashboard, ao financeiro ou ao menu compartilhados com o Casas Brancas. As funções de pré-visualização existem apenas para validação manual no editor do Apps Script.
 
+### Visualização exclusiva na escala do Marcelo
+
+A escala de motoristas pode mostrar a linha `Búzios Technology (5%)`, mas não calcula nem recebe o valor durante o carregamento normal. A linha permanece bloqueada como `Acesso Marcelo` até uma segunda autenticação, independente da senha da recepção.
+
+1. Configure uma senha exclusiva na propriedade de script `CHAVE_MARCELO`.
+2. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
+3. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
+4. A senha fica apenas em memória durante a requisição e não é gravada no navegador.
+
 ### Validação e ativação
 
 1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.

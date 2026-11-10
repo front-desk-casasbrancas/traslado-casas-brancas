@@ -3,6 +3,7 @@ var BT_FECHAMENTO_CONFIG = {
   percentualComissao: 0.05,
   fusoHorario: 'America/Sao_Paulo',
   propriedadeEmailMarcelo: 'FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO',
+  propriedadeChaveMarcelo: 'CHAVE_MARCELO',
   propriedadeEnvioAtivo: 'FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO',
   propriedadeUltimoPeriodo: 'FECHAMENTO_BUZIOS_TECH_ULTIMO_PERIODO_ENVIADO'
 };
@@ -27,6 +28,21 @@ function enviarFechamentoBuziosTechnology() {
 
 function enviarFechamentoBuziosTechnologyOutubro2026() {
   return btEnviarFechamento_({ periodo: '2026-10', origem: 'excepcional_2026-11' });
+}
+
+function resumoComissaoBuziosTechnologyParaMarcelo_(chave, periodos) {
+  var props = PropertiesService.getScriptProperties();
+  var chaveEsperada = props.getProperty(BT_FECHAMENTO_CONFIG.propriedadeChaveMarcelo) || '';
+  if (!chaveEsperada || !btTextoIgual_(String(chave || ''), chaveEsperada)) {
+    throw new Error('Acesso não autorizado.');
+  }
+  if (!Array.isArray(periodos) || !periodos.length || periodos.length > 2) {
+    throw new Error('Informe até dois períodos para o resumo.');
+  }
+  return periodos.map(function (periodo) {
+    var fechamento = btMontarFechamentoDaPlanilha_(String(periodo || ''));
+    return { periodo: fechamento.periodo, comissao: fechamento.comissao };
+  });
 }
 
 function instalarTriggerFechamentoBuziosTechnologyDia05() {
@@ -206,4 +222,12 @@ function btCentavos_(valor) { return Math.round((Number(valor) || 0) * 100) / 10
 function btNormalizar_(valor) { return String(valor || '').trim().toLowerCase(); }
 function btMoeda_(valor) { return 'R$ ' + btCentavos_(valor).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function btEscaparHtml_(valor) { return String(valor).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function btTextoIgual_(a, b) {
+  var esquerda = String(a || '');
+  var direita = String(b || '');
+  var diferente = esquerda.length ^ direita.length;
+  var limite = Math.max(esquerda.length, direita.length);
+  for (var i = 0; i < limite; i++) diferente |= (esquerda.charCodeAt(i) || 0) ^ (direita.charCodeAt(i) || 0);
+  return diferente === 0;
+}
 

@@ -74,3 +74,35 @@ test('não grava o fechamento confidencial na planilha compartilhada', () => {
   assert.doesNotMatch(source, /appendRow|setValue|setValues|insertSheet|getSheetByName\(['"]Pagamentos/i);
 });
 
+test('a escala não calcula os 5% no navegador e exige autorização do Marcelo', () => {
+  const escala = fs.readFileSync(path.join(__dirname, '..', 'motorista.html'), 'utf8');
+
+  assert.match(escala, /resumoComissaoBuziosTechnology/);
+  assert.match(escala, /kMarcelo/);
+  assert.match(escala, /Acesso Marcelo/);
+  assert.doesNotMatch(escala, /PCT_BUZIOS|\*\s*0\.05|0\.05\s*\*/);
+});
+
+test('o backend só devolve a comissão com a chave exclusiva do Marcelo', () => {
+  const rows = [
+    headers,
+    ['1', '2026-10-03', 1000, 'PIX', 'completed']
+  ];
+  sandbox.PropertiesService = {
+    getScriptProperties: () => ({ getProperty: name => name === 'CHAVE_MARCELO' ? 'segredo-exclusivo' : '' })
+  };
+  sandbox.SpreadsheetApp = {
+    getActiveSpreadsheet: () => ({
+      getSheetByName: () => ({ getDataRange: () => ({ getValues: () => rows }) })
+    })
+  };
+
+  assert.throws(
+    () => sandbox.resumoComissaoBuziosTechnologyParaMarcelo_('senha-errada', ['2026-10']),
+    /não autorizado/
+  );
+  const result = sandbox.resumoComissaoBuziosTechnologyParaMarcelo_('segredo-exclusivo', ['2026-10']);
+  assert.equal(result[0].comissao, 50);
+  assert.deepEqual(Object.keys(result[0]).sort(), ['comissao', 'periodo']);
+});
+
