@@ -20,3 +20,52 @@ Os cancelamentos antigos tiveram `EventoID` apagado pelo código anterior. Esses
 ```text
 node --test tests/*.test.js
 ```
+
+## Fechamento da Búzios Technology
+
+O arquivo `fechamento-buzios-technology.gs` implementa um fechamento independente da comissão do hotel:
+
+- calcula 5% sobre os transfers não cancelados do mês anterior;
+- mantém a comissão de 15% do hotel e sua taxa de cartão fora desse cálculo;
+- usa `Pagamento` apenas para apresentar o resumo por forma de pagamento;
+- prepara o envio no dia 05, com vencimento no dia 10;
+- para outubro de 2026, usa excepcionalmente vencimento em 11/11/2026;
+- impede duplicidade por mês e não contém destinatário fixo;
+- envia exclusivamente ao e-mail confirmado do Marcelo, sem cópia;
+- não grava o valor da Búzios Technology na planilha nem o expõe no app financeiro.
+
+O fechamento completo é somente de saída por e-mail e não deve ser ligado ao `doGet`, à aba `Pagamentos`, ao dashboard, ao financeiro ou ao menu compartilhados com o Casas Brancas. A única resposta adicionada ao `doPost` é o resumo protegido da escala, limitado a `periodo` e `comissao` após validar `CHAVE_MARCELO`. As funções de pré-visualização existem apenas para validação manual no editor do Apps Script.
+
+### Visualização exclusiva na escala do Marcelo
+
+A linha `Búzios Technology (5%)` aparece no topo de cada cartão mensal da escala. O valor não é calculado no navegador: a mesma senha usada para abrir a escala é validada novamente no servidor como `CHAVE_MARCELO`. Enquanto a escala ainda usar a senha compartilhada da recepção, a linha mostra apenas `Acesso restrito`.
+
+1. Adicione `escala-marcelo.gs` ao projeto vinculado à planilha.
+2. Execute `criarCampoChaveEscalaMarcelo()`. A função cria `CHAVE_MARCELO=CONFIGURAR_ANTES_DE_USAR`, um valor propositalmente inválido.
+3. Em **Configurações do projeto → Propriedades do script**, substitua esse valor pela nova senha exclusiva da escala.
+4. Aplique também `Code.gs.buzios-technology.patch` no roteamento do `doPost(e)` implantado.
+5. Publique uma nova versão do web app sem alterar a URL usada pelo front-end.
+4. A resposta protegida contém somente `periodo` e `comissao`; não devolve total, formas de pagamento ou detalhes dos transfers.
+
+O novo módulo separa login, leitura, alteração de motorista e confirmação da empresa da propriedade compartilhada `CHAVE_RECEPCAO`. Não altere `CHAVE_RECEPCAO`, pois ela continua sendo usada por menu, dashboard e avaliações.
+
+### Lembrete mensal de pagamento
+
+O lembrete é um evento discreto de dia inteiro no dia 09 de cada mês, com o título `Revisar pagamento das comissões` e a descrição `Lembrete: pagamento previsto para amanhã, dia 10.`. Ele não contém valores, percentuais ou o nome da Búzios Technology.
+
+1. Configure a propriedade `FECHAMENTO_COMISSOES_CALENDAR_ID` com o ID da agenda aprovada.
+2. Execute uma única vez `instalarLembreteMensalPagamentoComissoesDia09()`.
+3. A função cria uma série mensal e guarda seu ID para impedir duplicidade.
+
+O evento não é criado automaticamente durante a implantação do código.
+
+### Validação e ativação
+
+1. Adicione o arquivo ao Apps Script vinculado à planilha `Traslados`.
+2. Execute `previsualizarFechamentoBuziosTechnologyOutubro2026()` e confira o objeto retornado antes de configurar qualquer envio.
+3. Cadastre somente o e-mail confirmado do Marcelo na propriedade de script `FECHAMENTO_BUZIOS_TECH_EMAIL_MARCELO`. A configuração rejeita listas, cópias e múltiplos destinatários. Não use um endereço presumido.
+4. Depois da aprovação do fechamento e dos destinatários, defina `FECHAMENTO_BUZIOS_TECH_ENVIO_ATIVO` como `true`.
+5. Para a exceção de outubro, execute uma única vez `enviarFechamentoBuziosTechnologyOutubro2026()`.
+6. Execute `instalarTriggerFechamentoBuziosTechnologyDia05()` para os meses seguintes. O instalador recusa a criação enquanto o envio estiver desativado ou sem destinatários.
+
+Nenhuma dessas configurações ou funções de ativação é executada automaticamente pelo código versionado.

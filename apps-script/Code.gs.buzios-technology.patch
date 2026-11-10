@@ -1,0 +1,44 @@
+--- Code.gs (implantado)
++++ Code.gs (com resumo protegido da Búzios Technology)
+@@
+   // No início do roteamento de ações do doPost(e), após interpretar o JSON em `dados`:
++  if (dados.action === "autenticarEscalaMarcelo") {
++    try {
++      autenticarEscalaMarcelo_(dados.kMarcelo);
++      return jsonOut({ ok: true });
++    } catch (eAuthEscala) {
++      return jsonOut({ ok: false, error: "Acesso não autorizado." });
++    }
++  }
++  if (dados.action === "dadosEscalaMarcelo") {
++    try {
++      return jsonOut({ ok: true, transfers: dadosEscalaMarcelo_(dados.kMarcelo) });
++    } catch (eDadosEscala) {
++      return jsonOut({ ok: false, error: "Acesso não autorizado." });
++    }
++  }
++  if (dados.action === "atualizarMotoristaEscalaMarcelo") {
++    try {
++      return jsonOut(atualizarMotoristaEscalaMarcelo_(dados.kMarcelo, dados.id, dados.motorista));
++    } catch (eMotoristaEscala) {
++      return jsonOut({ ok: false, error: "Acesso não autorizado." });
++    }
++  }
++  if (dados.action === "confirmarEmpresaEscalaMarcelo") {
++    try {
++      return jsonOut(confirmarEmpresaEscalaMarcelo_(dados.kMarcelo, dados.id));
++    } catch (eConfirmarEscala) {
++      return jsonOut({ ok: false, error: "Acesso não autorizado." });
++    }
++  }
++  if (dados.action === "resumoComissaoBuziosTechnology") {
++    try {
++      return jsonOut({
++        ok: true,
++        resumos: resumoComissaoBuziosTechnologyParaMarcelo_(dados.kMarcelo, dados.periodos)
++      });
++    } catch (eResumoBt) {
++      // Não revela se a chave, o período ou a configuração causou a recusa.
++      return jsonOut({ ok: false, error: "Acesso não autorizado." });
++    }
++  }
