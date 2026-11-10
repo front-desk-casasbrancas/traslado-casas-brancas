@@ -13,4 +13,3 @@
 +      return jsonOut({ ok: false, error: "Acesso não autorizado." });
 +    }
 +  }
-

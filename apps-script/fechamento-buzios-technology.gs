@@ -230,4 +230,3 @@ function btTextoIgual_(a, b) {
   for (var i = 0; i < limite; i++) diferente |= (esquerda.charCodeAt(i) || 0) ^ (direita.charCodeAt(i) || 0);
   return diferente === 0;
 }
-

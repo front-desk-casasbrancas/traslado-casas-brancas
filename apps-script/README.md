@@ -55,4 +55,3 @@ A escala de motoristas pode mostrar a linha `Búzios Technology (5%)`, mas não 
 6. Execute `instalarTriggerFechamentoBuziosTechnologyDia05()` para os meses seguintes. O instalador recusa a criação enquanto o envio estiver desativado ou sem destinatários.
 
 Nenhuma dessas configurações ou funções de ativação é executada automaticamente pelo código versionado.
-

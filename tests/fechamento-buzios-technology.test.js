@@ -105,4 +105,3 @@ test('o backend só devolve a comissão com a chave exclusiva do Marcelo', () =>
   assert.equal(result[0].comissao, 50);
   assert.deepEqual(Object.keys(result[0]).sort(), ['comissao', 'periodo']);
 });
-
