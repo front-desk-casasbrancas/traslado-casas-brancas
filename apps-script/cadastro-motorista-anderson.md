@@ -1,37 +1,15 @@
 # Cadastro do motorista Anderson
 
-O projeto completo do Apps Script não é versionado neste repositório. Aplique estas alterações no `Code.gs` vinculado à planilha de traslados.
-
-## 1. Registrar o motorista
-
-Na constante `MOTORISTAS`, antes do fechamento `};`, acrescente:
+O projeto completo do Apps Script não é versionado neste repositório. No `Code.gs` vinculado à planilha, inclua Anderson na constante `MOTORISTAS`, seguindo o mesmo padrão dos outros motoristas:
 
 ```js
-  "Anderson": { email: "" } // O e-mail fica em Script Properties.
+  "Anderson": { email: "E-MAIL_DO_ANDERSON" }
 ```
 
-## 2. Buscar o e-mail pela propriedade privada
+Use o endereço recebido para o motorista no valor de `email`. Mantenha a função `emailDoMotorista` existente, que já lê os e-mails diretamente dessa constante.
 
-Substitua a função atual `emailDoMotorista` por:
+Salve uma nova versão e atualize a implantação do Web App sem alterar a URL usada pelo front-end.
 
-```js
-function emailDoMotorista(nome) {
-  var k = _achaMotorista(nome);
-  if (!k) return "";
-  if (k === "Anderson") return _prop("EMAIL_MOTORISTA_ANDERSON");
-  return MOTORISTAS[k].email || "";
-}
-```
+Após a implantação, abra `config.html` com a senha atual da recepção, vá à aba **Senhas**, selecione **Anderson** e defina uma senha inicial com pelo menos 8 caracteres. A senha será armazenada nas Script Properties como `SENHA_MOTORISTA_ANDERSON`; compartilhe-a diretamente com o motorista. Ele poderá alterá-la pelo app.
 
-Em **Configurações do projeto → Propriedades do script**, crie a propriedade:
-
-- Chave: `EMAIL_MOTORISTA_ANDERSON`
-- Valor: o endereço informado para o Anderson
-
-Salve uma nova versão e atualize a implantação do Web App mantendo a URL atual.
-
-## 3. Criar a senha inicial
-
-Após a implantação, abra `config.html` com a senha atual da recepção, vá à aba **Senhas**, selecione **Anderson** e defina uma senha inicial com pelo menos 8 caracteres. Entregue a senha diretamente ao motorista; ele poderá alterá-la pelo app.
-
-O app de escala já inclui Anderson na lista de atribuição. Quando ele for selecionado em um traslado, a sincronização do Google Agenda usará o e-mail guardado na propriedade privada.
+O app de escala inclui Anderson na lista de atribuição. Quando ele for selecionado em um traslado, o Google Agenda usará o e-mail definido na constante `MOTORISTAS`.
